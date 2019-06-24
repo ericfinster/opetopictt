@@ -1,0 +1,9 @@
+#
+#  demo.ott
+#
+
+def id : (X : U) -> (x : X) -> X
+       = \X. \x. x
+
+def square : (X : U) -> (f : (x : X) -> X) -> (x : X) -> X
+    	   = \X.\f.\x. f (f x)

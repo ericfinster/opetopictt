@@ -1,0 +1,13 @@
+;; Dune makefile for opetopictt
+
+(menhir
+  (infer false)
+  (modules parser))
+
+(ocamllex
+  (modules lexer))
+  
+(executable
+  (name optt)
+  (preprocess
+    (pps ppx_let)))
