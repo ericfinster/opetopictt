@@ -32,6 +32,12 @@ module OpetopicTypes where
     → (δ : (s : Src t) → 𝕋 A (Typ t s))
     → 𝕋 A f
 
+  γ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
+    → (τ : 𝕋 A (f ▸ t ∣ c))
+    → (δ : (s : Src t) → 𝕋 A (Typ t s))
+    → (ε : (s : Src t) → 𝕋 A (Typ t s ▸ δ s ∣ Inh t s))
+    → 𝕋 A (f ▸ μ t δ ∣ c)
+
   -- These should be defined....
   postulate
   
@@ -47,12 +53,6 @@ module OpetopicTypes where
     μ-src-snd : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
       → (δ : (s : Src t) → 𝕋 A (Typ t s))
       → (s : Src (μ t δ)) → Src (δ (μ-src-fst t δ s))
-
-    γ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-      → (τ : 𝕋 A (f ▸ t ∣ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ▸ δ s ∣ Inh t s))
-      → 𝕋 A (f ▸ μ t δ ∣ c)
 
     γ-src-inl : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
       → (τ : 𝕋 A (f ▸ t ∣ c))
@@ -194,6 +194,12 @@ module OpetopicTypes where
       → Typ (μ t δ) s ↦ Typ (δ (μ-src-fst t δ s)) (μ-src-snd t δ s)
     {-# REWRITE μ-src-typ #-}
 
+    μ-src-inh : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
+      → (δ : (s : Src t) → 𝕋 A (Typ t s))
+      → (s : Src (μ t δ))
+      → Inh (μ t δ) s ↦ Inh (δ (μ-src-fst t δ s)) (μ-src-snd t δ s)
+    {-# REWRITE μ-src-inh #-}
+
     -- μ laws
     μ-unit-r : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) 
       → μ t (λ s → η (Inh t s)) ↦ t
@@ -260,4 +266,24 @@ module OpetopicTypes where
   -- μ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
   --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
   --   → 𝕋 A f
-  μ = {!!}
+  μ (ob c) κ = ob c
+  μ (lf f c) κ = lf f c
+  μ (nd c t d δ ε) κ = 
+    let w = κ (nd-src-here c t d δ ε)
+        ε' s₀ = μ (ε s₀) (λ s₁ → κ (nd-src-there c t d δ ε s₀ s₁))
+    in γ t c w δ ε'
+
+  -- γ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
+  --   → (τ : 𝕋 A (f ▸ t ∣ c))
+  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
+  --   → (ε : (s : Src t) → 𝕋 A (Typ t s ▸ δ s ∣ Inh t s))
+  --   → 𝕋 A (f ▸ μ t δ ∣ c)
+  γ {f = ●} (ob src) tgt arr ϕ ψ = arr
+  γ {f = f ▸ σ₀ ∣ τ₀} .(η c) c (lf .(f ▸ σ₀ ∣ τ₀) .c) ϕ ψ =
+    ψ (nd-src-here τ₀ σ₀ c (λ s₀ → η (Inh σ₀ s₀)) (λ s₀ → lf (Typ σ₀ s₀) (Inh σ₀ s₀)))
+  γ {f = f ▸ σ₀ ∣ τ₀} .(μ τ δ) c (nd .c τ d δ ε) ϕ ψ =
+    let δ' s₀ = μ (δ s₀) (λ s₁ → ϕ (μ-src τ δ s₀ s₁))
+        ε' s₀ = γ {f = Typ τ s₀} (δ s₀) (Inh τ s₀) (ε s₀)
+                  (λ s₁ → ϕ (μ-src τ δ s₀ s₁))
+                  (λ s₁ → ψ (μ-src τ δ s₀ s₁))
+    in nd c τ d δ' ε'
