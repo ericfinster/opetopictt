@@ -4,12 +4,18 @@
 
 %} 
 
-%token TYPE FST SND
-%token <string> IDENT 
+%token TYPE OTYPE
+%token FRAME CELL TREE
+%token POS TYP INH
+%token MU ETA ND LF OB
+%token FRMEMPTY FRMEXT FRMHD
+%token OBPOSELIM LFPOSELIM NDPOSELIM
+%token FST SND
 %token LET DEF EQUAL
 %token LPAR RPAR
 %token COLON ARROW STAR
 %token LAMBDA DOT COMMA
+%token <string> IDENT 
 %token EOF
 
 %start prog
@@ -30,6 +36,8 @@ cmd:
 expr:
   | e = expr1
     { e }
+  | f = frm
+    { f }
   | e1 = expr1 COMMA e2 = expr
     { EPair (e1, e2) }
   
@@ -60,3 +68,10 @@ expr3:
     { ESnd e }
   | LPAR e = expr RPAR
     { e }
+
+frm:
+  | FRMEMPTY
+    { EFrmEmpty }
+  | f = frm FRMEXT s = expr3 FRMHD t = expr3
+    { EFrmExt (f, s, t) } 
+

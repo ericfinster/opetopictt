@@ -8,383 +8,436 @@ module OpetopicTypes where
 
     𝕆 : Type₀
 
-  data 𝔽 (A : 𝕆) : ℕ → Type₀
-  data 𝕋 (A : 𝕆) : {n : ℕ} (f : 𝔽 A n) → Type₀
+  data Frm (A : 𝕆) : ℕ → Type₀
+  data Tree (A : 𝕆) : {n : ℕ} (f : Frm A n) → Type₀
 
   postulate
   
-    ℂ : (A : 𝕆) {n : ℕ} (f : 𝔽 A n) → Type₀
-    Src : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} → 𝕋 A f → Type₀
+    Cell : (A : 𝕆) {n : ℕ} (f : Frm A n) → Type₀
+    Pos : {A : 𝕆} {n : ℕ} {f : Frm A n} → Tree A f → Type₀
 
-  Typ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n}
-    → (t : 𝕋 A f) (s : Src t) → 𝔽 A n
+  Typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (p : Pos σ) → Frm A n
     
-  Inh : {A : 𝕆} {n : ℕ} {f : 𝔽 A n}
-    → (t : 𝕋 A f) (s : Src t) → ℂ A (Typ t s)
+  Inh : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (p : Pos σ) → Cell A (Typ σ p)
 
-  data 𝔽 (A : 𝕆) where
-    ● : 𝔽 A O
-    _∥_▸_ : {n : ℕ} (f : 𝔽 A n) (σ : 𝕋 A f) (τ : ℂ A f) → 𝔽 A (S n)
-  
-  η : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} → ℂ A f → 𝕋 A f
+  data Frm (A : 𝕆) where
+    ● : Frm A O
+    _∥_▸_ : {n : ℕ} (f : Frm A n) (σ : Tree A f) (τ : Cell A f) → Frm A (S n)
 
-  μ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → 𝕋 A f
+  η : {A : 𝕆} {n : ℕ} {f : Frm A n} → Cell A f → Tree A f
 
-  γ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-    → (τ : 𝕋 A (f ∥ t ▸ c))
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-    → 𝕋 A (f ∥ μ t δ ▸ c)
+  μ : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+    → (κ : (p : Pos σ) → Tree A (Typ σ p))
+    → Tree A f
 
-  μ-src : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → (s₀ : Src t) (s₁ : Src (δ s₀))
-    → Src (μ t δ)
+  γ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+    → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+    → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+    → Tree A (f ∥ μ σ ϕ ▸ τ)
 
-  μ-src-fst : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → Src (μ t δ) → Src t
+  η-pos : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    → (α : Cell A f) → Pos (η α)
 
-  μ-src-snd : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → (s : Src (μ t δ)) → Src (δ (μ-src-fst t δ s))
+  η-pos-elim : {A : 𝕆} {n : ℕ} {f : Frm A n} (α : Cell A f)
+    → (X : (p : Pos (η α)) → Type₀)
+    → (η-pos* : X (η-pos α))
+    → (p : Pos (η α)) → X p
 
-  γ-src-inl : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-    → (τ : 𝕋 A (f ∥ t ▸ c))
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-    → Src τ → Src (γ t c τ δ ε)
+  μ-pos : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+    → (κ : (p : Pos σ) → Tree A (Typ σ p))
+    → (p : Pos σ) (q : Pos (κ p))
+    → Pos (μ σ κ)
 
-  γ-src-inr : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-    → (τ : 𝕋 A (f ∥ t ▸ c))
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-    → (s₀ : Src t) (s₁ : Src (ε s₀))
-    → Src (γ t c τ δ ε)
+  μ-pos-fst : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+    → (κ : (p : Pos σ) → Tree A (Typ σ p))
+    → Pos (μ σ κ) → Pos σ
 
-  γ-src-elim : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-    → (τ : 𝕋 A (f ∥ t ▸ c))
-    → (δ : (s : Src t) → 𝕋 A (Typ t s))
-    → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-    → (X : Src (γ t c τ δ ε) → Type₀)
-    → (inl* : (s : Src τ) → X (γ-src-inl t c τ δ ε s))
-    → (inr* : (s₀ : Src t) (s₁ : Src (ε s₀)) → X (γ-src-inr t c τ δ ε s₀ s₁))
-    → (s : Src (γ t c τ δ ε)) → X s
+  μ-pos-snd : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+    → (κ : (p : Pos σ) → Tree A (Typ σ p))
+    → (p : Pos (μ σ κ)) → Pos (κ (μ-pos-fst σ κ p))
 
-  data 𝕋 (A : 𝕆) where
-    ob : ℂ A ● → 𝕋 A ●
-    lf : {n : ℕ} (f : 𝔽 A n) (c : ℂ A f)
-      → 𝕋 A (f ∥ η c ▸ c)
-    nd : {n : ℕ} {f : 𝔽 A n} (c : ℂ A f) (t : 𝕋 A f)
-      → (d : ℂ A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → 𝕋 A (f ∥ μ t δ ▸ c)
+  γ-pos-inl : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+    → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+    → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+    → Pos ρ → Pos (γ σ τ ρ ϕ ψ)
+
+  γ-pos-inr : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+    → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+    → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+    → (p : Pos σ) (q : Pos (ψ p))
+    → Pos (γ σ τ ρ ϕ ψ)
+
+  γ-pos-elim : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+    → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+    → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+    → (X : Pos (γ σ τ ρ ϕ ψ) → Type₀)
+    → (inl* : (p : Pos ρ) → X (γ-pos-inl σ τ ρ ϕ ψ p))
+    → (inr* : (p : Pos σ) (q : Pos (ψ p)) → X (γ-pos-inr σ τ ρ ϕ ψ p q))
+    → (p : Pos (γ σ τ ρ ϕ ψ)) → X p
+
+  data Tree (A : 𝕆) where
+    ob : (α : Cell A ●) → Tree A ●
+    lf : {n : ℕ} (f : Frm A n) (α : Cell A f)
+      → Tree A (f ∥ η α ▸ α)
+    nd : {n : ℕ} {f : Frm A n} 
+      → (σ : Tree A f) (τ : Cell A f)  (α : Cell A (f ∥ σ ▸ τ))
+      → (δ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ε : (p : Pos σ) → Tree A (Typ σ p ∥ δ p ▸ Inh σ p))
+      → Tree A (f ∥ μ σ δ ▸ τ)
 
   postulate
 
-    ob-src-elim : {A : 𝕆} (c : ℂ A ●)
-      → (X : Src (ob c) → Type₀)
-      → (s : Src (ob c)) → X s
+    ob-pos : {A : 𝕆} (α : Cell A ●)
+      → Pos (ob α)
 
-    lf-src-elim : {A : 𝕆} {n : ℕ} (f : 𝔽 A n) (c : ℂ A f)
-      → (X : Src (lf f c) → Type₀)
-      → (s : Src (lf f c)) → X s
+    ob-pos-elim : {A : 𝕆} (α : Cell A ●)
+      → (X : Pos (ob α) → Type₀)
+      → (x : X (ob-pos α))
+      → (s : Pos (ob α)) → X s
 
-    nd-src-here : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} 
-      → (c : ℂ A f) (t : 𝕋 A f) (d : ℂ A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → Src (nd c t d δ ε)
+    ob-pos-elim-β : {A : 𝕆} (α : Cell A ●)
+      → (X : Pos (ob α) → Type₀)
+      → (x : X (ob-pos α))
+      → ob-pos-elim α X x (ob-pos α) ↦ x
+    {-# REWRITE ob-pos-elim-β #-}
 
-    nd-src-there : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} 
-      → (c : ℂ A f) (t : 𝕋 A f) (d : ℂ A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (s₀ : Src t) (s₁ : Src (ε s₀))
-      → Src (nd c t d δ ε)
+    lf-pos-elim : {A : 𝕆} {n : ℕ} (f : Frm A n) (α : Cell A f)
+      → (X : Pos (lf f α) → Type₀)
+      → (p : Pos (lf f α)) → X p
+
+    nd-pos-here : {A : 𝕆} {n : ℕ} {f : Frm A n} 
+      → (σ : Tree A f) (τ : Cell A f)  (α : Cell A (f ∥ σ ▸ τ))
+      → (δ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ε : (p : Pos σ) → Tree A (Typ σ p ∥ δ p ▸ Inh σ p))
+      → Pos (nd σ τ α δ ε)
+
+    nd-pos-there : {A : 𝕆} {n : ℕ} {f : Frm A n} 
+      → (σ : Tree A f) (τ : Cell A f)  (α : Cell A (f ∥ σ ▸ τ))
+      → (δ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ε : (p : Pos σ) → Tree A (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (p : Pos σ) (q : Pos (ε p))
+      → Pos (nd σ τ α δ ε)
       
-    nd-src-elim : {A : 𝕆} {n : ℕ} {f : 𝔽 A n}
-      → (c : ℂ A f) (t : 𝕋 A f) (d : ℂ A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (X : Src (nd c t d δ ε) → Type₀)
-      → (hr : X (nd-src-here c t d δ ε))
-      → (thr : (s₀ : Src t) (s₁ : Src (ε s₀))
-           → X (nd-src-there c t d δ ε s₀ s₁))
-      → (s : Src (nd c t d δ ε)) → X s
+    nd-pos-elim : {A : 𝕆} {n : ℕ} {f : Frm A n} 
+      → (σ : Tree A f) (τ : Cell A f)  (α : Cell A (f ∥ σ ▸ τ))
+      → (δ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ε : (p : Pos σ) → Tree A (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (X : Pos (nd σ τ α δ ε) → Type₀)
+      → (here* : X (nd-pos-here σ τ α δ ε))
+      → (there* : (p : Pos σ) (q : Pos (ε p))
+           → X (nd-pos-there σ τ α δ ε p q))
+      → (p : Pos (nd σ τ α δ ε)) → X p
 
-    nd-src-elim-here-β : {A : 𝕆} {n : ℕ} {f : 𝔽 A n}
-      → (c : ℂ A f) (t : 𝕋 A f) (d : ℂ A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (X : Src (nd c t d δ ε) → Type₀)
-      → (hr : X (nd-src-here c t d δ ε))
-      → (thr : (s₀ : Src t) (s₁ : Src (ε s₀))
-           → X (nd-src-there c t d δ ε s₀ s₁))
-      → nd-src-elim c t d δ ε X hr thr (nd-src-here c t d δ ε) ↦ hr
-    {-# REWRITE nd-src-elim-here-β #-}
+    nd-pos-elim-here-β : {A : 𝕆} {n : ℕ} {f : Frm A n} 
+      → (σ : Tree A f) (τ : Cell A f)  (α : Cell A (f ∥ σ ▸ τ))
+      → (δ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ε : (p : Pos σ) → Tree A (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (X : Pos (nd σ τ α δ ε) → Type₀)
+      → (here* : X (nd-pos-here σ τ α δ ε))
+      → (there* : (p : Pos σ) (q : Pos (ε p))
+           → X (nd-pos-there σ τ α δ ε p q))
+      → nd-pos-elim σ τ α δ ε X here* there* (nd-pos-here σ τ α δ ε) ↦ here*
+    {-# REWRITE nd-pos-elim-here-β #-}
 
-    nd-src-elim-there-β : {A : 𝕆} {n : ℕ} {f : 𝔽 A n}
-      → (c : ℂ A f) (t : 𝕋 A f) (d : ℂ A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (X : Src (nd c t d δ ε) → Type₀)
-      → (hr : X (nd-src-here c t d δ ε))
-      → (thr : (s₀ : Src t) (s₁ : Src (ε s₀))
-           → X (nd-src-there c t d δ ε s₀ s₁))
-      → (s₀ : Src t) (s₁ : Src (ε s₀))
-      → nd-src-elim c t d δ ε X hr thr (nd-src-there c t d δ ε s₀ s₁) ↦ thr s₀ s₁
-    {-# REWRITE nd-src-elim-there-β #-}
+    nd-pos-elim-there-β : {A : 𝕆} {n : ℕ} {f : Frm A n} 
+      → (σ : Tree A f) (τ : Cell A f)  (α : Cell A (f ∥ σ ▸ τ))
+      → (δ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ε : (p : Pos σ) → Tree A (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (X : Pos (nd σ τ α δ ε) → Type₀)
+      → (here* : X (nd-pos-here σ τ α δ ε))
+      → (there* : (p : Pos σ) (q : Pos (ε p))
+           → X (nd-pos-there σ τ α δ ε p q))
+      → (p : Pos σ) (q : Pos (ε p))
+      → nd-pos-elim σ τ α δ ε X here* there* (nd-pos-there σ τ α δ ε p q) ↦ there* p q
+    {-# REWRITE nd-pos-elim-there-β #-}
 
   --
-  --  Definining source types and inhabitants
+  --  Definining position types and inhabitants
   --
 
-  -- Typ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n}
-  --   → (t : 𝕋 A f) (s : Src t) → 𝔽 A n
-  Typ {f = ●} (ob c) =
-    ob-src-elim c (λ _ → 𝔽 _ O)
-  Typ {f = f ∥ .(η τ) ▸ τ} (lf .f .τ) =
-    lf-src-elim f τ (λ _ → 𝔽 _ (S _))
-  Typ {f = f ∥ .(μ t δ) ▸ τ} (nd .τ t d δ ε) =
-    nd-src-elim τ t d δ ε (λ _ → 𝔽 _ (S _))
-      (f ∥ t ▸ τ)
-      (λ s₀ s₁ → Typ (ε s₀) s₁)
-  
-  -- Inh : {A : 𝕆} {n : ℕ} {f : 𝔽 A n}
-  --   → (t : 𝕋 A f) (s : Src t) → ℂ A (Typ t s)
-  Inh {f = ●} (ob c) =
-    ob-src-elim c _
-  Inh {f = f ∥ .(η τ) ▸ τ} (lf .f .τ) =
-    lf-src-elim f τ _
-  Inh {f = f ∥ .(μ t δ) ▸ τ} (nd .τ t d δ ε) =
-    let X s = ℂ _  (Typ (nd τ t d δ ε) s)
-    in nd-src-elim τ t d δ ε X d (λ s₀ s₁ → Inh (ε s₀) s₁)
+  -- Typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+  --   → (σ : Tree A f) (p : Pos σ) → Frm A n
+  Typ (ob α) p = ●
+  Typ (lf f α) = lf-pos-elim f α _ 
+  Typ (nd σ τ α δ ε) = nd-pos-elim σ τ α δ ε _
+    (_ ∥ σ ▸ τ) (λ p q → Typ (ε p) q)
+
+  -- Inh : {A : 𝕆} {n : ℕ} {f : Frm A n}
+  --   → (σ : Tree A f) (p : Pos σ) → Cell A (Typ σ p)
+  Inh (ob α) p = α
+  Inh (lf f α) = lf-pos-elim f α _
+  Inh (nd σ τ α δ ε) = nd-pos-elim σ τ α δ ε _ α
+    (λ p q → Inh (ε p) q)
 
   postulate
 
-    -- μ-src laws
-    μ-src-fst-β : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (s₀ : Src t) (s₁ : Src (δ s₀))
-      → μ-src-fst t δ (μ-src t δ s₀ s₁) ↦ s₀
-    {-# REWRITE μ-src-fst-β #-}
+    -- η-pos laws
+    η-pos-typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (α : Cell A f) (p : Pos (η α))
+      → Typ (η α) p ↦ f
+    {-# REWRITE η-pos-typ #-}
 
-    μ-src-snd-β : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (s₀ : Src t) (s₁ : Src (δ s₀))
-      → μ-src-snd t δ (μ-src t δ s₀ s₁) ↦ s₁
-    {-# REWRITE μ-src-snd-β #-}
+    η-pos-inh : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (α : Cell A f) (p : Pos (η α))
+      → Inh (η α) (η-pos α) ↦ α
+    {-# REWRITE η-pos-inh #-}
 
-    μ-src-η : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (s : Src (μ t δ))
-      → μ-src t δ (μ-src-fst t δ s) (μ-src-snd t δ s) ↦ s
-    {-# REWRITE μ-src-η #-}
+    η-pos-elim-β : {A : 𝕆} {n : ℕ} {f : Frm A n} (α : Cell A f)
+      → (X : (p : Pos (η α)) → Type₀)
+      → (η-pos* : X (η-pos α))
+      → η-pos-elim α X η-pos* (η-pos α) ↦ η-pos*
+    {-# REWRITE η-pos-elim-β #-}
+    
+    -- μ-pos laws
+    μ-pos-fst-β : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (p : Pos σ) (q : Pos (κ p))
+      → μ-pos-fst σ κ (μ-pos σ κ p q) ↦ p
+    {-# REWRITE μ-pos-fst-β #-}
 
-    μ-src-typ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (s : Src (μ t δ))
-      → Typ (μ t δ) s ↦ Typ (δ (μ-src-fst t δ s)) (μ-src-snd t δ s)
-    {-# REWRITE μ-src-typ #-}
+    μ-pos-snd-β : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (p : Pos σ) (q : Pos (κ p))
+      → μ-pos-snd σ κ (μ-pos σ κ p q) ↦ q
+    {-# REWRITE μ-pos-snd-β #-}
 
-    μ-src-inh : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (s : Src (μ t δ))
-      → Inh (μ t δ) s ↦ Inh (δ (μ-src-fst t δ s)) (μ-src-snd t δ s)
-    {-# REWRITE μ-src-inh #-}
+    μ-pos-η : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (p : Pos (μ σ κ))
+      → μ-pos σ κ (μ-pos-fst σ κ p) (μ-pos-snd σ κ p) ↦ p
+    {-# REWRITE μ-pos-η #-}
+
+    μ-pos-typ : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (p : Pos (μ σ κ))
+      → Typ (μ σ κ) p ↦ Typ (κ (μ-pos-fst σ κ p)) (μ-pos-snd σ κ p)
+    {-# REWRITE μ-pos-typ #-}
+
+    μ-pos-inh : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (p : Pos (μ σ κ))
+      → Inh (μ σ κ) p ↦ Inh (κ (μ-pos-fst σ κ p)) (μ-pos-snd σ κ p)
+    {-# REWRITE μ-pos-inh #-}
 
     -- μ laws
-    μ-unit-r : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) 
-      → μ t (λ s → η (Inh t s)) ↦ t
+    μ-unit-r : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f) 
+      → μ σ (λ p → η (Inh σ p)) ↦ σ
     {-# REWRITE μ-unit-r #-}
 
-    μ-assoc : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src (μ t δ)) → 𝕋 A (Typ (μ t δ) s))
-      → μ (μ t δ) ε ↦ μ t (λ s₀ → μ (δ s₀) (λ s₁ → ε (μ-src t δ s₀ s₁)))
+    μ-unit-l : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (α : Cell A f) (κ : (p : Pos (η α)) → Tree A (Typ (η α) p))
+      → μ (η α) κ ↦ κ (η-pos α)
+    {-# REWRITE μ-unit-l #-}
+
+    μ-assoc : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (θ : (p : Pos (μ σ κ)) → Tree A (Typ (μ σ κ) p))
+      → μ (μ σ κ) θ ↦ μ σ (λ p → μ (κ p) (λ q → θ (μ-pos σ κ p q)))
     {-# REWRITE μ-assoc #-}
     
-    -- γ elim rules
-    γ-src-elim-inl-β : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-      → (τ : 𝕋 A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (X : Src (γ t c τ δ ε) → Type₀)
-      → (inl* : (s : Src τ) → X (γ-src-inl t c τ δ ε s))
-      → (inr* : (s₀ : Src t) (s₁ : Src (ε s₀)) → X (γ-src-inr t c τ δ ε s₀ s₁))
-      → (s : Src τ)
-      → γ-src-elim t c τ δ ε X inl* inr* (γ-src-inl t c τ δ ε s) ↦ inl* s
-    {-# REWRITE γ-src-elim-inl-β #-}
+    -- γ elim comp rules
+    γ-pos-elim-inl-β : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+      → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+      → (X : Pos (γ σ τ ρ ϕ ψ) → Type₀)
+      → (inl* : (p : Pos ρ) → X (γ-pos-inl σ τ ρ ϕ ψ p))
+      → (inr* : (p : Pos σ) (q : Pos (ψ p)) → X (γ-pos-inr σ τ ρ ϕ ψ p q))
+      → (p : Pos ρ)
+      → γ-pos-elim σ τ ρ ϕ ψ X inl* inr* (γ-pos-inl σ τ ρ ϕ ψ p) ↦ inl* p
+    {-# REWRITE γ-pos-elim-inl-β #-}
 
-    γ-src-elim-inr-β : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-      → (τ : 𝕋 A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (X : Src (γ t c τ δ ε) → Type₀)
-      → (inl* : (s : Src τ) → X (γ-src-inl t c τ δ ε s))
-      → (inr* : (s₀ : Src t) (s₁ : Src (ε s₀)) → X (γ-src-inr t c τ δ ε s₀ s₁))
-      → (s₀ : Src t) (s₁ : Src (ε s₀))
-      → γ-src-elim t c τ δ ε X inl* inr* (γ-src-inr t c τ δ ε s₀ s₁) ↦ inr* s₀ s₁
-    {-# REWRITE γ-src-elim-inr-β #-}
+    γ-pos-elim-inr-β : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+      → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+      → (X : Pos (γ σ τ ρ ϕ ψ) → Type₀)
+      → (inl* : (p : Pos ρ) → X (γ-pos-inl σ τ ρ ϕ ψ p))
+      → (inr* : (p : Pos σ) (q : Pos (ψ p)) → X (γ-pos-inr σ τ ρ ϕ ψ p q))
+      → (p : Pos σ) (q : Pos (ψ p))
+      → γ-pos-elim σ τ ρ ϕ ψ X inl* inr* (γ-pos-inr σ τ ρ ϕ ψ p q) ↦ inr* p q
+    {-# REWRITE γ-pos-elim-inr-β #-}
     
-    -- γ src laws
-    γ-src-inl-typ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-      → (τ : 𝕋 A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (s : Src τ)
-      → Typ (γ t c τ δ ε) (γ-src-inl t c τ δ ε s) ↦ Typ τ s
-    {-# REWRITE γ-src-inl-typ #-}
+    -- γ pos laws
+    γ-pos-inl-typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+      → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+      → (p : Pos ρ)
+      → Typ (γ σ τ ρ ϕ ψ) (γ-pos-inl σ τ ρ ϕ ψ p) ↦ Typ ρ p
+    {-# REWRITE γ-pos-inl-typ #-}
 
-    γ-src-inr-typ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-      → (τ : 𝕋 A (f ∥ t ▸ c))
-      → (δ : (s : Src t) → 𝕋 A (Typ t s))
-      → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-      → (s₀ : Src t) (s₁ : Src (ε s₀))
-      → Typ (γ t c τ δ ε) (γ-src-inr t c τ δ ε s₀ s₁) ↦ Typ (ε s₀) s₁
-    {-# REWRITE γ-src-inr-typ #-}
+    γ-pos-inr-typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+      → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+      → (p : Pos σ) (q : Pos (ψ p))
+      → Typ (γ σ τ ρ ϕ ψ) (γ-pos-inr σ τ ρ ϕ ψ p q) ↦ Typ (ψ p) q
+    {-# REWRITE γ-pos-inr-typ #-}
 
     -- γ laws
-    γ-unit-r : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-      → (τ : 𝕋 A (f ∥ t ▸ c))
-      → γ t c τ (λ s → η (Inh t s)) (λ s → lf (Typ t s) (Inh t s)) ↦ τ
+    γ-unit-r : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+      → γ σ τ ρ (λ p → η (Inh σ p)) (λ p → lf (Typ σ p) (Inh σ p)) ↦ ρ
     {-# REWRITE γ-unit-r #-}
 
-  -- η : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} → ℂ A f → 𝕋 A f
-  η {f = ●} c = ob c
-  η {f = f ∥ σ ▸ τ} c =
-    nd τ σ c (λ s → η (Inh σ s))
-             (λ s → lf (Typ σ s) (Inh σ s))
 
-  -- μ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → 𝕋 A f
-  μ (ob c) κ = ob c
-  μ (lf f c) κ = lf f c
-  μ (nd c t d δ ε) κ = 
-    let w = κ (nd-src-here c t d δ ε)
-        ε' s₀ = μ (ε s₀) (λ s₁ → κ (nd-src-there c t d δ ε s₀ s₁))
-    in γ t c w δ ε'
+  -- η : {A : 𝕆} {n : ℕ} {f : Frm A n} → Cell A f → Tree A f
+  η {f = ●} α = ob α
+  η {f = f ∥ σ ▸ τ} α =  
+    nd σ τ α (λ p → η (Inh σ p))
+             (λ p → lf (Typ σ p) (Inh σ p))
 
-  -- γ : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-  --   → (τ : 𝕋 A (f ∥ t ▸ c))
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-  --   → 𝕋 A (f ∥ μ t δ ▸ c)
-  γ {f = ●} (ob src) tgt arr ϕ ψ = arr
-  γ {f = f ∥ σ₀ ▸ τ₀} .(η c) c (lf .(f ∥ σ₀ ▸ τ₀) .c) ϕ ψ =
-    ψ (nd-src-here τ₀ σ₀ c (λ s₀ → η (Inh σ₀ s₀)) (λ s₀ → lf (Typ σ₀ s₀) (Inh σ₀ s₀)))
-  γ {f = f ∥ σ₀ ▸ τ₀} .(μ τ δ) c (nd .c τ d δ ε) ϕ ψ =
-    let δ' s₀ = μ (δ s₀) (λ s₁ → ϕ (μ-src τ δ s₀ s₁))
-        ε' s₀ = γ {f = Typ τ s₀} (δ s₀) (Inh τ s₀) (ε s₀)
-                  (λ s₁ → ϕ (μ-src τ δ s₀ s₁))
-                  (λ s₁ → ψ (μ-src τ δ s₀ s₁))
-    in nd c τ d δ' ε'
+  -- η-pos : {A : 𝕆} {n : ℕ} {f : Frm A n}
+  --   → (α : Cell A f) → Pos (η α)
+  η-pos {f = ●} α = ob-pos α
+  η-pos {f = f ∥ σ ▸ τ} α = nd-pos-here σ τ α _ _
 
-  -- μ-src : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → (s₀ : Src t) (s₁ : Src (δ s₀))
-  --   → Src (μ t δ)
-  μ-src {f = ●} (ob src) δ s₀ s₁ =
-    ob-src-elim src (λ s → Src (ob src)) s₀
-  μ-src {f = f ∥ .(η τ) ▸ τ} (lf .f .τ) δ s₀ s₁ =
-    lf-src-elim f τ (λ _ → Src (lf f τ)) s₀
-  μ-src {f = f ∥ .(μ t δ) ▸ τ} (nd .τ t d δ ε) δ₁ =
-    nd-src-elim τ t d δ ε (λ s → Src (δ₁ s) → Src (μ (nd τ t d δ ε) δ₁))
-      (γ-src-inl t τ (δ₁ (nd-src-here τ t d δ ε)) δ (λ s₀ → μ (ε s₀) (λ s₁ → δ₁ (nd-src-there τ t d δ ε s₀ s₁))))
-      (λ s₀ s₁ u → γ-src-inr t τ (δ₁ (nd-src-here τ t d δ ε)) δ
-        (λ s₂ → μ (ε s₂) (λ s₃ → δ₁ (nd-src-there τ t d δ ε s₂ s₃))) s₀
-        (μ-src (ε s₀) (λ s₃ → δ₁ (nd-src-there τ t d δ ε s₀ s₃)) s₁ u))
+  -- η-pos-elim : {A : 𝕆} {n : ℕ} {f : Frm A n} (α : Cell A f)
+  --   → (X : (p : Pos (η α)) → Type₀)
+  --   → (η-pos* : X (η-pos α))
+  --   → (p : Pos (η α)) → X p
+  η-pos-elim {f = ●} α X η-pos* p =
+    ob-pos-elim α (λ p → X (ob-pos α) → X p)
+      (λ p → p) p η-pos* 
+  η-pos-elim {f = f ∥ σ ▸ τ} α X η-pos* p =
+    let η-dec p = η (Inh σ p)
+        lf-dec p = lf (Typ σ p) (Inh σ p)
+    in nd-pos-elim σ τ α η-dec lf-dec (λ p → X (nd-pos-here σ τ α η-dec lf-dec) → X p)
+         (λ x → x) (λ p q → lf-pos-elim (Typ σ p) (Inh σ p)
+                            (λ q → X (nd-pos-here σ τ α η-dec lf-dec)
+                                 → X (nd-pos-there σ τ α η-dec lf-dec p q)) q) p η-pos*
 
-  -- μ-src-fst : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → Src (μ t δ) → Src t
-  μ-src-fst {f = ●} (ob c) δ =
-    ob-src-elim c (λ _ → Src (ob c))
-  μ-src-fst {f = f ∥ .(η τ) ▸ τ} (lf .f .τ) δ =
-    lf-src-elim f τ (λ _ → Src (lf f τ)) 
-  μ-src-fst {f = f ∥ .(μ t δ) ▸ τ} (nd .τ t d δ ε) κ =
-    let w = κ (nd-src-here τ t d δ ε)
-        ε' s₀ = μ (ε s₀) (λ s₁ → κ (nd-src-there τ t d δ ε s₀ s₁))
-    in γ-src-elim t τ w δ ε' _
-         (λ _ → nd-src-here τ t d δ ε)
-         (λ s₀ s₁ → nd-src-there τ t d δ ε s₀
-           (μ-src-fst (ε s₀) (λ s₂ → κ (nd-src-there τ t d δ ε s₀ s₂)) s₁))
-           
+  -- μ : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+  --   → (κ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → Tree A f
+  μ (ob α) κ = κ (ob-pos α)
+  μ (lf f α) κ = lf f α
+  μ (nd σ τ α δ ε) κ = 
+    let w = κ (nd-pos-here σ τ α δ ε)
+        κ' p q = κ (nd-pos-there σ τ α δ ε p q)
+        ψ p = μ (ε p) (κ' p)
+    in γ σ τ w δ ψ
 
-  -- μ-src-snd : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f)
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → (s : Src (μ t δ)) → Src (δ (μ-src-fst t δ s))
-  μ-src-snd {f = ●} (ob c) κ =
-    ob-src-elim c _
-  μ-src-snd {f = f ∥ .(η τ) ▸ τ} (lf .f .τ) κ =
-    lf-src-elim f τ _
-  μ-src-snd {f = f ∥ .(μ t δ) ▸ τ} (nd .τ t d δ ε) κ =
-    let w = κ (nd-src-here τ t d δ ε)
-        ε' s₀ = μ (ε s₀) (λ s₁ → κ (nd-src-there τ t d δ ε s₀ s₁))
-    in γ-src-elim t τ w δ ε' _
-         (λ s → s) (λ s₀ s₁ → μ-src-snd (ε s₀) (λ s₂ → κ (nd-src-there τ t d δ ε s₀ s₂)) s₁)
 
-  -- γ-src-inl : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-  --   → (τ : 𝕋 A (f ∥ t ▸ c))
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-  --   → Src τ → Src (γ t c τ δ ε)
-  γ-src-inl {f = ●} (ob σ) c τ δ ε s = s
-  γ-src-inl {f = f ∥ σ ▸ τ} .(η c) c (lf .(f ∥ σ ▸ τ) .c) δ ε =
-    lf-src-elim (f ∥ σ ▸ τ) c _  
-  γ-src-inl {f = f ∥ σ ▸ τ} .(μ τ₁ δ₁) c (nd .c τ₁ d δ₁ ε₁) δ ε =
-    nd-src-elim c τ₁ d δ₁ ε₁ _ (nd-src-here c τ₁ d  _ _)
-      (λ s₀ s₁ → nd-src-there c τ₁ d _ _ s₀
-        (γ-src-inl (δ₁ s₀) (Inh τ₁ s₀) (ε₁ s₀)
-                   (λ s₂ → δ (μ-src τ₁ δ₁ s₀ s₂))
-                   (λ s₂ → ε (μ-src τ₁ δ₁ s₀ s₂)) s₁))
+  -- γ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+  --   → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+  --   → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+  --   → Tree A (f ∥ μ σ ϕ ▸ τ)
+  γ .(η τ) τ (lf f .τ) ϕ ψ = ψ (η-pos τ)
+  γ .(μ σ δ) τ (nd σ .τ α δ ε) ϕ ψ =
+    let ϕ' p q = ϕ (μ-pos σ δ p q)
+        ψ' p q = ψ (μ-pos σ δ p q)
+        δ' p = μ (δ p) (ϕ' p)
+        ε' p = γ (δ p) (Inh σ p) (ε p) (ϕ' p) (ψ' p)
+    in nd σ τ α δ' ε'
 
-  -- γ-src-inr : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-  --   → (τ : 𝕋 A (f ∥ t ▸ c))
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-  --   → (s₀ : Src t) (s₁ : Src (ε s₀))
-  --   → Src (γ t c τ δ ε)
-  γ-src-inr {f = ●} (ob σ) c τ δ ε s₀ s₁ =
-    ob-src-elim σ _ s₀
-  γ-src-inr {f = f ∥ σ ▸ τ} .(η c) c (lf .(f ∥ σ ▸ τ) .c) δ ε =
-    nd-src-elim {f = f} τ σ c
-      (λ s → η (Inh σ s)) (λ s → lf (Typ σ s) (Inh σ s)) _
-      (λ s → s) (λ s₀ → lf-src-elim (Typ σ s₀) (Inh σ s₀) _)
-  γ-src-inr {f = f ∥ σ ▸ τ} .(μ τ₁ δ₁) c (nd .c τ₁ d δ₁ ε₁) δ ε s t =
-    let s₀ = μ-src-fst τ₁ δ₁ s
-        s₁ = μ-src-snd τ₁ δ₁ s
-        δ'' t₀ = δ (μ-src τ₁ δ₁ s₀ t₀)
-        ε'' t₀ = ε (μ-src τ₁ δ₁ s₀ t₀)
-    in nd-src-there {f = f ∥ σ ▸ τ} c τ₁ d _ _ s₀
-         (γ-src-inr (δ₁ s₀) (Inh τ₁ (μ-src-fst τ₁ δ₁ s)) (ε₁ s₀) δ'' ε'' s₁ t)
+  -- μ-pos : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+  --   → (κ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → (p : Pos σ) (q : Pos (κ p))
+  --   → Pos (μ σ κ)
+  μ-pos (ob α) κ p q = ob-pos-elim α  
+    (λ p → Pos (κ p) → Pos (κ (ob-pos α)))
+    (λ q → q) p q  -- would be trivial given η for ob-pos
+  μ-pos (lf f α) κ p q =
+    lf-pos-elim f α _ p
+  μ-pos (nd σ τ α δ ε) κ =
+    let X p = Pos (κ p) → Pos (μ (nd σ τ α δ ε) κ)
+        w = κ (nd-pos-here σ τ α δ ε)
+        κ' p q = κ (nd-pos-there σ τ α δ ε p q)
+        ψ p = μ (ε p) (κ' p)
+    in nd-pos-elim σ τ α δ ε X (γ-pos-inl σ τ w δ ψ)
+         (λ p q r → γ-pos-inr σ τ w δ ψ p
+           (μ-pos (ε p) (κ' p) q r))
 
-  -- γ-src-elim : {A : 𝕆} {n : ℕ} {f : 𝔽 A n} (t : 𝕋 A f) (c : ℂ A f)
-  --   → (τ : 𝕋 A (f ∥ t ▸ c))
-  --   → (δ : (s : Src t) → 𝕋 A (Typ t s))
-  --   → (ε : (s : Src t) → 𝕋 A (Typ t s ∥ δ s ▸ Inh t s))
-  --   → (X : Src (γ t c τ δ ε) → Type₀)
-  --   → (inl* : (s : Src τ) → X (γ-src-inl t c τ δ ε s))
-  --   → (inr* : (s₀ : Src t) (s₁ : Src (ε s₀)) → X (γ-src-inr t c τ δ ε s₀ s₁))
-  --   → (s : Src (γ t c τ δ ε)) → X s
-  γ-src-elim {f = ●} (ob σ) c τ δ ε X inl* inr* s = inl* s
-  γ-src-elim {f = f ∥ σ ▸ τ₁} .(η c) c (lf .(f ∥ σ ▸ τ₁) .c) δ ε X inl* inr* s =
-    inr* (nd-src-here τ₁ σ c
-           (λ s₁ → η (Inh σ s₁))
-           (λ s₁ → lf (Typ σ s₁) (Inh σ s₁))) s
-  γ-src-elim {f = f ∥ σ ▸ τ₁} .(μ τ δ₁) c (nd .c τ d δ₁ ε₁) δ ε X inl* inr* =
-    let δ'' s = μ (δ₁ s) (λ t → δ (μ-src τ δ₁ s t))
-        ε'' s = γ {f = Typ τ s} (δ₁ s) (Inh τ s) (ε₁ s)
-                  (λ t → δ (μ-src τ δ₁ s t)) (λ t → ε (μ-src τ δ₁ s t))
-    in nd-src-elim {f = f ∥ σ ▸ τ₁} c τ d δ'' ε'' X
-         (inl* (nd-src-here c τ d δ₁ ε₁))
-         (λ s → γ-src-elim (δ₁ s) (Inh τ s) (ε₁ s) (λ t → δ (μ-src τ δ₁ s t)) (λ t → ε (μ-src τ δ₁ s t))
-           (λ t → X (nd-src-there c τ d _ _ s t))
-           (λ s' → inl* (nd-src-there c τ d δ₁ ε₁ s s'))
-           (λ s' t' → inr* (μ-src τ δ₁ s s') t'))
+
+  -- μ-pos-fst : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+  --   → (κ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → Pos (μ σ κ) → Pos σ
+  μ-pos-fst (ob α) κ p = ob-pos α
+  μ-pos-fst (lf f α) κ p = p
+  μ-pos-fst (nd σ τ α δ ε) κ = 
+    let w = κ (nd-pos-here σ τ α δ ε)
+        κ' p q = κ (nd-pos-there σ τ α δ ε p q)
+        ψ p = μ (ε p) (κ' p)
+    in γ-pos-elim σ τ w δ ψ _
+         (λ _ → nd-pos-here σ τ α δ ε)
+         (λ p q → nd-pos-there σ τ α δ ε p
+                    (μ-pos-fst (ε p) (κ' p) q))
+
+  -- μ-pos-snd : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+  --   → (κ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → (p : Pos (μ σ κ)) → Pos (κ (μ-pos-fst σ κ p))
+  μ-pos-snd (ob α) κ p = p
+  μ-pos-snd (lf f α) κ = lf-pos-elim f α _ 
+  μ-pos-snd (nd σ τ α δ ε) κ = 
+    let w = κ (nd-pos-here σ τ α δ ε)
+        κ' p q = κ (nd-pos-there σ τ α δ ε p q)
+        ψ p = μ (ε p) (κ' p)
+    in γ-pos-elim σ τ w δ ψ _
+         (λ p → p)
+         (λ p q → μ-pos-snd (ε p) (κ' p) q)
+
+  -- γ-pos-inl : {A : 𝕆} {n : ℕ} {f : Frm A n}
+  --   → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+  --   → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+  --   → Pos ρ → Pos (γ σ τ ρ ϕ ψ)
+  γ-pos-inl .(η τ) τ (lf f .τ) ϕ ψ = lf-pos-elim f τ _
+  γ-pos-inl .(μ σ δ) τ (nd σ .τ α δ ε) ϕ ψ = 
+    let ϕ' p q = ϕ (μ-pos σ δ p q)
+        ψ' p q = ψ (μ-pos σ δ p q)
+        δ' p = μ (δ p) (ϕ' p)
+        ε' p = γ (δ p) (Inh σ p) (ε p) (ϕ' p) (ψ' p)
+    in nd-pos-elim σ τ α δ ε _
+         (nd-pos-here σ τ α δ' ε')
+         (λ p q → nd-pos-there σ τ α δ' ε' p
+                    (γ-pos-inl (δ p) (Inh σ p) (ε p) (ϕ' p) (ψ' p) q))
+
+  -- γ-pos-inr : {A : 𝕆} {n : ℕ} {f : Frm A n}
+  --   → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+  --   → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+  --   → (p : Pos σ) (q : Pos (ψ p))
+  --   → Pos (γ σ τ ρ ϕ ψ)
+  γ-pos-inr .(η τ) τ (lf f .τ) ϕ ψ p q =
+    η-pos-elim τ (λ p → Pos (ψ p) → Pos (ψ (η-pos τ)))
+      (λ p → p) p q
+  γ-pos-inr .(μ σ δ) τ (nd σ .τ α δ ε) ϕ ψ p q = 
+    let ϕ' p q = ϕ (μ-pos σ δ p q)
+        ψ' p q = ψ (μ-pos σ δ p q)
+        δ' p = μ (δ p) (ϕ' p)
+        ε' p = γ (δ p) (Inh σ p) (ε p) (ϕ' p) (ψ' p)
+        p₀ = μ-pos-fst σ δ p
+        p₁ = μ-pos-snd σ δ p
+    in nd-pos-there σ τ α δ' ε' p₀
+         (γ-pos-inr (δ p₀) (Inh σ p₀) (ε p₀) (ϕ' p₀) (ψ' p₀) p₁ q)
+
+  -- γ-pos-elim : {A : 𝕆} {n : ℕ} {f : Frm A n}
+  --   → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+  --   → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+  --   → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+  --   → (X : Pos (γ σ τ ρ ϕ ψ) → Type₀)
+  --   → (inl* : (p : Pos ρ) → X (γ-pos-inl σ τ ρ ϕ ψ p))
+  --   → (inr* : (p : Pos σ) (q : Pos (ψ p)) → X (γ-pos-inr σ τ ρ ϕ ψ p q))
+  --   → (p : Pos (γ σ τ ρ ϕ ψ)) → X p
+  γ-pos-elim .(η τ) τ (lf f .τ) ϕ ψ X inl* inr* p = inr* (η-pos τ) p
+  γ-pos-elim .(μ σ δ) τ (nd σ .τ α δ ε) ϕ ψ X inl* inr* =
+    let ϕ' p q = ϕ (μ-pos σ δ p q)
+        ψ' p q = ψ (μ-pos σ δ p q)
+        δ' p = μ (δ p) (ϕ' p)
+        ε' p = γ (δ p) (Inh σ p) (ε p) (ϕ' p) (ψ' p)
+    in nd-pos-elim σ τ α δ' ε' X (inl* (nd-pos-here σ τ α δ ε))
+         (λ p → γ-pos-elim (δ p) (Inh σ p) (ε p) (ϕ' p) (ψ' p)
+                  (λ q → X (nd-pos-there σ τ α δ' ε' p q))
+                  (λ q → inl* (nd-pos-there σ τ α δ ε p q))
+                  (λ q r → inr* (μ-pos σ δ p q) r))
+
 

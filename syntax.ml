@@ -4,6 +4,8 @@ open Printf
    
 type expr =
   | EType
+  | EFrmEmpty
+  | EFrmExt of expr * expr * expr
   | EVar of string
   | EPi of string * expr * expr
   | ELam of string * expr
@@ -16,6 +18,9 @@ type expr =
 let rec printExpr e =
   match e with
   | EType -> "U"
+  | EFrmEmpty -> "<>"
+  | EFrmExt (f, s, t) ->
+     sprintf "%s || %s >> %s" (printExpr f) (printExpr s) (printExpr t)
   | EVar id -> id
   | EPi (id , u , v) ->
      sprintf "(%s : %s) -> %s" id (printExpr u) (printExpr v)
@@ -57,7 +62,7 @@ let rec printTerm tm =
   | PiT (u , v) ->
      sprintf "(_ : %s) -> %s" (printTerm u) (printTerm v)
   | LamT u ->
-     sprintf "\_. %s" (printTerm u)
+     sprintf "\\_. %s" (printTerm u)
   | AppT (u , v) ->
      sprintf "(%s %s)" (printTerm u) (printTerm v)
   | SigT (u , v) -> 

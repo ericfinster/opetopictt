@@ -2,6 +2,15 @@
 
 open import HoTT
 
+--
+--  There is a bug here with respect to the treatment of
+--  objects, as there should be a unique position for an
+--  object and the various functions must be updated to
+--  reflect this.  It is treated correctly in the typed
+--  version .... (hence this file should be considered
+--  out of date ...)
+--
+
 module Opetopes where
 
   data 𝔽 : ℕ → Type₀
