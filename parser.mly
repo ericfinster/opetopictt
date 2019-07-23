@@ -10,6 +10,9 @@
 %token MU ETA ND LF OB
 %token FRMEMPTY FRMEXT FRMHD
 %token OBPOSELIM LFPOSELIM NDPOSELIM
+%token ETAPOSELIM MUPOSFST MUPOSSND
+%token OBPOS NDPOSHERE NDPOSTHERE
+%token MUPOS ETAPOS
 %token FST SND
 %token LET DEF EQUAL
 %token LPAR RPAR
@@ -58,8 +61,60 @@ expr2:
     { EApp (e1 , e2) }
 
 expr3:
+
   | TYPE
     { EType }
+  | OTYPE
+    { EOType }
+    
+  | FRAME x = expr3
+    { EFrm x }
+  | CELL x = expr3 f = expr3
+    { ECell (x, f) }
+  | TREE x = expr3 f = expr3
+    { ETree (x , f) }
+  | POS x = expr3 f = expr3 s = expr3
+    { EPos (x, f, s) }
+  | TYP x = expr3 f = expr3 s = expr3 p = expr3
+    { ETyp (x, f, s, p) }
+  | INH x = expr3 f = expr3 s = expr3 p = expr3
+    { EInh (x, f, s, p) }
+
+  | MU x = expr3 f = expr3 s = expr3 k = expr3
+    { EMu (x, f, s, k) }
+  | ETA x = expr3 f = expr3 a = expr3
+    { EEta (x, f, a) }
+  | ND x = expr3 f = expr3 s = expr3 t = expr3 a = expr3 d = expr3 e = expr3
+    { ENd (x, f, s, t, a, d, e) }
+  | LF x = expr3 f = expr3 a = expr3
+    { ELf (x, f, a) }
+  | OB x = expr3 a = expr3
+    { EOb (x, a) }
+
+  | OBPOS x = expr3 f = expr3 a = expr3
+    { EObPos (x, f, a) }
+  | NDPOSHERE x = expr3 f = expr3 s = expr3 t = expr3 a = expr3 d = expr3 e = expr3
+    { ENdHere (x, f, s, t, a, d, e) }
+  | NDPOSTHERE x = expr3 f = expr3 s = expr3 t = expr3 a = expr3 d = expr3 e = expr3 p = expr3 q = expr3
+    { ENdThere (x, f, s, t, a, d, e, p, q) }
+  | MUPOS x = expr3 f = expr3 s = expr3 k = expr3 p = expr3 q = expr3
+    { EMuPos (x, f, s, k, p, q) }
+  | ETAPOS x = expr3 f = expr3 a = expr3
+    { EEtaPos (x, f, a) }
+
+  | OBPOSELIM x = expr3 a = expr3 w = expr3 c = expr3 p = expr3
+    { EObPosElim (x, a, w, c, p) }
+  | LFPOSELIM x = expr3 f = expr3 a = expr3 w = expr3 p = expr3
+    { ELfPosElim (x, f, a, w, p) }
+  | NDPOSELIM x = expr3 f = expr3 s = expr3 t = expr3 a = expr3 d = expr3 e = expr3 w = expr3 h = expr3 th = expr3 p = expr3
+    { ENdPosElim (x, f, s, t, a, d, e, w, h, th, p) }
+  | ETAPOSELIM x = expr3 f = expr3 a = expr3 w = expr3 n = expr3 p = expr3
+    { EEtaPosElim (x, f, a, w, n, p) }
+  | MUPOSFST x = expr3 f = expr3 s = expr3 k = expr3 p = expr3
+    { EMuPosFst (x, f, s, k, p) }
+  | MUPOSSND x = expr3 f = expr3 s = expr3 k = expr3 p = expr3
+    { EMuPosSnd (x, f, s, k, p) }
+
   | id = IDENT
     { EVar id }
   | FST e = expr3

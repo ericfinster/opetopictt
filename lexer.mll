@@ -10,7 +10,7 @@ rule token = parse
   | "U"     { TYPE }
   | "O"     { OTYPE }
 
-  (* Opetopic Type Structure *) 
+  (* Basic Opetopic Structure *) 
   | "Frm"   { FRAME }
   | "Cell"  { CELL }
   | "Tree"  { TREE }
@@ -18,22 +18,32 @@ rule token = parse
   | "Typ"   { TYP }
   | "Inh"   { INH }
 
-  (* Opetope constructors *)
+  (* Frame construtors *)
+  | "<>"    { FRMEMPTY }
+  | "||"    { FRMEXT }
+  | ">>"    { FRMHD }
+
+  (* Opetopic constructors *)
   | "mu"    { MU }
   | "eta"   { ETA }
   | "nd"    { ND }
   | "lf"    { LF }
   | "ob"    { OB }
 
-  (* Frame Construtors *)
-  | "<>"    { FRMEMPTY }
-  | "||"    { FRMEXT }
-  | ">>"    { FRMHD }
-
-  (* Source Eliminators *)
+  (* Position constructors *)
+  | "ob-pos"          { OBPOS }
+  | "nd-pos-here"     { NDPOSHERE }
+  | "nd-pos-there"    { NDPOSTHERE }
+  | "mu-pos"          { MUPOS }
+  | "eta-pos"         { ETAPOS }
+  
+  (* Position eliminators *)
   | "ob-pos-elim"  { OBPOSELIM }
   | "lf-pos-elim"  { LFPOSELIM }
   | "nd-pos-elim"  { NDPOSELIM }
+  | "eta-pos-elim" { ETAPOSELIM }
+  | "mu-pos-fst"   { MUPOSFST }
+  | "mu-pos-snd"   { MUPOSSND }
   
   (* Language Constructs *)
   | "let"   { LET }

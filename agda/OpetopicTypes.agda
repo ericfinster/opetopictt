@@ -99,7 +99,7 @@ module OpetopicTypes where
     ob-pos-elim : {A : 𝕆} (α : Cell A ●)
       → (X : Pos (ob α) → Type₀)
       → (x : X (ob-pos α))
-      → (s : Pos (ob α)) → X s
+      → (p : Pos (ob α)) → X p
 
     ob-pos-elim-β : {A : 𝕆} (α : Cell A ●)
       → (X : Pos (ob α) → Type₀)
