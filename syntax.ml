@@ -59,24 +59,58 @@ let rec printExpr e =
   | EFrmEmpty -> "<>"
   | EFrmExt (f, s, t) -> sprintf "%s || %s >> %s" (printExpr f) (printExpr s) (printExpr t)
 
+  (* Opetopic Constructors *)                       
   | EMu (x, f, s, k) -> sprintf "mu %s %s %s %s" (printExpr x) (printExpr f) (printExpr s) (printExpr k)
   | EEta (x, f, a) -> sprintf "eta %s %s %s" (printExpr x) (printExpr f) (printExpr a)
-  | ENd (x, f, s, t, a, d, e) -> sprintf "nd %s %s %s %s %s %s %s" (printExpr x) (printExpr f) (printExpr s) (printExpr t) (printExpr a) (printExpr d) (printExpr e)
+  | ENd (x, f, s, t, a, d, e) ->
+     sprintf "nd %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr a) (printExpr d) (printExpr e)
   | ELf (x, f, a) -> sprintf "lf %s %s %s" (printExpr x) (printExpr f) (printExpr a)
   | EOb (x, a) -> sprintf "ob %s %s" (printExpr x) (printExpr a)
 
-  | EObPos (x, f, a) -> ""
-  | ENdHere (x, f, s, t, a, d, e) -> ""
-  | ENdThere (x, f, s, t, a, d, e, p, q) -> ""
-  | EMuPos (x, f, s, k, p, q) -> ""
-  | EEtaPos (x, f, a) -> ""
+  (* Position Constructors *)
+  | EObPos (x, f, a) -> sprintf "ob-pos %s %s %s" (printExpr x) (printExpr f) (printExpr a)
+  | ENdHere (x, f, s, t, a, d, e) ->
+     sprintf "nd-here %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr a) (printExpr d) (printExpr e)
+  | ENdThere (x, f, s, t, a, d, e, p, q) ->
+     sprintf "nd-there %s %s %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr a) (printExpr d) (printExpr e) (printExpr p) (printExpr q)
+  | EMuPos (x, f, s, k, p, q) ->
+     sprintf "mu-pos %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s)
+             (printExpr k) (printExpr p) (printExpr q)
+  | EEtaPos (x, f, a) -> sprintf "eta-pos %s %s %s" (printExpr x) (printExpr f) (printExpr a)
 
-  | EObPosElim (x, a, w, c, p) -> ""
-  | ELfPosElim (x, f, a, w, p) -> ""
-  | ENdPosElim (x, f, s, t, a, d, e, w, h, th, p) -> ""
-  | EEtaPosElim (x, f, a, w, n, p) -> ""
-  | EMuPosFst (x, f, s, k, p) -> ""
-  | EMuPosSnd (x, f, s, k, p) -> ""
+  (* Position Eliminators *)
+  | EObPosElim (x, a, w, c, p) ->
+     sprintf "ob-pos-elim %s %s %s %s %s"
+             (printExpr x) (printExpr a) (printExpr w)
+             (printExpr c) (printExpr p)
+  | ELfPosElim (x, f, a, w, p) -> 
+     sprintf "lf-pos-elim %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr a)
+             (printExpr w) (printExpr p)
+  | ENdPosElim (x, f, s, t, a, d, e, w, h, th, p) -> 
+     sprintf "nd-pos-elim %s %s %s %s %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr a) (printExpr d) (printExpr e) (printExpr w)
+             (printExpr h) (printExpr th) (printExpr p)
+  | EEtaPosElim (x, f, a, w, n, p) ->
+     sprintf "eta-pos-elim %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr a) 
+             (printExpr w) (printExpr n) (printExpr p) 
+  | EMuPosFst (x, f, s, k, p) -> 
+     sprintf "mu-pos-fst %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s)
+             (printExpr k) (printExpr p)
+  | EMuPosSnd (x, f, s, k, p) -> 
+     sprintf "mu-pos-snd %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s)
+             (printExpr k) (printExpr p)
                                
   | EVar id -> id
   | EPi (id , u , v) -> sprintf "(%s : %s) -> %s" id (printExpr u) (printExpr v)
