@@ -91,8 +91,8 @@ expr3:
   | OB x = expr3 a = expr3
     { EOb (x, a) }
 
-  | OBPOS x = expr3 f = expr3 a = expr3
-    { EObPos (x, f, a) }
+  | OBPOS x = expr3 a = expr3
+    { EObPos (x, a) }
   | NDPOSHERE x = expr3 f = expr3 s = expr3 t = expr3 a = expr3 d = expr3 e = expr3
     { ENdHere (x, f, s, t, a, d, e) }
   | NDPOSTHERE x = expr3 f = expr3 s = expr3 t = expr3 a = expr3 d = expr3 e = expr3 p = expr3 q = expr3
