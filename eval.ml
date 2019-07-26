@@ -109,11 +109,14 @@ and inhD x' f' s' p' =
      let w p = CellD (x, typD x (FrmExtD (f, muD x f sigma delta, tau)) s' p) in
      let th p q = inhD x (FrmExtD (typD x f sigma p, delta p, inhD x f sigma p)) (epsilon p) q in
      ndPosElimD x f sigma tau alpha delta epsilon w alpha th p'
-
-  (* Right, more cases here ... *)
-     
+  | EtaD (_, _, a) -> a
+  | MuD (x, f, s, k) -> 
+     let pfst = muPosFstD x f s k p' in
+     let psnd = muPosSndD x f s k p' in
+     inhD x (typD x f s pfst) (k pfst) psnd
+  (* Still need gamma ... *)
+  (* | GammaD (x, f, sigma, tau, rho, phi, psi) -> *)
   | _ -> InhD (x', f', s', p')
-
                 
 and etaD x' _ _ = x'
 (* and etaD x' f' a' = x' *)
