@@ -67,7 +67,11 @@ let tcEnv : env tc =
 
 let tcCtxt : ctxt tc =
   fun (_ , gma) -> Succeed gma
-  
+
+let tcEval tm =
+  let%bind rho = tcEnv in
+  return (eval tm rho)
+                 
 type ctxt_result =
   | NoCtxtResult
   | InCtxt of int * dom
@@ -110,6 +114,10 @@ let tcEqNf a b e =
                              (printExpr e) (printTerm a') (printTerm b')
     in tcFail msg
 
+let tcReadback d t =
+  let%bind k = tcDepth in
+  return (rb k (down d t))
+  
 let tcPrintEnv =
   fun (rho , gma) ->
   let () = Printf.printf "Context: %s\n" (printCtx gma (List.length gma)) in 
@@ -120,14 +128,33 @@ let tcPrintEnv =
 (**
  * Typechecking rules
  **)
-
+  
 let rec check e d =
   let%bind () = tcPrintEnv in 
   match (e , d) with
     
   (* Type in Type *)
   | (EType , TypeD) -> return TypeT
+  | (EOType , TypeD) -> return OTypeT
 
+  (* Basic Opetopic Structure *)
+  | (EFrm x, TypeD) ->
+     let%bind xt = check x OTypeD in
+     return (FrmT xt)
+  | (ECell (x, f), TypeD) ->
+     let%bind (xt, xd) = checkAndEval x OTypeD in 
+     let%bind ft = check f (FrmD xd) in
+     return (CellT (xt, ft))
+  | (ETree (x, f), TypeD) ->
+     let%bind (xt, xd) = checkAndEval x OTypeD in 
+     let%bind ft = check f (FrmD xd) in
+     return (TreeT (xt, ft))
+  | (EPos (x, f, s), TypeD) ->
+     let%bind (xt, xd) = checkAndEval x OTypeD in
+     let%bind (ft, fd) = checkAndEval f (FrmD xd) in
+     let%bind st = check s (TreeD (xd, fd)) in
+     return (PosT (xt, ft, st))
+    
   (* Pi Formation *)
   | (EPi (id , a , p) , TypeD) ->
      let%bind at = check a TypeD in
@@ -200,9 +227,27 @@ and checkI e =
      let%bind rho = tcEnv in
      return (SndT ut , pD (fstD (eval ut rho)))
 
+  (* Basic Opetopic Structure *)
+  | ETyp (x, f, s, p) ->
+     let%bind (xt, xd) = checkAndEval x OTypeD in 
+     let%bind (ft, fd) = checkAndEval f (FrmD xd) in
+     let%bind (st, sd) = checkAndEval s (TreeD (xd, fd)) in
+     let%bind pt = check p (PosD (xd, fd, sd)) in
+     return (TypT (xt, ft, st, pt), FrmD xd)
+  | EInh (x, f, s, p) -> 
+     let%bind (xt, xd) = checkAndEval x OTypeD in
+     let%bind (ft, fd) = checkAndEval f (FrmD xd) in
+     let%bind (st, sd) = checkAndEval s (TreeD (xd, fd)) in
+     let%bind pt = check p (PosD (xd, fd, sd)) in
+     return (InhT (xt, ft, st, pt), CellD (xd, fd))
+     
   (* Type inference failure *)
   | _ -> tcFail (Printf.sprintf "Failed to infer type for expression %s" (printExpr e))
 
+and checkAndEval e d =
+  let%bind tm = check e d in
+  let%bind dm = tcEval tm in
+  return (tm, dm)
        
 let checkDef ty tm =
   let%bind tyT = check ty TypeD in

@@ -26,6 +26,7 @@ rule token = parse
   (* Opetopic constructors *)
   | "mu"    { MU }
   | "eta"   { ETA }
+  | "gamma" { GAMMA }
   | "nd"    { ND }
   | "lf"    { LF }
   | "ob"    { OB }
@@ -36,14 +37,17 @@ rule token = parse
   | "nd-pos-there"    { NDPOSTHERE }
   | "mu-pos"          { MUPOS }
   | "eta-pos"         { ETAPOS }
+  | "gamma-pos-inl"   { GAMMAPOSINL }
+  | "gamma-pos-inr"   { GAMMAPOSINR }
   
   (* Position eliminators *)
-  | "ob-pos-elim"  { OBPOSELIM }
-  | "lf-pos-elim"  { LFPOSELIM }
-  | "nd-pos-elim"  { NDPOSELIM }
-  | "eta-pos-elim" { ETAPOSELIM }
-  | "mu-pos-fst"   { MUPOSFST }
-  | "mu-pos-snd"   { MUPOSSND }
+  | "ob-pos-elim"     { OBPOSELIM }
+  | "lf-pos-elim"     { LFPOSELIM }
+  | "nd-pos-elim"     { NDPOSELIM }
+  | "eta-pos-elim"    { ETAPOSELIM }
+  | "mu-pos-fst"      { MUPOSFST }
+  | "mu-pos-snd"      { MUPOSSND }
+  | "gamma-pos-elim"  { GAMMAPOSELIM }
   
   (* Language Constructs *)
   | "let"   { LET }

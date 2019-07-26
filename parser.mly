@@ -7,12 +7,14 @@
 %token TYPE OTYPE
 %token FRAME CELL TREE
 %token POS TYP INH
-%token MU ETA ND LF OB
+%token MU ETA GAMMA ND LF OB 
 %token FRMEMPTY FRMEXT FRMHD
 %token OBPOSELIM LFPOSELIM NDPOSELIM
 %token ETAPOSELIM MUPOSFST MUPOSSND
+%token GAMMAPOSELIM
 %token OBPOS NDPOSHERE NDPOSTHERE
 %token MUPOS ETAPOS
+%token GAMMAPOSINL GAMMAPOSINR
 %token FST SND
 %token LET DEF EQUAL
 %token LPAR RPAR
@@ -84,6 +86,8 @@ expr3:
     { EMu (x, f, s, k) }
   | ETA x = expr3 f = expr3 a = expr3
     { EEta (x, f, a) }
+  | GAMMA x = expr3 f = expr3 s = expr3 t = expr3 r = expr3 phi = expr3 psi = expr3
+    { EGamma (x, f, s, t, r, phi, psi) }
   | ND x = expr3 f = expr3 s = expr3 t = expr3 a = expr3 d = expr3 e = expr3
     { ENd (x, f, s, t, a, d, e) }
   | LF x = expr3 f = expr3 a = expr3
@@ -101,7 +105,11 @@ expr3:
     { EMuPos (x, f, s, k, p, q) }
   | ETAPOS x = expr3 f = expr3 a = expr3
     { EEtaPos (x, f, a) }
-
+  | GAMMAPOSINL x = expr3 f = expr3 s = expr3 t = expr3 r = expr3 phi = expr3 psi = expr3 p = expr3
+    { EGammaInl (x, f, s, t, r, phi, psi, p) }
+  | GAMMAPOSINR x = expr3 f = expr3 s = expr3 t = expr3 r = expr3 phi = expr3 psi = expr3 p = expr3 q = expr3
+    { EGammaInr (x, f, s, t, r, phi, psi, p, q) }
+    
   | OBPOSELIM x = expr3 a = expr3 w = expr3 c = expr3 p = expr3
     { EObPosElim (x, a, w, c, p) }
   | LFPOSELIM x = expr3 f = expr3 a = expr3 w = expr3 p = expr3
@@ -114,6 +122,8 @@ expr3:
     { EMuPosFst (x, f, s, k, p) }
   | MUPOSSND x = expr3 f = expr3 s = expr3 k = expr3 p = expr3
     { EMuPosSnd (x, f, s, k, p) }
+  | GAMMAPOSELIM x = expr3 f = expr3 s = expr3 t = expr3 r = expr3 phi = expr3 psi = expr3 w = expr3 il = expr3 ir = expr3 p = expr3
+    { EGammaPosElim (x, f, s, t, r, phi, psi, w, il, ir, p) }
 
   | id = IDENT
     { EVar id }

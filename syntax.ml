@@ -18,6 +18,7 @@ type expr =
 
   | EMu of expr * expr * expr * expr
   | EEta of expr * expr * expr
+  | EGamma of expr * expr * expr * expr * expr * expr * expr
   | ENd of expr * expr * expr * expr * expr * expr * expr
   | ELf of expr * expr * expr
   | EOb of expr * expr
@@ -27,6 +28,8 @@ type expr =
   | ENdThere of expr * expr * expr * expr * expr * expr * expr * expr * expr
   | EMuPos of expr * expr * expr * expr * expr * expr
   | EEtaPos of expr * expr * expr
+  | EGammaInl of expr * expr * expr * expr * expr * expr * expr * expr
+  | EGammaInr of expr * expr * expr * expr * expr * expr * expr * expr * expr
 
   | EObPosElim of expr * expr * expr * expr * expr
   | ELfPosElim of expr * expr * expr * expr * expr
@@ -34,6 +37,7 @@ type expr =
   | EEtaPosElim of expr * expr * expr * expr * expr * expr
   | EMuPosFst of expr * expr * expr * expr * expr
   | EMuPosSnd of expr * expr * expr * expr * expr
+  | EGammaPosElim of expr * expr * expr * expr * expr * expr * expr * expr * expr * expr * expr
          
   | EVar of string
   | EPi of string * expr * expr
@@ -64,6 +68,10 @@ let rec printExpr e =
   (* Opetopic Constructors *)                       
   | EMu (x, f, s, k) -> sprintf "mu %s %s %s %s" (printExpr x) (printExpr f) (printExpr s) (printExpr k)
   | EEta (x, f, a) -> sprintf "eta %s %s %s" (printExpr x) (printExpr f) (printExpr a)
+  | EGamma (x, f, s, t, r, phi, psi) -> 
+     sprintf "gamma %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr r) (printExpr phi) (printExpr psi)
   | ENd (x, f, s, t, a, d, e) ->
      sprintf "nd %s %s %s %s %s %s %s"
              (printExpr x) (printExpr f) (printExpr s) (printExpr t)
@@ -86,6 +94,14 @@ let rec printExpr e =
              (printExpr x) (printExpr f) (printExpr s)
              (printExpr k) (printExpr p) (printExpr q)
   | EEtaPos (x, f, a) -> sprintf "eta-pos %s %s %s" (printExpr x) (printExpr f) (printExpr a)
+  | EGammaInl (x, f, s, t, r, phi, psi, p) -> 
+     sprintf "gamma-pos-inl %s %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr r) (printExpr phi) (printExpr psi) (printExpr p)
+  | EGammaInr (x, f, s, t, r, phi, psi, p, q) -> 
+     sprintf "gamma-pos-inr %s %s %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr r) (printExpr phi) (printExpr psi) (printExpr p) (printExpr q)
 
   (* Position Eliminators *)
   | EObPosElim (x, a, w, c, p) ->
@@ -113,6 +129,11 @@ let rec printExpr e =
      sprintf "mu-pos-snd %s %s %s %s %s"
              (printExpr x) (printExpr f) (printExpr s)
              (printExpr k) (printExpr p)
+  | EGammaPosElim (x, f, s, t, r, phi, psi, w, il, ir, p) -> 
+     sprintf "gamma-pos-elim %s %s %s %s %s %s %s %s %s %s %s"
+             (printExpr x) (printExpr f) (printExpr s) (printExpr t)
+             (printExpr r) (printExpr phi) (printExpr psi) (printExpr w)
+             (printExpr il) (printExpr ir) (printExpr p)
 
   (* Basic Type Theory *)
   | EVar id -> id
@@ -143,6 +164,7 @@ type term =
 
   | MuT of term * term * term * term
   | EtaT of term * term * term
+  | GammaT of term * term * term * term * term * term * term
   | NdT of term * term * term * term * term * term * term
   | LfT of term * term * term
   | ObT of term * term
@@ -152,6 +174,8 @@ type term =
   | NdThereT of term * term * term * term * term * term * term * term * term
   | MuPosT of term * term * term * term * term * term
   | EtaPosT of term * term * term
+  | GammaInlT of term * term * term * term * term * term * term * term
+  | GammaInrT of term * term * term * term * term * term * term * term * term
 
   | ObPosElimT of term * term * term * term * term
   | LfPosElimT of term * term * term * term * term
@@ -159,6 +183,7 @@ type term =
   | EtaPosElimT of term * term * term * term * term * term
   | MuPosFstT of term * term * term * term * term
   | MuPosSndT of term * term * term * term * term
+  | GammaPosElimT of term * term * term * term * term * term * term * term * term * term * term
                
   | FVarT of string
   | BVarT of int
@@ -194,6 +219,10 @@ let rec printTerm tm =
   (* Opetopic Constructors *)                       
   | MuT (x, f, s, k) -> sprintf "mu %s %s %s %s" (printTerm x) (printTerm f) (printTerm s) (printTerm k)
   | EtaT (x, f, a) -> sprintf "eta %s %s %s" (printTerm x) (printTerm f) (printTerm a)
+  | GammaT (x, f, s, t, r, phi, psi) -> 
+     sprintf "gamma %s %s %s %s %s %s %s"
+             (printTerm x) (printTerm f) (printTerm s) (printTerm t)
+             (printTerm r) (printTerm phi) (printTerm psi)
   | NdT (x, f, s, t, a, d, e) ->
      sprintf "nd %s %s %s %s %s %s %s"
              (printTerm x) (printTerm f) (printTerm s) (printTerm t)
@@ -216,6 +245,14 @@ let rec printTerm tm =
              (printTerm x) (printTerm f) (printTerm s)
              (printTerm k) (printTerm p) (printTerm q)
   | EtaPosT (x, f, a) -> sprintf "eta-pos %s %s %s" (printTerm x) (printTerm f) (printTerm a)
+  | GammaInlT (x, f, s, t, r, phi, psi, p) -> 
+     sprintf "gamma-pos-inl %s %s %s %s %s %s %s %s"
+             (printTerm x) (printTerm f) (printTerm s) (printTerm t)
+             (printTerm r) (printTerm phi) (printTerm psi) (printTerm p)
+  | GammaInrT (x, f, s, t, r, phi, psi, p, q) -> 
+     sprintf "gamma-pos-inr %s %s %s %s %s %s %s %s %s"
+             (printTerm x) (printTerm f) (printTerm s) (printTerm t)
+             (printTerm r) (printTerm phi) (printTerm psi) (printTerm p) (printTerm q)
 
   (* Position Eliminators *)
   | ObPosElimT (x, a, w, c, p) ->
@@ -243,6 +280,11 @@ let rec printTerm tm =
      sprintf "mu-pos-snd %s %s %s %s %s"
              (printTerm x) (printTerm f) (printTerm s)
              (printTerm k) (printTerm p)
+  | GammaPosElimT (x, f, s, t, r, phi, psi, w, il, ir, p) -> 
+     sprintf "nd-pos-elim %s %s %s %s %s %s %s %s %s %s %s"
+             (printTerm x) (printTerm f) (printTerm s) (printTerm t)
+             (printTerm r) (printTerm phi) (printTerm psi) (printTerm w)
+             (printTerm il) (printTerm ir) (printTerm p)
 
   (* Basic Type Theory *)
   | FVarT id -> id

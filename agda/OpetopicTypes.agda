@@ -164,16 +164,22 @@ module OpetopicTypes where
   -- Typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
   --   → (σ : Tree A f) (p : Pos σ) → Frm A n
   Typ (ob α) p = ●
-  Typ (lf f α) = lf-pos-elim f α _ 
-  Typ (nd σ τ α δ ε) = nd-pos-elim σ τ α δ ε _
-    (_ ∥ σ ▸ τ) (λ p q → Typ (ε p) q)
+  Typ (lf f α) = lf-pos-elim f α (λ _ → Frm _ _)
+  Typ (nd {f = f} σ τ α δ ε) =
+    let X p = Frm _ _
+        th p q = Typ {f = Typ σ p ∥ δ p ▸ Inh σ p} (ε p) q
+    in nd-pos-elim σ τ α δ ε X (f ∥ σ ▸ τ) th
 
   -- Inh : {A : 𝕆} {n : ℕ} {f : Frm A n}
   --   → (σ : Tree A f) (p : Pos σ) → Cell A (Typ σ p)
   Inh (ob α) p = α
-  Inh (lf f α) = lf-pos-elim f α _
-  Inh (nd σ τ α δ ε) = nd-pos-elim σ τ α δ ε _ α
-    (λ p q → Inh (ε p) q)
+  Inh (lf f α) =
+    let X p = Cell _ (Typ {f = f ∥ η α ▸ α} (lf f α) p)
+    in lf-pos-elim f α X
+  Inh (nd {f = f} σ τ α δ ε) =
+    let X p = Cell _ (Typ {f = f ∥ μ σ δ ▸ τ} (nd σ τ α δ ε) p)
+        th p q = Inh {f = Typ σ p ∥ δ p ▸ Inh σ p} (ε p) q
+    in nd-pos-elim σ τ α δ ε X α th
 
   postulate
 
@@ -195,6 +201,18 @@ module OpetopicTypes where
     {-# REWRITE η-pos-elim-β #-}
     
     -- μ-pos laws
+    μ-pos-typ : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (p : Pos (μ σ κ))
+      → Typ (μ σ κ) p ↦ Typ {f = Typ {f = f} σ (μ-pos-fst σ κ p)} (κ (μ-pos-fst σ κ p)) (μ-pos-snd σ κ p)
+    {-# REWRITE μ-pos-typ #-}
+
+    μ-pos-inh : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
+      → (κ : (p : Pos σ) → Tree A (Typ σ p))
+      → (p : Pos (μ σ κ))
+      → Inh (μ σ κ) p ↦ Inh (κ (μ-pos-fst σ κ p)) (μ-pos-snd σ κ p)
+    {-# REWRITE μ-pos-inh #-}
+    
     μ-pos-fst-β : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
       → (κ : (p : Pos σ) → Tree A (Typ σ p))
       → (p : Pos σ) (q : Pos (κ p))
@@ -212,18 +230,6 @@ module OpetopicTypes where
       → (p : Pos (μ σ κ))
       → μ-pos σ κ (μ-pos-fst σ κ p) (μ-pos-snd σ κ p) ↦ p
     {-# REWRITE μ-pos-η #-}
-
-    μ-pos-typ : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
-      → (κ : (p : Pos σ) → Tree A (Typ σ p))
-      → (p : Pos (μ σ κ))
-      → Typ (μ σ κ) p ↦ Typ (κ (μ-pos-fst σ κ p)) (μ-pos-snd σ κ p)
-    {-# REWRITE μ-pos-typ #-}
-
-    μ-pos-inh : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
-      → (κ : (p : Pos σ) → Tree A (Typ σ p))
-      → (p : Pos (μ σ κ))
-      → Inh (μ σ κ) p ↦ Inh (κ (μ-pos-fst σ κ p)) (μ-pos-snd σ κ p)
-    {-# REWRITE μ-pos-inh #-}
 
     -- μ laws
     μ-unit-r : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f) 
@@ -265,21 +271,16 @@ module OpetopicTypes where
     {-# REWRITE γ-pos-elim-inr-β #-}
     
     -- γ pos laws
-    γ-pos-inl-typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
+    γ-pos-typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
       → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
       → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
       → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
-      → (p : Pos ρ)
-      → Typ (γ σ τ ρ ϕ ψ) (γ-pos-inl σ τ ρ ϕ ψ p) ↦ Typ ρ p
-    {-# REWRITE γ-pos-inl-typ #-}
-
-    γ-pos-inr-typ : {A : 𝕆} {n : ℕ} {f : Frm A n}
-      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
-      → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
-      → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
-      → (p : Pos σ) (q : Pos (ψ p))
-      → Typ (γ σ τ ρ ϕ ψ) (γ-pos-inr σ τ ρ ϕ ψ p q) ↦ Typ (ψ p) q
-    {-# REWRITE γ-pos-inr-typ #-}
+      → (p : Pos (γ σ τ ρ ϕ ψ))
+      → Typ (γ σ τ ρ ϕ ψ) p ↦
+          γ-pos-elim σ τ ρ ϕ ψ (λ _ → Frm A (S n))
+                     (λ p → Typ {f = f ∥ σ ▸ τ} ρ p)
+                     (λ p q → Typ {f = Typ σ p ∥ ϕ p ▸ Inh σ p} (ψ p) q) p
+    {-# REWRITE γ-pos-typ #-}
 
     -- γ laws
     γ-unit-r : {A : 𝕆} {n : ℕ} {f : Frm A n}
@@ -287,17 +288,46 @@ module OpetopicTypes where
       → γ σ τ ρ (λ p → η (Inh σ p)) (λ p → lf (Typ σ p) (Inh σ p)) ↦ ρ
     {-# REWRITE γ-unit-r #-}
 
+    -- Doesn't seem to be necessary for typechecking below, but ...
+    γ-assoc : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+      → (ϕ₀ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ψ₀ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ₀ p ▸ Inh σ p))
+      → (ϕ₁ : (p : Pos (μ σ ϕ₀)) → Tree A (Typ (μ σ ϕ₀) p))
+      → (ψ₁ : (p : Pos (μ σ ϕ₀)) → Tree A (Typ (μ σ ϕ₀) p ∥ ϕ₁ p ▸ Inh (μ σ ϕ₀) p))
+      → γ (μ σ ϕ₀) τ (γ σ τ ρ ϕ₀ ψ₀) ϕ₁ ψ₁ ↦
+        γ σ τ ρ (λ p → μ (ϕ₀ p) (λ q → ϕ₁ (μ-pos σ ϕ₀ p q)))
+                (λ p → γ (ϕ₀ p) (Inh σ p) (ψ₀ p)
+                         (λ q → ϕ₁ (μ-pos σ ϕ₀ p q))
+                         (λ q → ψ₁ (μ-pos σ ϕ₀ p q)))
+
+    -- Finally, it seems there should be the interchange law
+    -- Is this sufficient?
+    γμ-ichg : {A : 𝕆} {n : ℕ} {f : Frm A n}
+      → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∥ σ ▸ τ))
+      → (ϕ : (p : Pos σ) → Tree A (Typ σ p))
+      → (ψ : (p : Pos σ) → Tree A (Typ σ p ∥ ϕ p ▸ Inh σ p))
+      → (κ : (p : Pos ρ) → Tree A (Typ ρ p))
+      → γ σ τ (μ ρ κ) ϕ ψ ↦
+        μ (γ σ τ ρ ϕ ψ)
+          (γ-pos-elim σ τ ρ ϕ ψ
+            (λ p → Tree A (Typ (γ σ τ ρ ϕ ψ) p)) κ
+            (λ p q → η (Inh (ψ p) q)))
 
   -- η : {A : 𝕆} {n : ℕ} {f : Frm A n} → Cell A f → Tree A f
   η {f = ●} α = ob α
   η {f = f ∥ σ ▸ τ} α =  
-    nd σ τ α (λ p → η (Inh σ p))
-             (λ p → lf (Typ σ p) (Inh σ p))
+    let η-dec p = η (Inh σ p)
+        lf-dec p = lf (Typ σ p) (Inh σ p)
+    in nd σ τ α η-dec lf-dec
 
   -- η-pos : {A : 𝕆} {n : ℕ} {f : Frm A n}
   --   → (α : Cell A f) → Pos (η α)
   η-pos {f = ●} α = ob-pos α
-  η-pos {f = f ∥ σ ▸ τ} α = nd-pos-here σ τ α _ _
+  η-pos {f = f ∥ σ ▸ τ} α =
+    let η-dec p = η (Inh σ p)
+        lf-dec p = lf (Typ σ p) (Inh σ p)
+    in nd-pos-here σ τ α η-dec lf-dec
 
   -- η-pos-elim : {A : 𝕆} {n : ℕ} {f : Frm A n} (α : Cell A f)
   --   → (X : (p : Pos (η α)) → Type₀)
@@ -317,9 +347,9 @@ module OpetopicTypes where
   -- μ : {A : 𝕆} {n : ℕ} {f : Frm A n} (σ : Tree A f)
   --   → (κ : (p : Pos σ) → Tree A (Typ σ p))
   --   → Tree A f
-  μ (ob α) κ = κ (ob-pos α)
-  μ (lf f α) κ = lf f α
-  μ (nd σ τ α δ ε) κ = 
+  μ .{f = ●} (ob α) κ = κ (ob-pos α)
+  μ .{f = f ∥ (η α) ▸ α} (lf f α) κ = lf f α
+  μ .{f = f ∥ (μ σ δ) ▸ τ} (nd {f = f} σ τ α δ ε) κ = 
     let w = κ (nd-pos-here σ τ α δ ε)
         κ' p q = κ (nd-pos-there σ τ α δ ε p q)
         ψ p = μ (ε p) (κ' p)
