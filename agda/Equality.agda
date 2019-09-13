@@ -1,5 +1,6 @@
 {-# OPTIONS --without-K --rewriting #-}
 
+open import Base
 open import OpetopicTypes
 
 module Equality where
@@ -51,5 +52,12 @@ module Equality where
     → (b : A) (p : a == b) → P b p
   MLJ {A} {a} P d b p = J ● (ob a) P d b p
 
+  is-contr : 𝕌 → 𝕌
+  is-contr A = Σ A (λ a → (b : A) → a == b)
 
-
+  postulate
+  
+    contractibility-conjecture : (A : 𝕌)
+      → is-contr A
+      → (f : Frm A) (σ : Tree A f) (τ : Cell A f)
+      → Cell A (f ∥ σ ▸ τ)

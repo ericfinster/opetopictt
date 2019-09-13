@@ -1,15 +1,8 @@
 {-# OPTIONS --without-K --rewriting #-}
 
+open import Base
+
 module OpetopicTypes where
-
-  -- Rewriting
-  infix 30 _↦_
-  postulate  
-    _↦_ : ∀ {i} {A : Set i} → A → A → Set i
-
-  {-# BUILTIN REWRITE _↦_ #-}
-  
-  𝕌 = Set
 
   data Frm (A : 𝕌) : 𝕌
   data Tree (A : 𝕌) : (f : Frm A) → 𝕌
