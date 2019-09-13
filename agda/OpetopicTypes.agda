@@ -384,18 +384,19 @@ module OpetopicTypes where
   --   → (κ : (p : Pos f σ) → Tree A (Typ f σ p))
   --   → (p : Pos f σ) (q : Pos (Typ f σ p) (κ p))
   --   → Pos f (μ f σ κ)
-  μ-pos _ (ob α) κ p q = ob-pos-elim α  
-    (λ p → Pos ● (κ p) → Pos ● (κ (ob-pos α)))
-    (λ q → q) p q  -- would be trivial given η for ob-pos
+  μ-pos _ (ob α) κ p q =
+    let X p = Pos ● (κ p) → Pos ● (κ (ob-pos α))
+    in ob-pos-elim α X (λ q → q) p q  -- would be trivial given η for ob-pos
   μ-pos _ (lf f α) κ p q =
-    lf-pos-elim f α _ p
+    let X _ = Pos (f ∥ η f α ▸ α) (lf f α)
+    in lf-pos-elim f α X p 
   μ-pos _ (nd f σ τ α δ ε) κ =
     let X p = Pos (Typ (f ∥ μ f σ δ ▸ τ) (nd f σ τ α δ ε) p) (κ p)
               → Pos (f ∥ μ f σ δ ▸ τ) (μ (f ∥ μ f σ δ ▸ τ) (nd f σ τ α δ ε) κ)
         w = κ (nd-pos-here f σ τ α δ ε)
         κ' p q = κ (nd-pos-there f σ τ α δ ε p q)
         ψ p = μ (Typ f σ p ∥ δ p ▸ Inh f σ p) (ε p) (κ' p)
-    in nd-pos-elim f σ τ α δ ε X (γ-pos-inl f σ τ w δ ψ)
+    in nd-pos-elim f σ τ α δ ε X (γ-pos-inl f σ τ w δ ψ) 
          (λ p q r → γ-pos-inr f σ τ w δ ψ p
            (μ-pos (Typ f σ p ∥ δ p ▸ Inh f σ p) (ε p) (κ' p) q r))
 

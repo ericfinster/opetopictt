@@ -83,84 +83,112 @@ let rec typD x' f' s' p' =
   | ObD (_, _) -> FrmEmptyD
   | LfD (x, f, a) -> LfPosElimD (x, f, a, (fun _ -> FrmD x), p')
   | NdD (x, f, s, t, a, d, e) ->
-     let w _ = FrmD x in
+     let u _ = FrmD x in
      let hr = FrmExtD (f, s, t) in
      let th p q = typD x (FrmExtD (typD x f s p, d p, inhD x f s p)) (e p) q in
-     ndPosElimD x f s t a d e w hr th p'
+     ndPosElimD x f s t a d e u hr th p'
   | EtaD (_, f, _) -> f
   | MuD (x, f, s, k) ->
      let pfst = muPosFstD x f s k p' in
      let psnd = muPosSndD x f s k p' in
      typD x (typD x f s pfst) (k pfst) psnd
   | GammaD (x, f, s, t, r, phi, psi) ->
-     let w _ = FrmD x in
+     let u _ = FrmD x in
      let inl p = typD x (FrmExtD (f, s, t)) r p in
      let inr p q = typD x (FrmExtD (typD x f s p, phi p, inhD x f s p)) (psi p) q in
-     gammaPosElimD x f s t r phi psi w inl inr p'
+     gammaPosElimD x f s t r phi psi u inl inr p'
   | _ -> TypD (x', f', s', p')
 
 and inhD x' f' s' p' =
   match s' with
   | ObD (_, a) -> a
-  | LfD (x, f, a) ->
-     let w p = CellD (x, typD x (FrmExtD (f, etaD x f a, a)) s' p) in
-     LfPosElimD (x, f, a, w, p')
-  | NdD (x, f, sigma, tau, alpha, delta, epsilon) ->
-     let w p = CellD (x, typD x (FrmExtD (f, muD x f sigma delta, tau)) s' p) in
-     let th p q = inhD x (FrmExtD (typD x f sigma p, delta p, inhD x f sigma p)) (epsilon p) q in
-     ndPosElimD x f sigma tau alpha delta epsilon w alpha th p'
+  | LfD (_, f, a) ->
+     let u p = CellD (x', typD x' (FrmExtD (f, etaD x' f a, a)) s' p) in
+     LfPosElimD (x', f, a, u, p')
+  | NdD (_, f, sigma, tau, alpha, delta, epsilon) ->
+     let u p = CellD (x', typD x' (FrmExtD (f, muD x' f sigma delta, tau)) s' p) in
+     let th p q = inhD x' (FrmExtD (typD x' f sigma p, delta p, inhD x' f sigma p)) (epsilon p) q in
+     ndPosElimD x' f sigma tau alpha delta epsilon u alpha th p'
   | EtaD (_, _, a) -> a
-  | MuD (x, f, s, k) -> 
-     let pfst = muPosFstD x f s k p' in
-     let psnd = muPosSndD x f s k p' in
-     inhD x (typD x f s pfst) (k pfst) psnd
-  (* Still need gamma ... *)
-  (* | GammaD (x, f, sigma, tau, rho, phi, psi) -> *)
+  | MuD (_, f, s, k) -> 
+     let pfst = muPosFstD x' f s k p' in
+     let psnd = muPosSndD x' f s k p' in
+     inhD x' (typD x' f s pfst) (k pfst) psnd
+  | GammaD (_, f, sigma, tau, rho, phi, psi) ->
+     let u p = CellD (x', typD x' (FrmExtD (f, muD x' f sigma phi, tau)) s' p) in
+     let inl p = inhD x' (FrmExtD (f, sigma, tau)) rho p in
+     let inr p q = inhD x' (FrmExtD (typD x' f sigma p, phi p, inhD x' f sigma p)) (psi p) q in
+     gammaPosElimD x' f sigma tau rho phi psi u inl inr p'
   | _ -> InhD (x', f', s', p')
                 
-and etaD x' _ _ = x'
-(* and etaD x' f' a' = x' *)
-  (* match f with *)
-  (* | FrmEmptyD -> ObD (x', a') *)
-  (* | FrmExtD (f , s , t) -> *)
-  (*    let etaDec p = etaD x f (inhD x f s p)) in *)
-  (*    let lfDec p = LfD (x, typD x f s p, inhD(x, f', s, p)) in *)
-  (*    NdD (x, f, s, t, a, etaDec, lfDec) *)
-  (* | _ -> EtaD (x', f', a') *)
+and etaD x' f' a' =
+  match f' with
+  | FrmEmptyD -> ObD (x', a')
+  | FrmExtD (f , s , t) ->
+     let etaDec p = etaD x' (typD x' f s p) (inhD x' f s p) in
+     let lfDec p = LfD (x', typD x' f s p, inhD x' f s p) in
+     NdD (x', f, s, t, a', etaDec, lfDec)
+  | _ -> EtaD (x', f', a')
+                
+and etaPosD x' f' a' =
+  match f' with
+  | FrmEmptyD -> ObPosD (x' , a')
+  | FrmExtD (f , s , t) ->
+     let etaDec p = etaD x' (typD x' f s p) (inhD x' f s p) in
+     let lfDec p = LfD (x', typD x' f s p, inhD x' f s p) in
+     NdHereD (x', f, s, t, a', etaDec, lfDec)
+  | _ -> EtaPosD (x', f', a')
 
-(* and etaPosD x f a = *)
-(*   match f with *)
-(*   | FrmEmptyD -> ObPosD (x , a) *)
-(*   | FrmExtD (f' , s , t) -> *)
-(*      let etaDec p = etaD x f' (inhD (x, f', s, p)) in *)
-(*      let lfDec p = LfD (x, typD (x, f', s, p), inhD (x, f', s, p)) in *)
-(*      NdHereD (x, f', s, t, a, etaDec, lfDec) *)
-(*   | _ -> EtaPosD (x, f, a) *)
-
-and muD x' _ _ _ = x'
-(* and muD x' f' s' k' = x' *)
-(*   match s with *)
-(*   | ObD (x, a) -> k (ObPosD (x, a)) *)
-(*   | LfD (x, f, a) -> LfD (x, f, a) *)
-(*   | NdD (x, f, s, t, a, d, e) -> *)
-(*      let w = k (NdHereD (x, f, s, t, a, d, e)) in *)
-(*      let k' p q = k (NdThereD (x, f, s, t, a, d, e, p, q)) in  *)
-(*      let psi p = muD x (typD (x, f, s, p)) (e p) (k' p) in *)
-(*      gammaD x f s t w d psi *)
-(*   | _ -> MuD (x, f, s, k) *)
-     
-(* and gammaD x f s t r phi psi = *)
-(*   match r with *)
-(*   | LfD (x, f, a) -> psi (etaPosD x f a) *)
-(*   | NdD (x, f, sigma, tau, alpha, del, eps) -> *)
-(*      let phi' p q = phi (muPosD x f sigma del p q) in *)
-(*      let psi' p q = psi (muPosD x f sigma del p q) in *)
-(*      let del' p = muD x f (del p) (psi' p) in *)
-(*      let eps' p = gammaD x f (del p) (inhD (x , f, sigma, p)) (eps p) (phi' p) (psi' p) in  *)
-(*      NdD (x, f, sigma, tau, alpha, del', eps') *)
-(*   | _ -> GammaD (x, f, s, t, r, phi, psi) *)
+(* It is not clear if we need etaPosElimD.  I think if we have eta
+ expansion/reduction for this type, we should not need the
+ eliminator.... *)
        
-and muPosD x' _ _ _ _ _ = x'
+and muD x' f' s' k' = 
+  match s' with
+  | ObD (_, a) -> k' (ObPosD (x', a))
+  | LfD (_, f, a) -> LfD (x', f, a)
+  | NdD (_, f, s, t, a, d, e) ->
+     let u = k' (NdHereD (x', f, s, t, a, d, e)) in
+     let k p q = k' (NdThereD (x', f, s, t, a, d, e, p, q)) in
+     let psi p = muD x' (FrmExtD (typD x' f s p , d p, inhD x' f s p)) (e p) (k p) in
+     gammaD x' f s t u d psi
+  (* Also need the laws ... *)
+  | _ -> MuD (x', f', s', k')
+
+and gammaD x' f' s' t' r' phi' psi' =
+  match r' with
+  | LfD (_, f, a) -> psi' (etaPosD x' f a)
+  | NdD (_, f, s, t, a, d, e) ->
+     let phi p q = phi' (muPosD x' f s d p q) in
+     let psi p q = psi' (muPosD x' f s d p q) in
+     let dd p = muD x' (typD x' f s p) (d p) (psi p) in
+     let ee p = gammaD x' (typD x' f s p) (d p) (inhD x' f s p) (e p) (phi p) (psi p) in
+     NdD (x', f, s, t, a, dd, ee)
+  (* And the laws, of course ... *)
+  | _ -> GammaD (x', f', s', t', r', phi', psi')
+       
+and muPosD x' f' s' k' p' q' =
+  match s' with
+  | ObD (_, a) -> 
+     let u p = PiD (PosD (x', FrmEmptyD, k' p),
+                    fun _ -> PosD (x', FrmEmptyD, k' (ObPosD (x', a)))) in
+     appD (ObPosElimD (x', a, u, LamD (fun p ->  p), p')) q'
+  | LfD (_, f, a) -> 
+     let u _ = PosD (x', FrmExtD (f, etaD x' f a, a), s') in 
+     LfPosElimD (x', f, a, u, p')
+  | NdD (_, f, s, t, a, d, e) ->
+     let muFrm = FrmExtD (f, muD x' f s d, t) in 
+     let u p = PiD (PosD (x', typD x' muFrm s' p, k' p),
+                    fun _ -> PosD (x', muFrm, muD x' muFrm s' k')) in
+     let w = k' (NdHereD (x', f, s, t, a, d, e)) in 
+     let k p q = k' (NdThereD (x', f, s, t, a, d, e, p, q)) in
+     let psi p = muD x' (FrmExtD (typD x' f s p, d p, inhD x' f s p)) (e p) (k p) in
+     let hr = LamD (fun p -> GammaInlD (x', f, s, t, w, d, psi, p)) in 
+     let th p q = LamD (fun r -> GammaInrD (x', f, s, t, w, d, psi, p,
+                                            muPosD x' (FrmExtD (typD x' f s p, d p, inhD x' f s p)) (e p) (k p) q r)) in
+     appD (ndPosElimD x' f s t a d e u hr th p') q'
+  | _ -> MuPosD (x', f', s', k', p', q')
+                        
 and muPosFstD x' _ _ _ _ = x'
 and muPosSndD x' _ _ _ _ = x'
 and ndPosElimD x' _ _ _ _ _ _ _ _ _ _ = x'
