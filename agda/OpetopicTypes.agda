@@ -18,6 +18,8 @@ module OpetopicTypes where
   Inh : {A : 𝕌} (f : Frm A)
     → (σ : Tree A f) (p : Pos f σ) → Cell A (Typ f σ p)
 
+  infixl 30 _∥_▸_
+  
   data Frm (A : 𝕌) where
     ● : Frm A
     _∥_▸_ : (f : Frm A) (σ : Tree A f) (τ : Cell A f) → Frm A 
@@ -504,3 +506,13 @@ module OpetopicTypes where
       → Cell A ● ↦ A
     {-# REWRITE Cell-●-β #-}
 
+    -- We'll need some kind of shifting operation.  But I don't
+    -- know if these need to be definitional or not ...
+    frm-concat : {A : 𝕌} (f : Frm A) (g : Frm (Cell A f)) → Frm A
+    Cell-concat : {A : 𝕌} (f : Frm A) (g : Frm (Cell A f))
+      → Cell (Cell A f) g → Cell A (frm-concat f g)
+
+    -- How trees work is a bit of a mystery ....
+    -- tree-frm : {A : 𝕌} (f : Frm A) (g : Frm (Tree A f)) → {!!}
+    -- Tree-concat : {A : 𝕌} (f : Frm A) (g : Frm (Tree A f))
+    --   → Cell (Tree A f) g → {!!}

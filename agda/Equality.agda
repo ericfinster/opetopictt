@@ -55,9 +55,19 @@ module Equality where
   is-contr : 𝕌 → 𝕌
   is-contr A = Σ A (λ a → (b : A) → a == b)
 
-  postulate
-  
-    contractibility-conjecture : (A : 𝕌)
-      → is-contr A 
-      → (f : Frm A) → Cell A f
+  contr-has-all-paths : (A : 𝕌)
+    → is-contr A
+    → (a b : A) → a == b
+  contr-has-all-paths = {!!}
 
+  contractibility-conjecture : (A : 𝕌)
+    → is-contr A 
+    → (f : Frm A) → is-contr (Cell A f)
+  contractibility-conjecture A is-cnt ● = is-cnt
+  contractibility-conjecture A is-cnt (f ∥ σ ▸ τ) = 
+    let ih = contractibility-conjecture A is-cnt f
+    in comp (f ∥ σ ▸ τ) {!nd f (η f (comp f σ)) τ ? (η-pos-elim!} , {!!}
+
+  -- Yeah, okay.  This is going to be doable.  You need a couple
+  -- lemmas about reverse filling, but I think it's going to be
+  -- okay.....
