@@ -506,5 +506,8 @@ module OpetopicTypes where
       → (d : P (comp f σ) (fill f σ))
       → J f σ P d (comp f σ) (fill f σ) ↦ d
     {-# REWRITE J-β #-}
-      
+
+    Cell-●-β : (A : 𝕌)
+      → Cell A ● ↦ A
+    {-# REWRITE Cell-●-β #-}
 
