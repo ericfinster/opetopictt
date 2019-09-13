@@ -58,6 +58,6 @@ module Equality where
   postulate
   
     contractibility-conjecture : (A : 𝕌)
-      → is-contr A
-      → (f : Frm A) (σ : Tree A f) (τ : Cell A f)
-      → Cell A (f ∥ σ ▸ τ)
+      → is-contr A 
+      → (f : Frm A) → Cell A f
+
