@@ -4,98 +4,92 @@ open import Base
 
 module Opetopes where
 
-  data 𝔽 : ℕ → 𝕌
-  data 𝕆 : {n : ℕ} (f : 𝔽 n) → 𝕌
-  data Pos : {n : ℕ} {f : 𝔽 n} → 𝕆 f → 𝕌 
-  data Face : {n : ℕ} → 𝔽 n → 𝕌
+  data 𝕆 : ℕ → 𝕌
+  data ℙ : {n : ℕ} (f : 𝕆 n) → 𝕌
+  data Pos : {n : ℕ} {f : 𝕆 n} → ℙ f → 𝕌 
 
   infixl 40 _▸_
   
-  data 𝔽 where
-    ● : 𝔽 O
-    _▸_ : {n : ℕ} (f : 𝔽 n) → 𝕆 f → 𝔽 (S n)
+  data 𝕆 where
+    ● : 𝕆 O
+    _▸_ : {n : ℕ} (f : 𝕆 n) → ℙ f → 𝕆 (S n)
 
-  Typ : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f) (s : Pos o) → 𝔽 n
+  Typ : {n : ℕ} {f : 𝕆 n} (o : ℙ f) (s : Pos o) → 𝕆 n
 
-  η : {n : ℕ} (f : 𝔽 n) → 𝕆 f
+  η : {n : ℕ} (f : 𝕆 n) → ℙ f
 
-  η-pos : {n : ℕ} (f : 𝔽 n)
+  η-pos : {n : ℕ} (f : 𝕆 n)
     → Pos (η f)
 
-  η-pos-elim : {n : ℕ} (f : 𝔽 n)
+  η-pos-elim : {n : ℕ} (f : 𝕆 n)
     → (X : (p : Pos (η f)) → 𝕌)
     → (η-pos* : X (η-pos f))
     → (p : Pos (η f)) → X p
 
-  μ : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-    → (κ : (s : Pos o) → 𝕆 (Typ o s))
-    → 𝕆 f
+  μ : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+    → (κ : (s : Pos o) → ℙ (Typ o s))
+    → ℙ f
 
-  μ-pos : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-    → (κ : (s : Pos o) → 𝕆 (Typ o s))
+  μ-pos : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+    → (κ : (s : Pos o) → ℙ (Typ o s))
     → (s : Pos o) (t : Pos (κ s))
     → Pos (μ o κ)
 
-  μ-pos-fst : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-    → (κ : (s : Pos o) → 𝕆 (Typ o s))
+  μ-pos-fst : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+    → (κ : (s : Pos o) → ℙ (Typ o s))
     → Pos (μ o κ) → Pos o
 
-  μ-pos-snd : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-    → (κ : (s : Pos o) → 𝕆 (Typ o s))
+  μ-pos-snd : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+    → (κ : (s : Pos o) → ℙ (Typ o s))
     → (s : Pos (μ o κ)) → Pos (κ (μ-pos-fst o κ s))
 
-  γ : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-    → (δ : (s : Pos o) → 𝕆 (Typ o s))
-    → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
-    → 𝕆 (f ▸ μ o δ)
+  γ : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+    → (δ : (s : Pos o) → ℙ (Typ o s))
+    → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
+    → ℙ (f ▸ μ o δ)
 
-  γ-pos-inl : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-    → (δ : (s : Pos o) → 𝕆 (Typ o s))
-    → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+  γ-pos-inl : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+    → (δ : (s : Pos o) → ℙ (Typ o s))
+    → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
     → Pos p → Pos (γ f o p δ ε)
 
-  γ-pos-inr : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-    → (δ : (s : Pos o) → 𝕆 (Typ o s))
-    → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+  γ-pos-inr : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+    → (δ : (s : Pos o) → ℙ (Typ o s))
+    → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
     → (s : Pos o) (t : Pos (ε s))
     → Pos (γ f o p δ ε)
 
-  γ-pos-elim : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-    → (δ : (s : Pos o) → 𝕆 (Typ o s))
-    → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+  γ-pos-elim : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+    → (δ : (s : Pos o) → ℙ (Typ o s))
+    → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
     → (X : Pos (γ f o p δ ε) → 𝕌)
     → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
     → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
     → (s : Pos (γ f o p δ ε)) → X s
 
-  data 𝕆 where
-    ob : 𝕆 ●
-    lf : {n : ℕ} (f : 𝔽 n) → 𝕆 (f ▸ η f)
-    nd : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f)
-      → (δ : (s : Pos o) → 𝕆 (Typ o s))
-      → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
-      → 𝕆 (f ▸ μ o δ)
+  data ℙ where
+    arr : ℙ ●
+    lf : {n : ℕ} (f : 𝕆 n) → ℙ (f ▸ η f)
+    nd : {n : ℕ} (f : 𝕆 n) (o : ℙ f)
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
+      → ℙ (f ▸ μ o δ)
 
   -- Not strictly positive with this definition ...
   data Pos where
-    ob-pos : Pos ob
-    nd-pos-here : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f)
-      → (δ : (s : Pos o) → 𝕆 (Typ o s))
-      → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+    arr-pos : Pos arr
+    nd-pos-here : {n : ℕ} (f : 𝕆 n) (o : ℙ f)
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
       → Pos (nd f o δ ε)
-    nd-pos-there : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f)
-      → (δ : (s : Pos o) → 𝕆 (Typ o s))
-      → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+    nd-pos-there : {n : ℕ} (f : 𝕆 n) (o : ℙ f)
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
       → (p : Pos o) (q : Pos (ε p))
       → Pos (nd f o δ ε)
 
-  data Face where
-    here : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) → Pos o → Face (f ▸ o)
-    there : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) → Face f → Face (f ▸ o)
-
-
-  -- Typ : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f) (s : Pos o) → 𝔽 n
-  Typ ob ob-pos = ●
+  -- Typ : {n : ℕ} {f : 𝕆 n} (o : ℙ f) (s : Pos o) → 𝕆 n
+  Typ arr arr-pos = ●
   Typ (lf f) ()
   Typ (nd f o δ ε) (nd-pos-here .f .o .δ .ε) = f ▸ o
   Typ (nd f o δ ε) (nd-pos-there .f .o .δ .ε p q) = Typ (ε p) q
@@ -103,61 +97,61 @@ module Opetopes where
   postulate
 
     -- η-pos laws
-    η-pos-typ : {n : ℕ} (f : 𝔽 n)
+    η-pos-typ : {n : ℕ} (f : 𝕆 n)
       → (p : Pos (η f))
       → Typ (η f) p ↦ f
     {-# REWRITE η-pos-typ #-}
 
-    η-pos-elim-β : {n : ℕ} (f : 𝔽 n)
+    η-pos-elim-β : {n : ℕ} (f : 𝕆 n)
       → (X : (p : Pos (η f)) → 𝕌)
       → (η-pos* : X (η-pos f))
       → η-pos-elim f X η-pos* (η-pos f) ↦ η-pos*
     {-# REWRITE η-pos-elim-β #-}
 
     -- μ-pos laws
-    μ-pos-fst-β : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-      → (κ : (s : Pos o) → 𝕆 (Typ o s))
+    μ-pos-fst-β : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+      → (κ : (s : Pos o) → ℙ (Typ o s))
       → (s : Pos o) (t : Pos (κ s))
       → μ-pos-fst o κ (μ-pos o κ s t) ↦ s
     {-# REWRITE μ-pos-fst-β #-}
 
-    μ-pos-snd-β : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-      → (κ : (s : Pos o) → 𝕆 (Typ o s))
+    μ-pos-snd-β : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+      → (κ : (s : Pos o) → ℙ (Typ o s))
       → (s : Pos o) (t : Pos (κ s))
       → μ-pos-snd o κ (μ-pos o κ s t) ↦ t
     {-# REWRITE μ-pos-snd-β #-}
     
-    μ-pos-η : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-      → (κ : (s : Pos o) → 𝕆 (Typ o s))
+    μ-pos-η : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+      → (κ : (s : Pos o) → ℙ (Typ o s))
       → (s : Pos (μ o κ))
       → μ-pos o κ (μ-pos-fst o κ s) (μ-pos-snd o κ s) ↦ s
     {-# REWRITE μ-pos-η #-}
 
-    μ-pos-typ : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-      → (κ : (s : Pos o) → 𝕆 (Typ o s))
+    μ-pos-typ : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+      → (κ : (s : Pos o) → ℙ (Typ o s))
       → (s : Pos (μ o κ))
       → Typ (μ o κ) s ↦ Typ (κ (μ-pos-fst o κ s)) (μ-pos-snd o κ s)
     {-# REWRITE μ-pos-typ #-}
 
     -- μ laws
-    μ-unit-r : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
+    μ-unit-r : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
       → μ o (λ s → η (Typ o s)) ↦ o
     {-# REWRITE μ-unit-r #-}
 
-    μ-unit-l : {n : ℕ} {f : 𝔽 n} (ϕ : (s : Pos (η f)) → 𝕆 f)
+    μ-unit-l : {n : ℕ} {f : 𝕆 n} (ϕ : (s : Pos (η f)) → ℙ f)
       → μ (η f) ϕ ↦ ϕ (η-pos f)
     {-# REWRITE μ-unit-l #-}
 
-    μ-assoc : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-      → (κ : (s : Pos o) → 𝕆 (Typ o s))
-      → (θ : (s : Pos (μ o κ)) → 𝕆 (Typ (μ o κ) s))
+    μ-assoc : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+      → (κ : (s : Pos o) → ℙ (Typ o s))
+      → (θ : (s : Pos (μ o κ)) → ℙ (Typ (μ o κ) s))
       → μ (μ o κ) θ ↦ μ o (λ s → μ (κ s) (λ t → θ (μ-pos o κ s t)))
     {-# REWRITE μ-assoc #-}
 
     -- γ elim rules
-    γ-pos-elim-inl-β : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-      → (δ : (s : Pos o) → 𝕆 (Typ o s))
-      → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+    γ-pos-elim-inl-β : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
       → (X : Pos (γ f o p δ ε) → 𝕌)
       → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
       → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
@@ -165,9 +159,9 @@ module Opetopes where
       → γ-pos-elim f o p δ ε X left right (γ-pos-inl f o p δ ε s) ↦ left s
     {-# REWRITE γ-pos-elim-inl-β #-}
 
-    γ-pos-elim-inr-β : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-      → (δ : (s : Pos o) → 𝕆 (Typ o s))
-      → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+    γ-pos-elim-inr-β : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
       → (X : Pos (γ f o p δ ε) → 𝕌)
       → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
       → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
@@ -176,56 +170,56 @@ module Opetopes where
     {-# REWRITE γ-pos-elim-inr-β #-}
 
     -- γ pos laws
-    γ-pos-inl-typ : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-      → (δ : (s : Pos o) → 𝕆 (Typ o s))
-      → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+    γ-pos-inl-typ : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
       → (s : Pos p)
       → Typ (γ f o p δ ε) (γ-pos-inl f o p δ ε s) ↦ Typ p s
     {-# REWRITE γ-pos-inl-typ #-}
 
-    γ-pos-inr-typ : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-      → (δ : (s : Pos o) → 𝕆 (Typ o s))
-      → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+    γ-pos-inr-typ : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
       → (s : Pos o) (t : Pos (ε s))
       → Typ (γ f o p δ ε) (γ-pos-inr f o p δ ε s t) ↦ Typ (ε s) t
     {-# REWRITE γ-pos-inr-typ #-}
 
     -- γ laws
-    γ-unit-r : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
+    γ-unit-r : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
       → γ f o p (λ s → η (Typ o s)) (λ s → lf (Typ o s)) ↦ p 
     {-# REWRITE γ-unit-r #-}
 
-  -- η : {n : ℕ} (f : 𝔽 n) → 𝕆 f
-  η ● = ob
+  -- η : {n : ℕ} (f : 𝕆 n) → ℙ f
+  η ● = arr
   η (f ▸ o) = nd f o (λ s → η (Typ o s)) (λ s → lf (Typ o s))
 
-  -- η-pos : {n : ℕ} (f : 𝔽 n)
+  -- η-pos : {n : ℕ} (f : 𝕆 n)
   --   → Pos (η f)
-  η-pos ● = ob-pos
+  η-pos ● = arr-pos
   η-pos (f ▸ o) = nd-pos-here f o (λ s → η (Typ o s)) (λ s → lf (Typ o s))
   
-  -- η-pos-elim : {n : ℕ} (f : 𝔽 n)
+  -- η-pos-elim : {n : ℕ} (f : 𝕆 n)
   --   → (X : (p : Pos (η f)) → 𝕌)
   --   → (η-pos* : X (η-pos f))
   --   → (p : Pos (η f)) → X p
-  η-pos-elim ● X η-pos* ob-pos = η-pos*
+  η-pos-elim ● X η-pos* arr-pos = η-pos*
   η-pos-elim (f ▸ o) X η-pos* (nd-pos-here .f .o ._ ._) = η-pos*
   η-pos-elim (f ▸ o) X η-pos* (nd-pos-there .f .o ._ ._ p ())
 
-  -- μ : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-  --   → (κ : (s : Pos o) → 𝕆 (Typ o s))
-  --   → 𝕆 f
-  μ ob κ = κ ob-pos
+  -- μ : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+  --   → (κ : (s : Pos o) → ℙ (Typ o s))
+  --   → ℙ f
+  μ arr κ = κ arr-pos
   μ (lf f) κ = lf f
   μ (nd f o δ ε) κ =
     let w = κ (nd-pos-here f o δ ε)
         ε' s = μ (ε s) (λ t → κ (nd-pos-there f o δ ε s t))
     in γ f o w δ ε'
 
-  -- γ : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-  --   → (δ : (s : Pos o) → 𝕆 (Typ o s))
-  --   → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
-  --   → 𝕆 (f ▸ μ o δ)
+  -- γ : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+  --   → (δ : (s : Pos o) → ℙ (Typ o s))
+  --   → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
+  --   → ℙ (f ▸ μ o δ)
   γ f .(η f) (lf .f) ϕ ψ = ψ (η-pos f)
   γ f .(μ o δ) (nd .f o δ ε) ϕ ψ =
     let ϕ' p q = ϕ (μ-pos o δ p q)
@@ -234,11 +228,11 @@ module Opetopes where
         ε' p = γ (Typ o p) (δ p) (ε p) (ϕ' p) (ψ' p) 
     in nd f o δ' ε'
 
-  -- μ-pos : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-  --   → (κ : (s : Pos o) → 𝕆 (Typ o s))
+  -- μ-pos : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+  --   → (κ : (s : Pos o) → ℙ (Typ o s))
   --   → (s : Pos o) (t : Pos (κ s))
   --   → Pos (μ o κ)
-  μ-pos ob κ ob-pos q = q
+  μ-pos arr κ arr-pos q = q
   μ-pos (lf f) κ () q
   μ-pos (nd f o δ ε) κ (nd-pos-here .f .o .δ .ε) r =
     let w = κ (nd-pos-here f o δ ε)
@@ -250,10 +244,10 @@ module Opetopes where
         ε' s = μ (ε s) (κ' s)
     in γ-pos-inr f o w δ ε' p (μ-pos (ε p) (κ' p) q r) 
 
-  -- μ-pos-fst : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-  --   → (κ : (s : Pos o) → 𝕆 (Typ o s))
+  -- μ-pos-fst : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+  --   → (κ : (s : Pos o) → ℙ (Typ o s))
   --   → Pos (μ o κ) → Pos o
-  μ-pos-fst ob κ _ = ob-pos
+  μ-pos-fst arr κ _ = arr-pos
   μ-pos-fst (lf f) κ ()
   μ-pos-fst (nd f o δ ε) κ =
     let w = κ (nd-pos-here f o δ ε)
@@ -262,10 +256,10 @@ module Opetopes where
     in γ-pos-elim f o w δ ε' _ (λ _ → nd-pos-here f o δ ε) 
          (λ s t → nd-pos-there f o δ ε s (μ-pos-fst (ε s) (κ' s) t))
     
-  -- μ-pos-snd : {n : ℕ} {f : 𝔽 n} (o : 𝕆 f)
-  --   → (κ : (s : Pos o) → 𝕆 (Typ o s))
+  -- μ-pos-snd : {n : ℕ} {f : 𝕆 n} (o : ℙ f)
+  --   → (κ : (s : Pos o) → ℙ (Typ o s))
   --   → (s : Pos (μ o κ)) → Pos (κ (μ-pos-fst o κ s))
-  μ-pos-snd ob κ p = p
+  μ-pos-snd arr κ p = p
   μ-pos-snd (lf f) κ ()
   μ-pos-snd (nd f o δ ε) κ = 
     let w = κ (nd-pos-here f o δ ε)
@@ -274,9 +268,9 @@ module Opetopes where
     in γ-pos-elim f o w δ ε' _ (λ s → s)
          (λ s t → μ-pos-snd (ε s) (κ' s) t)
 
-  -- γ-pos-inl : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-  --   → (δ : (s : Pos o) → 𝕆 (Typ o s))
-  --   → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+  -- γ-pos-inl : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+  --   → (δ : (s : Pos o) → ℙ (Typ o s))
+  --   → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
   --   → Pos p → Pos (γ f o p δ ε)
   γ-pos-inl f .(η f) (lf .f) ϕ ψ ()
   γ-pos-inl f .(μ o δ) (nd .f o δ ε) ϕ ψ (nd-pos-here .f .o .δ .ε) = 
@@ -292,9 +286,9 @@ module Opetopes where
         ε' p = γ (Typ o p) (δ p) (ε p) (ϕ' p) (ψ' p)
     in nd-pos-there f o δ' ε' u (γ-pos-inl (Typ o u) (δ u) (ε u) (ϕ' u) (ψ' u) v)
 
-  -- γ-pos-inr : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-  --   → (δ : (s : Pos o) → 𝕆 (Typ o s))
-  --   → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+  -- γ-pos-inr : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+  --   → (δ : (s : Pos o) → ℙ (Typ o s))
+  --   → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
   --   → (s : Pos o) (t : Pos (ε s))
   --   → Pos (γ f o p δ ε)
   γ-pos-inr f .(η f) (lf .f) ϕ ψ =
@@ -308,9 +302,9 @@ module Opetopes where
         u₁ = μ-pos-snd o δ u
     in nd-pos-there f o δ' ε' u₀ (γ-pos-inr (Typ o u₀) (δ u₀) (ε u₀) (ϕ' u₀) (ψ' u₀) u₁ v)
 
-  -- γ-pos-elim : {n : ℕ} (f : 𝔽 n) (o : 𝕆 f) (p : 𝕆 (f ▸ o))
-  --   → (δ : (s : Pos o) → 𝕆 (Typ o s))
-  --   → (ε : (s : Pos o) → 𝕆 (Typ o s ▸ δ s))
+  -- γ-pos-elim : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
+  --   → (δ : (s : Pos o) → ℙ (Typ o s))
+  --   → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
   --   → (X : Pos (γ f o p δ ε) → 𝕌)
   --   → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
   --   → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
