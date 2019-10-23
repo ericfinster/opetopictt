@@ -322,3 +322,21 @@ module Opetopes where
          (λ t → inl* (nd-pos-there f o δ ε u t))
          (λ s t → inr* (μ-pos o δ u s) t) v
 
+  --
+  --  Examples
+  --
+
+  ob : 𝕆 0
+  ob = ●
+
+  arrow : 𝕆 1
+  arrow = ● ▸ arr
+
+  2-drop : 𝕆 2
+  2-drop = ● ▸ arr ▸ lf ●
+
+  2-globe : 𝕆 2
+  2-globe = ● ▸ arr ▸ nd ● arr (λ { arr-pos → arr }) (λ { arr-pos → lf ● })
+
+  2-simplex : 𝕆 2
+  2-simplex = ● ▸ arr ▸ nd ● arr (λ { arr-pos → arr }) (λ { arr-pos → nd ● arr (λ { arr-pos → arr }) (λ { arr-pos → lf ● }) })
