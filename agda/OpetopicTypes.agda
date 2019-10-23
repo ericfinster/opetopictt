@@ -92,6 +92,9 @@ module OpetopicTypes where
 
   postulate
 
+    -- This is a bit fishy without some kind of
+    -- η rule, since you have both the eliminator
+    -- and the constant function as normal forms...
     ob-pos : {A : 𝕌} (α : Cell A ●)
       → Pos ● (ob α)
 
@@ -506,11 +509,26 @@ module OpetopicTypes where
       → Cell A ● ↦ A
     {-# REWRITE Cell-●-β #-}
 
+    comp-●-η : {A : 𝕌} (a : A)
+      → comp ● (ob a) ↦ a
+    {-# REWRITE comp-●-η #-}
+
+    fill-●-η : {A : 𝕌} (a : A)
+      → fill ● (ob a) ↦ comp (● ∥ ob a ▸ a) (lf ● a)
+    {-# REWRITE fill-●-η #-}
+
+    J-●-β : {A : 𝕌} (a : A)
+      → (P : (b : A) (p : Cell A (● ∥ ob a ▸ b)) → 𝕌)
+      → (d : P a (comp (● ∥ ob a ▸ a) (lf ● a)))
+      → J ● (ob a) P d a (comp (● ∥ ob a ▸ a) (lf ● a)) ↦ d
+    {-# REWRITE J-●-β #-}
+
+
     -- We'll need some kind of shifting operation.  But I don't
     -- know if these need to be definitional or not ...
-    frm-concat : {A : 𝕌} (f : Frm A) (g : Frm (Cell A f)) → Frm A
-    Cell-concat : {A : 𝕌} (f : Frm A) (g : Frm (Cell A f))
-      → Cell (Cell A f) g → Cell A (frm-concat f g)
+    -- frm-concat : {A : 𝕌} (f : Frm A) (g : Frm (Cell A f)) → Frm A
+    -- Cell-concat : {A : 𝕌} (f : Frm A) (g : Frm (Cell A f))
+    --   → Cell (Cell A f) g → Cell A (frm-concat f g)
 
     -- How trees work is a bit of a mystery ....
     -- tree-frm : {A : 𝕌} (f : Frm A) (g : Frm (Tree A f)) → {!!}
