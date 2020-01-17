@@ -7,14 +7,13 @@ module Opetopes where
   data 𝕆 : ℕ → 𝕌
   data ℙ : {n : ℕ} (f : 𝕆 n) → 𝕌
   data Pos : {n : ℕ} {f : 𝕆 n} → ℙ f → 𝕌 
+  Typ : {n : ℕ} {f : 𝕆 n} (o : ℙ f) (s : Pos o) → 𝕆 n
 
   infixl 40 _▸_
   
   data 𝕆 where
     ● : 𝕆 O
     _▸_ : {n : ℕ} (f : 𝕆 n) → ℙ f → 𝕆 (S n)
-
-  Typ : {n : ℕ} {f : 𝕆 n} (o : ℙ f) (s : Pos o) → 𝕆 n
 
   η : {n : ℕ} (f : 𝕆 n) → ℙ f
 
@@ -89,7 +88,7 @@ module Opetopes where
       → Pos (nd f o δ ε)
 
   -- Typ : {n : ℕ} {f : 𝕆 n} (o : ℙ f) (s : Pos o) → 𝕆 n
-  Typ arr arr-pos = ●
+  Typ arr _ = ●
   Typ (lf f) ()
   Typ (nd f o δ ε) (nd-pos-here .f .o .δ .ε) = f ▸ o
   Typ (nd f o δ ε) (nd-pos-there .f .o .δ .ε p q) = Typ (ε p) q
