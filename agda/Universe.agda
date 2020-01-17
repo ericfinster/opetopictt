@@ -14,12 +14,9 @@ module Universe where
     ● : Frm 
     _∥_▸_ : (f : Frm) (σ : Tree f) (τ : Cell f) → Frm
 
-  data Cell where
-    ⊤' : Cell ●
-
+    
   Pos : {f : Frm} (σ : Tree f) → Set
   Typ : {f : Frm} (σ : Tree f) (p : Pos σ) → Frm 
-
   Inh : {f : Frm} (σ : Tree f) (p : Pos σ) → Cell (Typ σ p)
 
   η : {f : Frm} → Cell f → Tree f
@@ -35,6 +32,15 @@ module Universe where
        → (δ : (p : Pos σ) → Tree (Typ σ p))
        → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
        → Tree (f ∥ μ σ δ ▸ τ)
+
+  -- Okay, this looks pretty good now.  I think with this
+  -- setup, we will have trees in dimension 1 being contexts
+  -- and their "boundary" being their type of leaves and the
+  -- unit type.  So that looks pretty good.
+  
+  data Cell where
+    ⊤' : Cell ●
+    Ty : (A : Set) → Cell (● ∥ ob A ▸ ⊤')
 
   Pos {●} (ob A) = A
   Pos {f ∥ σ ▸ τ} σ' = {!!}
