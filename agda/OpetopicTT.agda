@@ -47,34 +47,24 @@ module OpetopicTT where
 
   μ : {f : Frm} (σ : Tree f)
     → (δ : (p : Pos σ) → Tree (Typ σ p))
-    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
     → Tree f
 
   μ↓ : {f : Frm} {σ : Tree f}
     → {δ : (p : Pos σ) → Tree (Typ σ p)}
-    → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
     → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
     → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
-    → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
-    → Tree↓ (μ σ δ ε) f↓ 
+    → Tree↓ (μ σ δ) f↓ 
 
   data Tree where
-    nil : Tree ●
-    cns : (A : Cell ●) (B : (a : El A ∎) → Tree ●) → Tree ● 
-
+    ob : (A : Cell ●) → Tree ● 
     lf : (f : Frm) (A : Cell f) → Tree (f ∥ η A ▸ A)
     nd : (f : Frm) (σ : Tree f) (τ : Cell f) (A : Cell (f ∥ σ ▸ τ))
        → (δ : (p : Pos σ) → Tree (Typ σ p))
        → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
-       → Tree (f ∥ μ σ δ ε ▸ τ)
+       → Tree (f ∥ μ σ δ ▸ τ)
 
   data Pos where
-    cns-here : {A : Cell ●} {B : (a : El A ∎) → Tree ●}
-      → Pos (cns A B)
-    cns-there : {A : Cell ●} {B : (a : El A ∎) → Tree ●}
-      → (a : El A ∎) (p : Pos (B a))
-      → Pos (cns A B)
-      
+    ob-pos : {A : Cell ●} (a : El A ∎) → Pos (ob A)
     nd-here : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
        → {δ : (p : Pos σ) → Tree (Typ σ p)}
        → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
@@ -87,14 +77,12 @@ module OpetopicTT where
 
   data Cell where
     ⊤' : Cell ●
-    Σ' : {f : Frm} → Tree f → Cell f
+    π' : (A : Cell ●) → Cell (● ∥ ob A ▸ ⊤')
+    Σ' : {f : Frm} {σ : Tree f} {τ : Cell f}
+      → Tree (f ∥ σ ▸ τ) → Cell (f ∥ σ ▸ τ)
 
   data Tree↓ where
-    nil↓ : Tree↓ nil ∎
-    cns↓ : {A : Cell ●} {B : (a : El A ∎) → Tree ●}
-      → (a : El A ∎) (b : Tree↓ (B a) ∎)
-      → Tree↓ (cns A B) ∎
-      
+    ob↓ : (A : Cell ●) (a : El A ∎) → Tree↓ (ob A) ∎
     lf↓ : (f : Frm) (A : Cell f)
       → (f↓ : Frm↓ f) (a : El A f↓)
       → Tree↓ (lf f A) (f↓ ∣ η↓ a ▸ a) 
@@ -104,22 +92,22 @@ module OpetopicTT where
       → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : El τ f↓)
       → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
       → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
-      → Tree↓ (nd f σ τ A δ ε) (f↓ ∣ μ↓ f↓ σ↓ δ↓ ε↓ ▸ τ↓) 
+      → Tree↓ (nd f σ τ A δ ε) (f↓ ∣ μ↓ f↓ σ↓ δ↓ ▸ τ↓) 
 
   data Pos↓ where
 
   El ⊤' ∎ = ⊤
+  -- Unique projection?
+  El (π' A) (∎ ∣ ob↓ .A a ▸ unit) = ⊤
   El (Σ' σ) f↓ = Tree↓ σ f↓
 
-  Typ .(cns _ _) cns-here = ●
-  Typ .(cns _ _) (cns-there {B = B} a p) = Typ (B a) p
+  Typ .(ob _) (ob-pos a) = ●
   Typ .(nd _ _ _ _ _ _) (nd-here {f} {σ} {τ}) = f ∥ σ ▸ τ
-  Typ .(nd _ _ _ _ _ _) (nd-there {ε = ε} p q) = Typ (ε p) q
+  Typ .(nd _ _ _ _ _ _) (nd-there p q) = Typ _ q
   
-  Inh .(cns _ _) (cns-here {A}) = A
-  Inh .(cns _ _) (cns-there {B = B} a p) = Inh (B a) p
+  Inh .(ob _) (ob-pos a) = ⊤'
   Inh .(nd _ _ _ _ _ _) (nd-here {A = A}) = A
-  Inh .(nd _ _ _ _ _ _) (nd-there {ε = ε} p q) = Inh (ε p) q
+  Inh .(nd _ _ _ _ _ _) (nd-there p q) = Inh _ q
 
   Typ↓ = {!!}
   Inh↓ = {!!}

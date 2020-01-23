@@ -2,8 +2,6 @@
 
 module Base where
 
-  𝕌 = Set
-
   -- Rewriting
   infix 30 _↦_
   postulate  
@@ -13,7 +11,7 @@ module Base where
 
   infixr 60 _,_
 
-  record Σ (A : 𝕌) (B : A → 𝕌) : 𝕌 where
+  record Σ (A : Set) (B : A → Set) : Set where
     constructor _,_
     field
       fst : A
@@ -21,14 +19,14 @@ module Base where
 
   open Σ public
 
-  record ⊤ : 𝕌 where
+  record ⊤ : Set where
     instance constructor unit
 
   Unit = ⊤
 
   {-# BUILTIN UNIT ⊤ #-}
 
-  data ℕ : 𝕌 where
+  data ℕ : Set where
     O : ℕ
     S : ℕ → ℕ
 
