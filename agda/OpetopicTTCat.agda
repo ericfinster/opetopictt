@@ -2,7 +2,7 @@
 
 open import Base
 
-module OpetopicTT where
+module OpetopicTTCat where
 
   infixl 30 _∥_▸_ _∣_▸_
   
@@ -14,8 +14,7 @@ module OpetopicTT where
   data Frm↓ : Frm → Set
   data Tree↓ : {f : Frm} → Tree f → Frm↓ f → Set
   data Pos↓ : {f : Frm} {σ : Tree f} → Pos σ → {f↓ : Frm↓ f} → Tree↓ σ f↓ → Set
-
-  El : {f : Frm} (A : Cell f) (f↓ : Frm↓ f) → Set
+  data Cell↓ : {f : Frm} (A : Cell f) (f↓ : Frm↓ f) → Set
 
   data Frm where
     ● : Frm 
@@ -24,7 +23,7 @@ module OpetopicTT where
   data Frm↓ where
     ∎ : Frm↓ ●
     _∣_▸_ : {f : Frm} {σ : Tree f} {τ : Cell f}
-      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (t : El τ f↓)
+      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (t : Cell↓ τ f↓)
       → Frm↓ (f ∥ σ ▸ τ)
 
   Typ : {f : Frm} (σ : Tree f) (p : Pos σ) → Frm 
@@ -36,13 +35,13 @@ module OpetopicTT where
 
   Inh↓ : {f : Frm} {σ : Tree f} {p : Pos σ}
     → {f↓ : Frm↓ f} (σ↓ : Tree↓ σ f↓) (p↓ : Pos↓ p σ↓)
-    → El (Inh σ p) (Typ↓ σ↓ p↓)
+    → Cell↓ (Inh σ p) (Typ↓ σ↓ p↓)
 
   η : {f : Frm} (A : Cell f)
     → Tree f
 
   η↓ : {f : Frm} {A : Cell f}
-    → {f↓ : Frm↓ f} (a : El A f↓)
+    → {f↓ : Frm↓ f} (a : Cell↓ A f↓)
     → Tree↓ (η A) f↓ 
 
   μ : {f : Frm} (σ : Tree f)
@@ -55,6 +54,12 @@ module OpetopicTT where
     → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
     → Tree↓ (μ σ δ) f↓ 
 
+  γ : {f : Frm} (σ : Tree f) (τ : Cell f)
+    → (ρ : Tree (f ∥ σ ▸ τ))
+    → (ϕ : (p : Pos σ) → Tree (Typ σ p))
+    → (ψ : (p : Pos σ) → Tree (Typ σ p ∥ ϕ p ▸ Inh σ p))
+    → Tree (f ∥ μ σ ϕ ▸ τ)
+
   data Tree where
     ob : (A : Cell ●) → Tree ● 
     lf : (f : Frm) (A : Cell f) → Tree (f ∥ η A ▸ A)
@@ -64,7 +69,7 @@ module OpetopicTT where
        → Tree (f ∥ μ σ δ ▸ τ)
 
   data Pos where
-    ob-pos : {A : Cell ●} (a : El A ∎) → Pos (ob A)
+    ob-pos : {A : Cell ●} (a : Cell↓ A ∎) → Pos (ob A)
     nd-here : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
        → {δ : (p : Pos σ) → Tree (Typ σ p)}
        → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
@@ -80,26 +85,31 @@ module OpetopicTT where
     π' : (A : Cell ●) → Cell (● ∥ ob A ▸ ⊤')
     Σ' : {f : Frm} {σ : Tree f} {τ : Cell f}
       → Tree (f ∥ σ ▸ τ) → Cell (f ∥ σ ▸ τ)
+    -- There's also the "higher cell" for the composite...
+    -- And you'll similarly have to define its "elements"...
 
   data Tree↓ where
-    ob↓ : (A : Cell ●) (a : El A ∎) → Tree↓ (ob A) ∎
+    ob↓ : (A : Cell ●) (a : Cell↓ A ∎) → Tree↓ (ob A) ∎
     lf↓ : (f : Frm) (A : Cell f)
-      → (f↓ : Frm↓ f) (a : El A f↓)
+      → (f↓ : Frm↓ f) (a : Cell↓ A f↓)
       → Tree↓ (lf f A) (f↓ ∣ η↓ a ▸ a) 
     nd↓ : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
       → {δ : (p : Pos σ) → Tree (Typ σ p)}
       → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
-      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : El τ f↓)
+      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : Cell↓ τ f↓)
       → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
       → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
       → Tree↓ (nd f σ τ A δ ε) (f↓ ∣ μ↓ f↓ σ↓ δ↓ ▸ τ↓) 
 
   data Pos↓ where
 
-  El ⊤' ∎ = ⊤
-  -- Unique projection?
-  El (π' A) (∎ ∣ ob↓ .A a ▸ unit) = ⊤
-  El (Σ' σ) f↓ = Tree↓ σ f↓
+  data Cell↓ where
+    ⊤↓ : Cell↓ ⊤' ∎
+    π↓ : (A : Cell ●) (a : Cell↓ A ∎) → Cell↓ (π' A) (∎ ∣ ob↓ A a  ▸ ⊤↓) 
+    Σ↓ : {f : Frm} {σ : Tree f} {τ : Cell f} (θ : Tree (f ∥ σ ▸ τ))
+      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : Cell↓ τ f↓)
+      → (θ↓ : Tree↓ θ (f↓ ∣ σ↓ ▸ τ↓))
+      → Cell↓ (Σ' θ) (f↓ ∣ σ↓ ▸ τ↓)
 
   Typ .(ob _) (ob-pos a) = ●
   Typ .(nd _ _ _ _ _ _) (nd-here {f} {σ} {τ}) = f ∥ σ ▸ τ
@@ -117,3 +127,6 @@ module OpetopicTT where
 
   μ = {!!}
   μ↓ = {!!}
+
+  γ = {!!}
+
