@@ -41,35 +41,35 @@ module OpetopicTTCtx where
   η : (f : Frm) (A : Cell f)
     → Tree f
 
-  -- η↓ : {f : Frm} {A : Cell f}
-  --   → {f↓ : Frm↓ f} (a : Cell↓ A f↓)
-  --   → Tree↓ (η A) f↓ 
+  η↓ : {f : Frm} {τ : Cell f}
+    → {f↓ : Frm↓ f} (τ↓ : Cell↓ τ f↓)
+    → Tree↓ (η f τ) f↓ 
 
   μ : (f : Frm) (σ : Tree f) 
     → (δ : (p : Pos σ) → Tree (Typ σ p))
+    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
     → Tree f
 
-  -- μ↓ : {f : Frm} {σ : Tree f}
-  --   → {δ : (p : Pos σ) → Tree (Typ σ p)}
-  --   → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
-  --   → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
-  --   → Tree↓ (μ σ δ) f↓ 
+  μ↓ : {f : Frm} {σ : Tree f}
+    → {δ : (p : Pos σ) → Tree (Typ σ p)}
+    → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
+    → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
+    → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
+    → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
+    → Tree↓ (μ f σ δ ε) f↓ 
 
   data Cell where
-    -- ⊤' : Cell ●
-    -- Σ' : {f : Frm} {σ : Tree f} {τ : Cell f}
-    --   → Tree (f ∥ σ ▸ τ) → Cell (f ∥ σ ▸ τ)
-    -- W' : {f : Frm} {σ : Tree f} {τ : Cell f}
-    --   → (θ : Tree (f ∥ σ ▸ τ))
-    --   → Cell (f ∥ σ ▸ τ ∥ θ ▸ Σ' θ)
+    ⊤' : Cell ●
+    Σ' : {f : Frm} (σ : Tree f) → Cell f
+    W' : {f : Frm} (σ : Tree f) → Cell (f ∥ σ ▸ Σ' σ)
     -- There will probably be one more constructor for
     -- equivalences here ....
 
   γ : {f : Frm} (σ : Tree f) (τ : Cell f)
     → (ρ : Tree (f ∥ σ ▸ τ)) 
-    → (ϕ : (p : Pos σ) → Tree (Typ σ p))
-    → (ψ : (p : Pos σ) → Tree (Typ σ p ∥ ϕ p ▸ Inh σ p))
-    → Tree (f ∥ μ f σ ϕ ▸ τ)
+    → (δ : (p : Pos σ) → Tree (Typ σ p))
+    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+    → Tree (f ∥ μ f σ δ ε ▸ τ)
 
   data Tree where
   
@@ -80,7 +80,7 @@ module OpetopicTTCtx where
     nd : (f : Frm) (σ : Tree f) (τ : Cell f) (θ : Cell (f ∥ σ ▸ τ))
        → (δ : (p : Pos σ) → Tree (Typ σ p))
        → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
-       → Tree (f ∥ μ f σ δ ▸ τ)
+       → Tree (f ∥ μ f σ δ ε ▸ τ)
 
   data Pos where
   
@@ -101,26 +101,33 @@ module OpetopicTTCtx where
        → Pos (nd f σ τ A δ ε) 
 
   data Tree↓ where
-  --   ob↓ : (A : Cell ●) (a : Cell↓ A ∎) → Tree↓ (ob A) ∎
-  --   lf↓ : (f : Frm) (A : Cell f)
-  --     → (f↓ : Frm↓ f) (a : Cell↓ A f↓)
-  --     → Tree↓ (lf f A) (f↓ ∣ η↓ a ▸ a) 
-  --   nd↓ : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
-  --     → {δ : (p : Pos σ) → Tree (Typ σ p)}
-  --     → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
-  --     → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : Cell↓ τ f↓)
-  --     → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
-  --     → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
-  --     → Tree↓ (nd f σ τ A δ ε) (f↓ ∣ μ↓ f↓ σ↓ δ↓ ▸ τ↓) 
+  
+    nil↓ : Tree↓ nil ∎
+    cns : {τ : Cell ●} {δ : Cell↓ τ ∎ → Tree ●}
+      → (τ↓ : Cell↓ τ ∎) (δ↓ : (τ↓ : Cell↓ τ ∎) → Tree↓ (δ τ↓) ∎)
+      → Tree↓ (cns τ δ) ∎ 
+
+    lf↓ : (f : Frm) (τ : Cell f)
+      → (f↓ : Frm↓ f) (τ↓ : Cell↓ τ f↓)
+      → Tree↓ (lf f τ) (f↓ ∣ η↓ τ↓ ▸ τ↓) 
+    nd↓ : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
+      → {δ : (p : Pos σ) → Tree (Typ σ p)}
+      → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
+      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : Cell↓ τ f↓)
+      → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
+      → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
+      → Tree↓ (nd f σ τ A δ ε) (f↓ ∣ μ↓ f↓ σ↓ δ↓ ε↓ ▸ τ↓) 
 
   data Pos↓ where
 
   data Cell↓ where
-  --   ⊤↓ : Cell↓ ⊤' ∎
-  --   Σ↓ : {f : Frm} {σ : Tree f} {τ : Cell f} (θ : Tree (f ∥ σ ▸ τ))
-  --     → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : Cell↓ τ f↓)
-  --     → (θ↓ : Tree↓ θ (f↓ ∣ σ↓ ▸ τ↓))
-  --     → Cell↓ (Σ' θ) (f↓ ∣ σ↓ ▸ τ↓)
+    ⊤↓ : Cell↓ ⊤' ∎
+    Σ↓ : {f : Frm} {σ : Tree f}
+      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
+      → Cell↓ (Σ' σ) f↓
+    W↓ : {f : Frm} {σ : Tree f}
+      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
+      → Cell↓ (W' σ) (f↓ ∣ σ↓ ▸ Σ↓ f↓ σ↓)
 
   Typ .(cns τ δ) (cns-here τ δ) = ●
   Typ .(cns τ δ) (cns-there τ δ p q) = Typ _ q
@@ -140,7 +147,7 @@ module OpetopicTTCtx where
     -- μ laws
     μ-unit-r : (f : Frm) (σ : Tree f) (τ : Cell f)
       → (θ : Cell (f ∥ σ ▸ τ))
-      → μ f σ (λ p → η (Typ σ p) (Inh σ p)) ↦ σ
+      → μ f σ (λ p → η (Typ σ p) (Inh σ p)) (λ p → lf (Typ σ p) (Inh σ p)) ↦ σ
     {-# REWRITE μ-unit-r #-}
 
   -- η : (f : Frm) (A : Cell f)
@@ -151,24 +158,37 @@ module OpetopicTTCtx where
         lf-dec p = lf (Typ σ p) (Inh σ p)
     in nd f σ τ A η-dec lf-dec
 
-  -- η↓ = {!!}
+  η↓ = {!!}
+
+  γ-ctx : (Γ : Tree ●) (δ : (els : Tree↓ Γ ∎) → Tree ●) → Tree ●
+  γ-ctx = {!!}
   
   -- μ : (f : Frm) (σ : Tree f) 
   --   → (δ : (p : Pos σ) → Tree (Typ σ p))
+  --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
   --   → Tree f
-  μ .● nil δ = nil
-  μ .● (cns τ δ) δ' =
-    let ths-ctx = δ' (cns-here τ δ)
-    in {!!}
-  μ .(f ∥ η f τ ▸ τ) (lf f τ) δ' = lf f τ
-  μ .(f ∥ μ f σ δ ▸ τ) (nd f σ τ θ δ ε) δ' =
+  μ .● nil δ ε = nil
+  μ .● (cns τ δ) δ' ε' =
+    let Γ = δ' (cns-here τ δ)
+    in γ-ctx Γ (λ els → μ ● (δ {!!})
+               (λ q → δ' (cns-there τ δ {!!} q))
+               (λ q → ε' (cns-there τ δ {!!} q)))
+  μ .(f ∥ η f τ ▸ τ) (lf f τ) δ' ε' = lf f τ
+  μ .(f ∥ μ f σ δ ε ▸ τ) (nd f σ τ θ δ ε) δ' ε' =
     let w = δ' nd-here
         δ'' p q = δ' (nd-there p q)
-        ψ p = μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ'' p)
-    in γ σ τ w δ ψ
+        ε'' p q = ε' (nd-there p q)
+        ψ p = μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ'' p) (ε'' p) 
+    in {! γ σ τ w δ ψ !}
 
-  -- μ↓ = {!!}
 
+  μ↓ = {!!}
+
+  -- γ : {f : Frm} (σ : Tree f) (τ : Cell f)
+  --   → (ρ : Tree (f ∥ σ ▸ τ)) 
+  --   → (δ : (p : Pos σ) → Tree (Typ σ p))
+  --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+  --   → Tree (f ∥ μ f σ δ ε ▸ τ)
   γ = {!!}
   -- γ↓ = {!!}
 
