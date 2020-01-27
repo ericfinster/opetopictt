@@ -4,7 +4,7 @@ open import Base
 
 module OpetopicTTCtx where
 
-  infixl 30 _∥_▸_  -- _∣_▸_
+  infixl 30 _∥_▸_  _∣_▸_
   
   data Frm : Set
   data Cell : Frm → Set
@@ -162,7 +162,16 @@ module OpetopicTTCtx where
 
   γ-ctx : (Γ : Tree ●) (δ : (els : Tree↓ Γ ∎) → Tree ●) → Tree ●
   γ-ctx = {!!}
-  
+
+  -- Use the intervening equivalences to construct an
+  -- element of A
+  γμ : (Γ : Tree ●) (A : Cell ●)
+    → (σ : Tree (● ∥ Γ ▸ A))
+    → (e : Tree↓ Γ ∎)
+    → Cell↓ A ∎
+  γμ .(cns A (λ _ → nil)) A (lf .● .A) (cns a δ↓) = a
+  γμ .(μ ● σ δ ε) A (nd .● σ .A θ δ ε) e = {!γμ !} 
+
   -- μ : (f : Frm) (σ : Tree f) 
   --   → (δ : (p : Pos σ) → Tree (Typ σ p))
   --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
@@ -170,9 +179,9 @@ module OpetopicTTCtx where
   μ .● nil δ ε = nil
   μ .● (cns τ δ) δ' ε' =
     let Γ = δ' (cns-here τ δ)
-    in γ-ctx Γ (λ els → μ ● (δ {!!})
-               (λ q → δ' (cns-there τ δ {!!} q))
-               (λ q → ε' (cns-there τ δ {!!} q)))
+    in γ-ctx Γ (λ els → μ ● (δ (γμ Γ τ (ε' (cns-here τ δ)) els))
+               (λ q → δ' (cns-there τ δ (γμ Γ τ (ε' (cns-here τ δ)) els) q))
+               (λ q → ε' (cns-there τ δ (γμ Γ τ (ε' (cns-here τ δ)) els) q)))
   μ .(f ∥ η f τ ▸ τ) (lf f τ) δ' ε' = lf f τ
   μ .(f ∥ μ f σ δ ε ▸ τ) (nd f σ τ θ δ ε) δ' ε' =
     let w = δ' nd-here
