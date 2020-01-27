@@ -113,7 +113,7 @@ module OpetopicTTCtx where
     nd↓ : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
       → {δ : (p : Pos σ) → Tree (Typ σ p)}
       → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
-      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : Cell↓ τ f↓)
+      → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓) (τ↓ : Cell↓ τ f↓) (a : Cell↓ A (f↓ ∣ σ↓ ▸ τ↓))
       → (δ↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (δ p) (Typ↓ σ↓ p↓))
       → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
       → Tree↓ (nd f σ τ A δ ε) (f↓ ∣ μ↓ f↓ σ↓ δ↓ ε↓ ▸ τ↓) 
@@ -162,6 +162,29 @@ module OpetopicTTCtx where
 
   γ-ctx : (Γ : Tree ●) (δ : (els : Tree↓ Γ ∎) → Tree ●) → Tree ●
   γ-ctx = {!!}
+
+  Σ-cell : (f : Frm) (σ : Tree f) (τ : Cell f)
+    → (θ : Cell (f ∥ σ ▸ τ))
+    → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
+    → Cell↓ τ f↓
+  Σ-cell f σ τ (Σ' θ) f↓ σ↓ = {!Σ↓ f↓ σ↓!}
+  Σ-cell f σ .(Σ' σ) (W' .σ) f↓ σ↓ = Σ↓ f↓ σ↓
+
+  -- Extract the element from a tree over a unit
+  η-el : (f : Frm) (τ : Cell f)
+    → (f↓ : Frm↓ f) (σ↓ : Tree↓ (η f τ) f↓)
+    → Cell↓ τ f↓
+  η-el ● τ .∎ (cns τ↓ δ↓) = τ↓
+  -- I see, so δ↓ and ε↓ should be constrained here in order to
+  -- have the required equation.  But are they?  Hmmm....
+  η-el (f ∥ σ ▸ τ) τ' .(f↓ ∣ μ↓ f↓ σ↓ δ↓ ε↓ ▸ τ↓) (nd↓ f↓ σ↓ τ↓ a δ↓ ε↓) = {!a!}
+  
+  Σ-tr : (f : Frm) (σ : Tree f) (τ : Cell f)
+    → (θ : Tree (f ∥ σ ▸ τ))
+    → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
+    → Cell↓ τ f↓
+  Σ-tr f .(η f τ) τ (lf .f .τ) f↓ σ↓ = {!!}
+  Σ-tr f .(μ f θ δ ε) τ (nd .f θ .τ θ₁ δ ε) f↓ σ↓ = {!!}
 
   -- Use the intervening equivalences to construct an
   -- element of A
