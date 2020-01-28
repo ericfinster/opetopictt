@@ -58,6 +58,16 @@ module OpetopicTTCtx where
     → (ε↓ : (p : Pos σ) (p↓ : Pos↓ p σ↓) → Tree↓ (ε p) (Typ↓ σ↓ p↓ ∣ δ↓ p p↓ ▸ Inh↓ σ↓ p↓))
     → Tree↓ (μ f σ δ ε) f↓ 
 
+  Σ-cell : (f : Frm) (σ : Tree f) (τ : Cell f)
+    → (θ : Cell (f ∥ σ ▸ τ))
+    → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
+    → Cell↓ τ f↓
+
+  Σ-tree : (f : Frm) (σ : Tree f) (τ : Cell f)
+    → (θ : Tree (f ∥ σ ▸ τ))
+    → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
+    → Cell↓ τ f↓
+
   data Cell where
     ⊤' : Cell ●
     Σ' : {f : Frm} (σ : Tree f) → Cell f
@@ -145,10 +155,28 @@ module OpetopicTTCtx where
   postulate
 
     -- μ laws
-    μ-unit-r : (f : Frm) (σ : Tree f) (τ : Cell f)
-      → (θ : Cell (f ∥ σ ▸ τ))
+    μ-unit-r : (f : Frm) (σ : Tree f) 
       → μ f σ (λ p → η (Typ σ p) (Inh σ p)) (λ p → lf (Typ σ p) (Inh σ p)) ↦ σ
     {-# REWRITE μ-unit-r #-}
+
+    -- This very general invariance principle seems to be necessary
+    -- when μ depends on witnesses .....
+    μ-invar : (f : Frm) (σ : Tree f) 
+      → (δ : (p : Pos σ) → Tree (Typ σ p))
+      → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (δ' : (p : Pos σ) (q : Pos (ε p)) → Tree (Typ (ε p) q))
+      → (ε' : (p : Pos σ) (q : Pos (ε p)) → Tree (Typ (ε p) q ∥ δ' p q ▸ Inh (ε p) q))
+      → μ f σ δ (λ p → μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ' p) (ε' p)) ↦ μ f σ δ ε
+    {-# REWRITE μ-invar #-}
+
+    --  Reduce unary composites ...
+    Σ'-η : (f : Frm) (τ : Cell f)
+      → Σ' (η f τ) ↦ τ
+    {-# REWRITE Σ'-η #-}
+
+    W'-η : (f : Frm) (τ : Cell f)
+      → W' (η f τ) ↦ Σ' (lf f τ)
+    {-# REWRITE W'-η #-}
 
   -- η : (f : Frm) (A : Cell f)
   --   → Tree f
@@ -163,38 +191,6 @@ module OpetopicTTCtx where
   γ-ctx : (Γ : Tree ●) (δ : (els : Tree↓ Γ ∎) → Tree ●) → Tree ●
   γ-ctx = {!!}
 
-  Σ-cell : (f : Frm) (σ : Tree f) (τ : Cell f)
-    → (θ : Cell (f ∥ σ ▸ τ))
-    → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
-    → Cell↓ τ f↓
-  Σ-cell f σ τ (Σ' θ) f↓ σ↓ = {!Σ↓ f↓ σ↓!}
-  Σ-cell f σ .(Σ' σ) (W' .σ) f↓ σ↓ = Σ↓ f↓ σ↓
-
-  -- Extract the element from a tree over a unit
-  η-el : (f : Frm) (τ : Cell f)
-    → (f↓ : Frm↓ f) (σ↓ : Tree↓ (η f τ) f↓)
-    → Cell↓ τ f↓
-  η-el ● τ .∎ (cns τ↓ δ↓) = τ↓
-  -- I see, so δ↓ and ε↓ should be constrained here in order to
-  -- have the required equation.  But are they?  Hmmm....
-  η-el (f ∥ σ ▸ τ) τ' .(f↓ ∣ μ↓ f↓ σ↓ δ↓ ε↓ ▸ τ↓) (nd↓ f↓ σ↓ τ↓ a δ↓ ε↓) = {!a!}
-  
-  Σ-tr : (f : Frm) (σ : Tree f) (τ : Cell f)
-    → (θ : Tree (f ∥ σ ▸ τ))
-    → (f↓ : Frm↓ f) (σ↓ : Tree↓ σ f↓)
-    → Cell↓ τ f↓
-  Σ-tr f .(η f τ) τ (lf .f .τ) f↓ σ↓ = {!!}
-  Σ-tr f .(μ f θ δ ε) τ (nd .f θ .τ θ₁ δ ε) f↓ σ↓ = {!!}
-
-  -- Use the intervening equivalences to construct an
-  -- element of A
-  γμ : (Γ : Tree ●) (A : Cell ●)
-    → (σ : Tree (● ∥ Γ ▸ A))
-    → (e : Tree↓ Γ ∎)
-    → Cell↓ A ∎
-  γμ .(cns A (λ _ → nil)) A (lf .● .A) (cns a δ↓) = a
-  γμ .(μ ● σ δ ε) A (nd .● σ .A θ δ ε) e = {!γμ !} 
-
   -- μ : (f : Frm) (σ : Tree f) 
   --   → (δ : (p : Pos σ) → Tree (Typ σ p))
   --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
@@ -202,17 +198,18 @@ module OpetopicTTCtx where
   μ .● nil δ ε = nil
   μ .● (cns τ δ) δ' ε' =
     let Γ = δ' (cns-here τ δ)
-    in γ-ctx Γ (λ els → μ ● (δ (γμ Γ τ (ε' (cns-here τ δ)) els))
-               (λ q → δ' (cns-there τ δ (γμ Γ τ (ε' (cns-here τ δ)) els) q))
-               (λ q → ε' (cns-there τ δ (γμ Γ τ (ε' (cns-here τ δ)) els) q)))
+        τ↓ r = Σ-tree ● Γ τ (ε' (cns-here τ δ)) ∎ r
+        p↓ r q = cns-there τ δ (τ↓ r) q
+    in γ-ctx Γ (λ r → μ ● (δ (τ↓ r))
+               (λ q → δ' (p↓ r q))
+               (λ q → ε' (p↓ r q)))
   μ .(f ∥ η f τ ▸ τ) (lf f τ) δ' ε' = lf f τ
   μ .(f ∥ μ f σ δ ε ▸ τ) (nd f σ τ θ δ ε) δ' ε' =
     let w = δ' nd-here
         δ'' p q = δ' (nd-there p q)
         ε'' p q = ε' (nd-there p q)
         ψ p = μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ'' p) (ε'' p) 
-    in {! γ σ τ w δ ψ !}
-
+    in γ σ τ w δ ψ 
 
   μ↓ = {!!}
 
@@ -221,6 +218,19 @@ module OpetopicTTCtx where
   --   → (δ : (p : Pos σ) → Tree (Typ σ p))
   --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
   --   → Tree (f ∥ μ f σ δ ε ▸ τ)
-  γ = {!!}
+  γ σ τ ρ δ ε  = {!!}
+  
   -- γ↓ = {!!}
 
+  --
+  --  These routines essentially correspond to "transporting"
+  --  trees of elements along equivalences.  They compute by
+  --  recursion on the tree/cell structure ...
+  --
+  
+  Σ-cell f σ τ (Σ' θ) f↓ σ↓ = Σ-tree f σ τ θ f↓ σ↓
+  Σ-cell f σ .(Σ' σ) (W' .σ) f↓ σ↓ = Σ↓ f↓ σ↓
+
+  Σ-tree f .(η f τ) τ (lf .f .τ) f↓ σ↓ = Σ↓ f↓ σ↓
+  Σ-tree f .(μ f σ δ ε) τ (nd .f σ .τ θ δ ε) f↓ σ↓ =
+    Σ-cell f σ τ θ f↓ {!!}

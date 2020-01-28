@@ -4,9 +4,9 @@ open import Base
 
 module Opetopes where
 
-  data 𝕆 : ℕ → 𝕌
-  data ℙ : {n : ℕ} (f : 𝕆 n) → 𝕌
-  data Pos : {n : ℕ} {f : 𝕆 n} → ℙ f → 𝕌 
+  data 𝕆 : ℕ → Set
+  data ℙ : {n : ℕ} (f : 𝕆 n) → Set
+  data Pos : {n : ℕ} {f : 𝕆 n} → ℙ f → Set 
   Typ : {n : ℕ} {f : 𝕆 n} (o : ℙ f) (s : Pos o) → 𝕆 n
 
   infixl 40 _▸_
@@ -21,7 +21,7 @@ module Opetopes where
     → Pos (η f)
 
   η-pos-elim : {n : ℕ} (f : 𝕆 n)
-    → (X : (p : Pos (η f)) → 𝕌)
+    → (X : (p : Pos (η f)) → Set)
     → (η-pos* : X (η-pos f))
     → (p : Pos (η f)) → X p
 
@@ -61,7 +61,7 @@ module Opetopes where
   γ-pos-elim : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
     → (δ : (s : Pos o) → ℙ (Typ o s))
     → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
-    → (X : Pos (γ f o p δ ε) → 𝕌)
+    → (X : Pos (γ f o p δ ε) → Set)
     → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
     → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
     → (s : Pos (γ f o p δ ε)) → X s
@@ -73,6 +73,21 @@ module Opetopes where
       → (δ : (s : Pos o) → ℙ (Typ o s))
       → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
       → ℙ (f ▸ μ o δ)
+
+  data ∂ : {n : ℕ} (f : 𝕆 n) → Set where
+    create : {n : ℕ} (f : 𝕆 n) (o : ℙ f)
+      → (δ : (s : Pos o) → ℙ (Typ o s))
+      → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
+      -- → Ctx ......
+      → ∂ ({!!} ▸ μ {!!} {!!})
+
+  data Ctx : {n : ℕ} (f : 𝕆 n) → Set where
+    nil : {n : ℕ} (f : 𝕆 n) → Ctx f
+    cns : {n : ℕ} (f : 𝕆 n) →
+      Ctx f → ∂ {!!}
+      → Ctx {!!}
+    
+
 
   -- Not strictly positive with this definition ...
   data Pos where
@@ -102,7 +117,7 @@ module Opetopes where
     {-# REWRITE η-pos-typ #-}
 
     η-pos-elim-β : {n : ℕ} (f : 𝕆 n)
-      → (X : (p : Pos (η f)) → 𝕌)
+      → (X : (p : Pos (η f)) → Set)
       → (η-pos* : X (η-pos f))
       → η-pos-elim f X η-pos* (η-pos f) ↦ η-pos*
     {-# REWRITE η-pos-elim-β #-}
@@ -151,7 +166,7 @@ module Opetopes where
     γ-pos-elim-inl-β : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
       → (δ : (s : Pos o) → ℙ (Typ o s))
       → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
-      → (X : Pos (γ f o p δ ε) → 𝕌)
+      → (X : Pos (γ f o p δ ε) → Set)
       → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
       → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
       → (s : Pos p)
@@ -161,7 +176,7 @@ module Opetopes where
     γ-pos-elim-inr-β : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
       → (δ : (s : Pos o) → ℙ (Typ o s))
       → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
-      → (X : Pos (γ f o p δ ε) → 𝕌)
+      → (X : Pos (γ f o p δ ε) → Set)
       → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
       → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
       → (s : Pos o) (t : Pos (ε s))
@@ -198,7 +213,7 @@ module Opetopes where
   η-pos (f ▸ o) = nd-pos-here f o (λ s → η (Typ o s)) (λ s → lf (Typ o s))
   
   -- η-pos-elim : {n : ℕ} (f : 𝕆 n)
-  --   → (X : (p : Pos (η f)) → 𝕌)
+  --   → (X : (p : Pos (η f)) → Set)
   --   → (η-pos* : X (η-pos f))
   --   → (p : Pos (η f)) → X p
   η-pos-elim ● X η-pos* arr-pos = η-pos*
@@ -304,7 +319,7 @@ module Opetopes where
   -- γ-pos-elim : {n : ℕ} (f : 𝕆 n) (o : ℙ f) (p : ℙ (f ▸ o))
   --   → (δ : (s : Pos o) → ℙ (Typ o s))
   --   → (ε : (s : Pos o) → ℙ (Typ o s ▸ δ s))
-  --   → (X : Pos (γ f o p δ ε) → 𝕌)
+  --   → (X : Pos (γ f o p δ ε) → Set)
   --   → (left : (s : Pos p) → X (γ-pos-inl f o p δ ε s))
   --   → (right : (s : Pos o) (t : Pos (ε s)) → X (γ-pos-inr f o p δ ε s t))
   --   → (s : Pos (γ f o p δ ε)) → X s
