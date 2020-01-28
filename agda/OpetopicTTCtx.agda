@@ -53,6 +53,22 @@ module OpetopicTTCtx where
     → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
     → Tree f
 
+  μ-pos : (f : Frm) (σ : Tree f) 
+    → (δ : (p : Pos σ) → Tree (Typ σ p))
+    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+    → (p : Pos σ) (q : Pos (δ p))
+    → Pos (μ f σ δ ε)
+  
+  μ-pos-fst : (f : Frm) (σ : Tree f) 
+    → (δ : (p : Pos σ) → Tree (Typ σ p))
+    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+    → Pos (μ f σ δ ε) → Pos σ
+  
+  μ-pos-snd : (f : Frm) (σ : Tree f) 
+    → (δ : (p : Pos σ) → Tree (Typ σ p))
+    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+    → (p : Pos (μ f σ δ ε)) → Pos (δ (μ-pos-fst f σ δ ε p))
+
   μ↓ : {f : Frm} {σ : Tree f}
     → {δ : (p : Pos σ) → Tree (Typ σ p)}
     → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
@@ -66,6 +82,11 @@ module OpetopicTTCtx where
     → (δ : (p : Pos σ) → Tree (Typ σ p))
     → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
     → Tree (f ∥ μ f σ δ ε ▸ τ)
+
+  --  Here I'm putting new structure we haven't see before
+  --  which need some name cleanup, renaming and ordering ....
+  
+  γ-ctx : (Γ : Tree ●) (δ : (els : Tree↓ Γ ∎) → Tree ●) → Tree ●
 
   Σ-cell : (f : Frm) (σ : Tree f) (τ : Cell f)
     → (θ : Cell (f ∥ σ ▸ τ))
@@ -200,7 +221,43 @@ module OpetopicTTCtx where
       → (p : Pos (η f τ))
       → Inh (η f τ) p ↦ τ
     {-# REWRITE η-pos-inh #-}
+
+    -- μ-pos laws
+    μ-pos-typ : (f : Frm) (σ : Tree f) 
+      → (δ : (p : Pos σ) → Tree (Typ σ p))
+      → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (p : Pos (μ f σ δ ε))
+      → Typ (μ f σ δ ε) p ↦ Typ (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p)
+    {-# REWRITE μ-pos-typ #-}
     
+    μ-pos-inh : (f : Frm) (σ : Tree f) 
+      → (δ : (p : Pos σ) → Tree (Typ σ p))
+      → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (p : Pos (μ f σ δ ε))
+      → Inh (μ f σ δ ε) p ↦ Inh (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p)
+    {-# REWRITE μ-pos-inh #-}
+
+    μ-pos-fst-β : (f : Frm) (σ : Tree f) 
+      → (δ : (p : Pos σ) → Tree (Typ σ p))
+      → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (p : Pos σ) (q : Pos (δ p))
+      → μ-pos-fst f σ δ ε (μ-pos f σ δ ε p q) ↦ p 
+    {-# REWRITE μ-pos-fst-β #-}
+    
+    μ-pos-snd-β : (f : Frm) (σ : Tree f) 
+      → (δ : (p : Pos σ) → Tree (Typ σ p))
+      → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (p : Pos σ) (q : Pos (δ p))
+      → μ-pos-snd f σ δ ε (μ-pos f σ δ ε p q) ↦ q
+    {-# REWRITE μ-pos-snd-β #-}
+
+    μ-pos-η : (f : Frm) (σ : Tree f) 
+      → (δ : (p : Pos σ) → Tree (Typ σ p))
+      → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (p : Pos (μ f σ δ ε))
+      → μ-pos f σ δ ε (μ-pos-fst f σ δ ε p) (μ-pos-snd f σ δ ε p) ↦ p
+    {-# REWRITE μ-pos-η #-}
+
     -- μ laws
     μ-unit-r : (f : Frm) (σ : Tree f) 
       → μ f σ (λ p → η (Typ σ p) (Inh σ p)) (λ p → lf (Typ σ p) (Inh σ p)) ↦ σ
@@ -228,6 +285,19 @@ module OpetopicTTCtx where
       → (ε' : (p : Pos σ) (q : Pos (ε p)) → Tree (Typ (ε p) q ∥ δ' p q ▸ Inh (ε p) q))
       → μ f σ δ (λ p → μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ' p) (ε' p)) ↦ μ f σ δ ε
     {-# REWRITE μ-invar #-}
+
+
+    -- Interesting.  We already need invariance for associativity to make sense....
+    -- And the current version doesn't yet capture what is needed, meaning that
+    -- γ still can't typecheck.  So we've got a bit of work left to figure this
+    -- part out ....
+    μ-assoc : (f : Frm) (σ : Tree f) (τ : Cell f)
+      → (δ : (p : Pos σ) → Tree (Typ σ p))
+      → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+      → (δ' : (p : Pos (μ f σ δ ε)) → Tree (Typ (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p)))
+      → (ε' : (p : Pos (μ f σ δ ε)) → Tree (Typ (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p) ∥ δ' p ▸ Inh (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p)))
+      → μ f (μ f σ δ ε) δ' ε' ↦ μ f σ (λ p → μ (Typ σ p) (δ p) (λ q → δ' (μ-pos f σ δ ε p q)) (λ q → ε' (μ-pos f σ δ ε p q)))
+                                      (λ p → {!μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) ? ? !})
 
     --  Reduce unary composites ...
     Σ'-η : (f : Frm) (τ : Cell f)
@@ -257,9 +327,6 @@ module OpetopicTTCtx where
         lf-dec↓ p p↓ = lf↓ (Typ↓ σ↓ p↓) (Inh↓ σ↓ p↓)
     in nd↓ f↓ σ↓ τ↓ θ↓ η-dec↓ lf-dec↓
 
-  γ-ctx : (Γ : Tree ●) (δ : (els : Tree↓ Γ ∎) → Tree ●) → Tree ●
-  γ-ctx = {!!}
-
   -- μ : (f : Frm) (σ : Tree f) 
   --   → (δ : (p : Pos σ) → Tree (Typ σ p))
   --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
@@ -279,6 +346,10 @@ module OpetopicTTCtx where
         ψ p = μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ'' p) (ε'' p) 
     in γ σ τ w δ ψ 
 
+  μ-pos = {!!}
+  μ-pos-fst = {!!}
+  μ-pos-snd = {!!}
+
   μ↓ = {!!}
 
   -- γ : {f : Frm} (σ : Tree f) (τ : Cell f)
@@ -287,19 +358,16 @@ module OpetopicTTCtx where
   --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
   --   → Tree (f ∥ μ f σ δ ε ▸ τ)
   γ .(η f τ) τ (lf f .τ) δ ε = ε (η-pos f τ)
-  γ .(μ f ρ δ ε) τ (nd f ρ .τ θ δ ε) δ' ε' = {!!}
-
-
-  -- γ .f .(η f τ) .τ (lf f τ) ϕ ψ = ψ (η-pos f τ)
-  -- γ .f .(μ f σ δ) .τ (nd f σ τ α δ ε) ϕ ψ =
-  --   let ϕ' p q = ϕ (μ-pos f σ δ p q)
-  --       ψ' p q = ψ (μ-pos f σ δ p q)
-  --       δ' p = μ (Typ f σ p) (δ p) (ϕ' p)
-  --       ε' p = γ (Typ f σ p) (δ p) (Inh f σ p) (ε p) (ϕ' p) (ψ' p)
-  --   in nd f σ τ α δ' ε'
-
-
+  γ .(μ f σ δ₀ ε₀) τ (nd f σ .τ θ δ₀ ε₀) δ₁ ε₁ = {!!}
+    -- let δ₁' p q = δ₁ (μ-pos f σ δ₀ ε₀ p q)
+    --     ε₁' p q = ε₁ (μ-pos f σ δ₀ ε₀ p q)
+    --     δ₀' p = μ (Typ σ p) (δ₀ p) (δ₁' p) (ε₁' p)
+    --     ε₀' p = γ {f = Typ σ p} (δ₀ p) (Inh σ p) (ε₀ p) (δ₁' p) (ε₁' p)
+    -- in nd f σ τ θ δ₀' ε₀'
+    
   -- γ↓ = {!!}
+
+  γ-ctx = {!!}
 
   --
   --  These routines essentially correspond to "transporting"
