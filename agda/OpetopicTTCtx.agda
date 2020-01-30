@@ -83,6 +83,19 @@ module OpetopicTTCtx where
     → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
     → Tree (f ∥ μ f σ δ ε ▸ τ)
 
+  γ-pos-inl : {f : Frm} (σ : Tree f) (τ : Cell f)
+    → (ρ : Tree (f ∥ σ ▸ τ))
+    → (δ : (p : Pos σ) → Tree (Typ σ p))
+    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+    → Pos ρ → Pos (γ σ τ ρ δ ε)
+
+  γ-pos-inr : {f : Frm} (σ : Tree f) (τ : Cell f)
+    → (ρ : Tree (f ∥ σ ▸ τ))
+    → (δ : (p : Pos σ) → Tree (Typ σ p))
+    → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+    → (p : Pos σ) (q : Pos (ε p))
+    → Pos (γ σ τ ρ δ ε)
+
   --  Here I'm putting new structure we haven't see before
   --  which need some name cleanup, renaming and ordering ....
   
@@ -154,7 +167,11 @@ module OpetopicTTCtx where
       → Cell↓ (W' σ) (f↓ ∣ σ↓ ▸ Σ↓ f↓ σ↓)
 
   data Tree↓ where
-  
+
+    -- I now realize that this is not really a tree over like this
+    -- other constructors.  That would rather be the analog of Pi,
+    -- where you get a descendent tree for *every* cell.  Don't know
+    -- if this means you ought to separate out or rethink the setup...
     nil↓ : Tree↓ nil ∎
     cns↓ : {τ : Cell ●} {δ : Cell↓ τ ∎ → Tree ●}
       → (τ↓ : Cell↓ τ ∎) (δ↓ : (τ↓ : Cell↓ τ ∎) → Tree↓ (δ τ↓) ∎)
@@ -286,18 +303,17 @@ module OpetopicTTCtx where
       → μ f σ δ (λ p → μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ' p) (ε' p)) ↦ μ f σ δ ε
     {-# REWRITE μ-invar #-}
 
-
-    -- Interesting.  We already need invariance for associativity to make sense....
-    -- And the current version doesn't yet capture what is needed, meaning that
-    -- γ still can't typecheck.  So we've got a bit of work left to figure this
-    -- part out ....
+    -- Well, that was actually more interesting than I thought: the "witnesses" get
+    -- transformed by a free monad multiplication.  Ah, but now that I think of it,
+    -- this makes quite a bit of sense ....
     μ-assoc : (f : Frm) (σ : Tree f) (τ : Cell f)
       → (δ : (p : Pos σ) → Tree (Typ σ p))
       → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
       → (δ' : (p : Pos (μ f σ δ ε)) → Tree (Typ (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p)))
       → (ε' : (p : Pos (μ f σ δ ε)) → Tree (Typ (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p) ∥ δ' p ▸ Inh (δ (μ-pos-fst f σ δ ε p)) (μ-pos-snd f σ δ ε p)))
       → μ f (μ f σ δ ε) δ' ε' ↦ μ f σ (λ p → μ (Typ σ p) (δ p) (λ q → δ' (μ-pos f σ δ ε p q)) (λ q → ε' (μ-pos f σ δ ε p q)))
-                                      (λ p → {!μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) ? ? !})
+                                      (λ p → γ (δ p) (Inh σ p) (ε p) (λ q → δ' (μ-pos f σ δ ε p q)) (λ q → ε' (μ-pos f σ δ ε p q)))
+    {-# REWRITE μ-assoc #-}
 
     --  Reduce unary composites ...
     Σ'-η : (f : Frm) (τ : Cell f)
@@ -339,16 +355,49 @@ module OpetopicTTCtx where
         ψ r = μ ● (δ (τ↓ r)) (λ q → δ' (p↓ r q)) (λ q → ε' (p↓ r q))
     in γ-ctx Γ ψ
   μ .(f ∥ η f τ ▸ τ) (lf f τ) δ' ε' = lf f τ
-  μ .(f ∥ μ f σ δ ε ▸ τ) (nd f σ τ θ δ ε) δ' ε' =
-    let w = δ' nd-here
-        δ'' p q = δ' (nd-there p q)
-        ε'' p q = ε' (nd-there p q)
-        ψ p = μ (Typ σ p ∥ δ p ▸ Inh σ p) (ε p) (δ'' p) (ε'' p) 
-    in γ σ τ w δ ψ 
+  μ .(f ∥ μ f σ δ₀ ε₀ ▸ τ) (nd f σ τ θ δ₀ ε₀) δ₁ ε₁ =
+    let w = δ₁ nd-here
+        δ₁' p q = δ₁ (nd-there p q)
+        ε₁' p q = ε₁ (nd-there p q)
+        ψ p = μ (Typ σ p ∥ δ₀ p ▸ Inh σ p) (ε₀ p) (δ₁' p) (ε₁' p) 
+    in γ σ τ w δ₀ ψ 
 
-  μ-pos = {!!}
-  μ-pos-fst = {!!}
-  μ-pos-snd = {!!}
+  -- μ-pos : (f : Frm) (σ : Tree f) 
+  --   → (δ : (p : Pos σ) → Tree (Typ σ p))
+  --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+  --   → (p : Pos σ) (q : Pos (δ p))
+  --   → Pos (μ f σ δ ε)
+  μ-pos .● nil δ ε () q
+  μ-pos .● (cns τ δ₀) δ₁ ε p q = {!!}
+  μ-pos .(f ∥ η f τ ▸ τ) (lf f τ) δ ε () q
+  μ-pos .(f ∥ μ f σ δ₀ ε₀ ▸ τ) (nd f σ τ θ δ₀ ε₀) δ₁ ε₁ nd-here r =
+    let w = δ₁ nd-here
+        δ₁' p q = δ₁ (nd-there p q)
+        ε₁' p q = ε₁ (nd-there p q)
+        ψ p = μ (Typ σ p ∥ δ₀ p ▸ Inh σ p) (ε₀ p) (δ₁' p) (ε₁' p) 
+    in γ-pos-inl σ τ w δ₀ ψ r
+  μ-pos .(f ∥ μ f σ δ₀ ε₀ ▸ τ) (nd f σ τ θ δ₀ ε₀) δ₁ ε₁ (nd-there p q) r =
+    let w = δ₁ nd-here
+        δ₁' p q = δ₁ (nd-there p q)
+        ε₁' p q = ε₁ (nd-there p q)
+        ψ p = μ (Typ σ p ∥ δ₀ p ▸ Inh σ p) (ε₀ p) (δ₁' p) (ε₁' p)
+        qr = μ-pos (Typ σ p ∥ δ₀ p ▸ Inh σ p) (ε₀ p) (δ₁' p) (ε₁' p) q r
+    in γ-pos-inr σ τ (δ₁ nd-here) δ₀ ψ p qr
+
+  -- μ-pos-fst : (f : Frm) (σ : Tree f) 
+  --   → (δ : (p : Pos σ) → Tree (Typ σ p))
+  --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+  --   → Pos (μ f σ δ ε) → Pos σ
+  μ-pos-fst .● nil δ₁ ε₁ ()
+  μ-pos-fst .● (cns τ δ₀) δ₁ ε₁ p = {!!}
+  μ-pos-fst .(f ∥ η f τ ▸ τ) (lf f τ) δ₁ ε₁ ()
+  μ-pos-fst .(f ∥ μ f σ δ₀ ε₀ ▸ τ) (nd f σ τ θ δ₀ ε₀) δ₁ ε₁ p = {!!}
+  
+  -- μ-pos-snd : (f : Frm) (σ : Tree f) 
+  --   → (δ : (p : Pos σ) → Tree (Typ σ p))
+  --   → (ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p))
+  --   → (p : Pos (μ f σ δ ε)) → Pos (δ (μ-pos-fst f σ δ ε p))
+  μ-pos-snd f σ δ₁ ε₁ p = {!!}
 
   μ↓ = {!!}
 
@@ -364,7 +413,10 @@ module OpetopicTTCtx where
     --     δ₀' p = μ (Typ σ p) (δ₀ p) (δ₁' p) (ε₁' p)
     --     ε₀' p = γ {f = Typ σ p} (δ₀ p) (Inh σ p) (ε₀ p) (δ₁' p) (ε₁' p)
     -- in nd f σ τ θ δ₀' ε₀'
-    
+
+  γ-pos-inl = {!!}
+  γ-pos-inr = {!!}
+
   -- γ↓ = {!!}
 
   γ-ctx = {!!}
