@@ -1,8 +1,10 @@
 {-# OPTIONS --without-K --rewriting --type-in-type --no-positivity #-}
 
+open import Base
+
 module OpetopicAgda where
 
-  infixl 30 _∥_▸_  -- _∣_▸_
+  infixl 30 _∥_▸_  _∣_▸_
 
   data Ctx : Set where
     nil : Ctx
@@ -13,11 +15,7 @@ module OpetopicAgda where
     cns-there : (A : Set) (B : A → Ctx)
       → (a : A) (p : CtxPos (B a))
       → CtxPos (cns A B)
-
-  CtxTyp : (Γ : Ctx) (p : CtxPos Γ) → Set
-  CtxTyp .(cns A B) (cns-here A B) = A
-  CtxTyp .(cns A B) (cns-there A B a p) = CtxTyp (B a) p
-
+  
   data Σ↓ : Ctx → Set where
     nil↓ : Σ↓ nil
     cns↓ : {A : Set} {B : A → Ctx}
@@ -68,6 +66,11 @@ module OpetopicAgda where
   Typ : {f : Frm} (σ : Tree f) (p : Pos σ) → Frm
   Inh : {f : Frm} (σ : Tree f) (p : Pos σ) → Cell (Typ σ p)
 
+  CtxTyp : (Γ : Ctx) (p : CtxPos Γ) → Set
+  CtxTyp .(cns A B) (cns-here A B) = A
+  CtxTyp .(cns A B) (cns-there A B a p) = CtxTyp (B a) p
+  
+  {-# TERMINATING #-}
   η : (f : Frm) (A : Cell f)
     → Tree f
 
@@ -75,14 +78,16 @@ module OpetopicAgda where
     → (δ : (p : Pos σ) → Tree (Typ σ p))
     → Tree f
 
+  η-ctx : (A : Set) → Ctx
+  η-ctx A = cns A (λ _ → nil)
+  
   μ-ctx : (Γ : Ctx) 
     → (δ : (p : CtxPos Γ) → Ctx)
     → (ε : (p : CtxPos Γ) → Tree (● (δ p) (CtxTyp Γ p)))
     → Ctx
-  μ-ctx = {!!}
-  
+
   data Tree where
-    lf-ctx : (A : Set) → Tree (● (cns A (λ _ → nil)) A)
+    lf-ctx : (A : Set) → Tree (● (η-ctx A) A)
     nd-ctx : (Γ : Ctx) (A : Set) (C : CtxCell Γ A)
       → (δ : (p : CtxPos Γ) → Ctx)
       → (ε : (p : CtxPos Γ) → Tree (● (δ p) (CtxTyp Γ p)))
@@ -96,9 +101,63 @@ module OpetopicAgda where
   
   data Pos where
 
+    nd-ctx-here : {Γ : Ctx} {A : Set} {C : CtxCell Γ A}
+      → {δ : (p : CtxPos Γ) → Ctx}
+      → {ε : (p : CtxPos Γ) → Tree (● (δ p) (CtxTyp Γ p))}
+      → Pos (nd-ctx Γ A C δ ε)
+    nd-ctx-there : {Γ : Ctx} {A : Set} {C : CtxCell Γ A}
+      → {δ : (p : CtxPos Γ) → Ctx}
+      → {ε : (p : CtxPos Γ) → Tree (● (δ p) (CtxTyp Γ p))}
+      → (p : CtxPos Γ) (q : Pos (ε p))
+      → Pos (nd-ctx Γ A C δ ε)
 
-  Typ = {!!}
-  Inh = {!!}
+    nd-here : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
+       → {δ : (p : Pos σ) → Tree (Typ σ p)}
+       → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
+       → Pos (nd f σ τ A δ ε) 
+    nd-there : {f : Frm} {σ : Tree f} {τ : Cell f} {A : Cell (f ∥ σ ▸ τ)}
+       → {δ : (p : Pos σ) → Tree (Typ σ p)}
+       → {ε : (p : Pos σ) → Tree (Typ σ p ∥ δ p ▸ Inh σ p)}
+       → (p : Pos σ) (q : Pos (ε p))
+       → Pos (nd f σ τ A δ ε) 
 
-  η = {!!}
+  Typ ._ (nd-ctx-here {Γ} {A}) = ● Γ A
+  Typ ._ (nd-ctx-there p q) = Typ _ q
+  Typ ._ (nd-here {f} {σ} {τ}) = f ∥ σ ▸ τ
+  Typ ._ (nd-there p q) = Typ _ q
+  
+  Inh ._ (nd-ctx-here {C = C}) = C
+  Inh ._ (nd-ctx-there p q) = Inh _ q
+  Inh ._ (nd-here {A = A}) = A
+  Inh ._ (nd-there p q) = Inh _ q
+
+  postulate
+
+    -- μ-ctx laws
+    μ-ctx-unit-r : (Γ : Ctx)
+      → μ-ctx Γ (λ p → η-ctx (CtxTyp Γ p)) (λ p → lf-ctx (CtxTyp Γ p)) ↦ Γ
+    {-# REWRITE μ-ctx-unit-r #-}
+
+    -- μ laws
+    μ-unit-r : (f : Frm) (σ : Tree f) 
+      → μ f σ (λ p → η (Typ σ p) (Inh σ p)) ↦ σ
+    {-# REWRITE μ-unit-r #-}
+
+  μ-ctx nil δ ε = nil
+  μ-ctx (cns A B) δ ε =
+    let Γ' = δ (cns-here A B)
+    in {!!}
+
+  -- η : (f : Frm) (A : Cell f)
+  --   → Tree f
+  η (● Γ A) C =
+    let η-ctx-dec p = η-ctx (CtxTyp Γ p)
+        lf-ctx-dec p = lf-ctx (CtxTyp Γ p)
+     in nd-ctx Γ A C η-ctx-dec lf-ctx-dec
+  η (f ∥ σ ▸ τ) C = 
+    let η-dec p = η (Typ σ p) (Inh σ p)
+        lf-dec p = lf (Typ σ p) (Inh σ p)
+    in nd f σ τ C η-dec lf-dec
+
+
   μ = {!!}
