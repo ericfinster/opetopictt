@@ -1,2 +1,3 @@
 # opetopictt
-A type theory for opetopes
+
+An experimental type theory based on opetopes
