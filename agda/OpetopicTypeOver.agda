@@ -77,9 +77,19 @@ module OpetopicTypeOver where
       → (ε↓ : {p : Pos σ} (p↓ : Pos↓ σ↓ p) → Tree↓ A B (Typ↓ σ↓ p↓ ∥ δ↓ p↓ ▸ Inh↓ σ↓ p↓) (ε p))
       → Tree↓ A B (f↓ ∥ μ↓ σ↓ δ↓ ▸ τ↓) (nd f σ τ θ δ ε)
 
-  Pos↓ = {!!}
-  Typ↓ = {!!}
-  Inh↓ = {!!}
+  Pos↓ (ob↓ τ↓) unit = ⊤
+  Pos↓ (lf↓ f↓ τ↓) ()
+  Pos↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) (inl unit) = ⊤
+  Pos↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) (inr (p , q)) =
+    Σ (Pos↓ σ↓ p) (λ p↓ → Pos↓ (ε↓ p↓) q)
+
+  Typ↓ (ob↓ τ↓) {unit} unit = ■
+  Typ↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) {inl unit} unit = _ ∥ σ↓ ▸ τ↓
+  Typ↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) {inr (p , q)} (p↓ , q↓) = Typ↓ (ε↓ p↓) q↓
+
+  Inh↓ (ob↓ τ↓) {unit} unit = τ↓
+  Inh↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) {inl unit} unit = θ↓
+  Inh↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) {inr (p , q)} (p↓ , q↓) = Inh↓ (ε↓ p↓) q↓
 
   η↓ = {!!}
   μ↓ = {!!}
