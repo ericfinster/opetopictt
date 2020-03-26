@@ -12,6 +12,9 @@ module Base where
 
   {-# BUILTIN REWRITE _↦_ #-}
 
+  Π : (A : Set) (B : A → Set) → Set
+  Π A B = (a : A) → B a
+
   infixr 60 _,_ _×_ _⊔_
 
   record Σ {i j} (A : Set i) (B : A → Set j) : Set (lmax i j) where
