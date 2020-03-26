@@ -84,7 +84,7 @@ module Sigma where
       → Inh (Tree-pr σ σ↓) p ↦ Cell-pr (Inh σ p) (Inh↓ σ↓ p)
     {-# REWRITE Inh-pr #-}
 
-    -- Should this equaltion be in the other direction?
+    -- Should these equations be in the other direction?
     Pos-fst : {A : Set} {B : A → Set}
       → {n : ℕ} (f : Frm (Σ A B) n) (σ : Tree (Σ A B) f)
       → Pos (Tree-fst σ) ↦ Pos σ 
@@ -101,6 +101,18 @@ module Sigma where
       → (σ : Tree (Σ A B) f) (p : Pos σ)
       → Inh (Tree-fst σ) p ↦ Cell-fst (Inh σ p) 
     {-# REWRITE Inh-fst #-}
+
+    Typ-snd : {A : Set} {B : A → Set}
+      → {n : ℕ} (f : Frm (Σ A B) n)
+      → (σ : Tree (Σ A B) f) (p : Pos σ)
+      → Typ↓ (Tree-snd σ) p ↦ Frm-snd (Typ σ p) 
+    {-# REWRITE Typ-snd #-}
+
+    Inh-snd : {A : Set} {B : A → Set}
+      → {n : ℕ} (f : Frm (Σ A B) n)
+      → (σ : Tree (Σ A B) f) (p : Pos σ)
+      → Inh↓ (Tree-snd σ) p ↦ Cell-snd (Inh σ p) 
+    {-# REWRITE Inh-snd #-}
 
     -- Frm equations
     Frm-fst-β : {A : Set} {B : A → Set}
@@ -149,6 +161,11 @@ module Sigma where
       → Tree-fst (η f τ) ↦ η (Frm-fst f) (Cell-fst τ)
     {-# REWRITE Tree-fst-η #-}
 
+    Tree-snd-η : {A : Set} {B : A → Set}
+      → {n : ℕ} (f : Frm (Σ A B) n) (τ : Cell (Σ A B) f)
+      → Tree-snd (η f τ) ↦ η↓ (Frm-snd f) (Cell-snd τ)
+    {-# REWRITE Tree-snd-η #-}
+
     Tree-pr-μ : {A : Set} {B : A → Set}
       → {n : ℕ} {f : Frm A n} {σ : Tree A f}
       → {δ : (p : Pos σ) → Tree A (Typ σ p)}
@@ -164,6 +181,13 @@ module Sigma where
       → Tree-fst (μ σ δ) ↦ μ (Tree-fst σ) (λ p → Tree-fst (δ p)) 
     {-# REWRITE Tree-fst-μ #-}
 
+    Tree-snd-μ : {A : Set} {B : A → Set}
+      → {n : ℕ} {f : Frm (Σ A B) n}
+      → (σ : Tree (Σ A B) f)
+      → (δ : (p : Pos σ) → Tree (Σ A B) (Typ σ p))
+      → Tree-snd (μ σ δ) ↦ μ↓ (Tree-snd σ) (λ p → Tree-snd (δ p))
+    {-# REWRITE Tree-snd-μ #-}
+
   Tree-pr (ob τ) (ob↓ τ↓) = ob (Cell-pr τ τ↓)
   Tree-pr (lf f τ) (lf↓ f↓ τ↓) = lf (Frm-pr f f↓) (Cell-pr τ τ↓)
   Tree-pr (nd f σ τ θ δ ε) (nd↓ {f↓ = f↓} σ↓ τ↓ θ↓ δ↓ ε↓) =
@@ -173,11 +197,15 @@ module Sigma where
 
   Tree-fst (ob τ) = ob (Cell-fst τ)
   Tree-fst (lf f α) = lf (Frm-fst f) (Cell-fst α)
-  Tree-fst (nd f σ τ α δ ε) = nd (Frm-fst f) (Tree-fst σ) (Cell-fst τ) (Cell-fst α)
+  Tree-fst (nd f σ τ θ δ ε) = nd (Frm-fst f) (Tree-fst σ) (Cell-fst τ) (Cell-fst θ)
     (λ p → Tree-fst (δ p)) 
     (λ p → Tree-fst (ε p)) 
 
-  Tree-snd σ = {!!}
+  Tree-snd (ob τ) = ob↓ (Cell-snd τ)
+  Tree-snd (lf f τ) = lf↓ (Frm-snd f) (Cell-snd τ)
+  Tree-snd (nd f σ τ θ δ ε) = nd↓ (Tree-snd σ) (Cell-snd τ) (Cell-snd θ)
+    (λ p → Tree-snd (δ p)) 
+    (λ p → Tree-snd (ε p)) 
 
 
 
