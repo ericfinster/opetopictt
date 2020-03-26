@@ -8,6 +8,10 @@ module Sigma where
 
   -- Rules for non-dependent Σ
 
+  Frm-pr : {A : Set} {B : A → Set}
+    → {n : ℕ} (f : Frm A n) (f↓ : Frm↓ A B f)
+    → Frm (Σ A B) n
+    
   Frm-fst : {A : Set} {B : A → Set}
     → {n : ℕ} (f : Frm (Σ A B) n)
     → Frm A n
@@ -15,6 +19,11 @@ module Sigma where
   Frm-snd : {A : Set} {B : A → Set}
     → {n : ℕ} (f : Frm (Σ A B) n)
     → Frm↓ A B (Frm-fst f)
+
+  Tree-pr : {A : Set} {B : A → Set}
+    → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
+    → (σ : Tree A f) (σ↓ : Tree↓ A B f↓ σ)
+    → Tree (Σ A B) (Frm-pr f f↓)
 
   Tree-fst : {A : Set} {B : A → Set}
     → {n : ℕ} {f : Frm (Σ A B) n}
@@ -27,6 +36,11 @@ module Sigma where
     
   postulate
 
+    Cell-pr : {A : Set} {B : A → Set}
+      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
+      → (a : Cell A f) (b : Cell↓ A B f↓ a)
+      → Cell (Σ A B) (Frm-pr f f↓)
+      
     Cell-fst : {A : Set} {B : A → Set}
       → {n : ℕ} {f : Frm (Σ A B) n}
       → Cell (Σ A B) f → Cell A (Frm-fst f)
@@ -35,6 +49,8 @@ module Sigma where
       → {n : ℕ} {f : Frm (Σ A B) n}
       → (τ : Cell (Σ A B) f)
       → Cell↓ A B (Frm-snd f) (Cell-fst τ)
+
+  Frm-pr = {!!}
 
   Frm-fst ● = ●
   Frm-fst (f ∣ σ ▸ τ) = Frm-fst f ∣ Tree-fst σ ▸ Cell-fst τ
@@ -59,6 +75,7 @@ module Sigma where
   -- a projected tree are the same as positions in the
   -- original.  And this makes sense I guess: the extra
   -- data of the position in the tree over is irrelevant.
+  Tree-pr = {!!}
 
   Tree-fst (ob τ) = ob (Cell-fst τ)
   Tree-fst (lf f α) = lf (Frm-fst f) (Cell-fst α)
@@ -66,13 +83,5 @@ module Sigma where
 
   Tree-snd σ = {!!}
 
-  -- postulate
 
-  --   Σ-Frm : {A : Set} {B : A → Set} {n : ℕ}
-  --     → Frm (Σ A B) n ↦ Σ (Frm A n) (λ f → Frm↓ A B f)
-
-  -- Hmm.  Yikes. I cannot rewrite a data type name.  So
-  -- I will not be able to make Frames, Cells and Trees
-  -- compute definitionally.  But if I equip the cells with
-  -- the usual constructors, maybe this will be enough ...
 
