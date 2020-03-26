@@ -8,6 +8,8 @@ module Apd where
 
   -- Primitive dependent application
 
+  -- Do we actually need this? Frankly, I'm not sure....
+
   Frm-apd : {A : Set} {B : A → Set}
     → (b : (a : A) → B a)
     → {n : ℕ} (f : Frm A n)
