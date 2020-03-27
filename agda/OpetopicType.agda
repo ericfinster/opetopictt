@@ -118,6 +118,11 @@ module OpetopicType where
 
   postulate
 
+    -- Cell laws
+    Cell-● : {A : Set}
+      → Cell A ● ↦ A
+    {-# REWRITE Cell-● #-}
+
     -- η-pos laws
     η-pos-typ : {A : Set} {n : ℕ}
       → (f : Frm A n) (τ : Cell A f)

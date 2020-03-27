@@ -93,6 +93,12 @@ module OpetopicTypeOver where
 
   postulate
 
+    -- Cell laws
+    Cell↓-■ : {A : Set} {B : A → Set}
+      → (a : A)
+      → Cell↓ B ■ ↦ B
+    {-# REWRITE Cell↓-■ #-}
+    
     -- Typ/Inh laws
     η↓-pos-typ : {A : Set} {B : A → Set} {n : ℕ}
       → {f : Frm A n} {τ : Cell A f}
