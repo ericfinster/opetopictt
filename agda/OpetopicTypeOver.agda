@@ -5,83 +5,83 @@ open import OpetopicType
 
 module OpetopicTypeOver where
 
-  data Frm↓ {A : Set} (B : A → Set) :
+  data Frm↓ (A : Set) (B : A → Set) :
     {n : ℕ} (f : Frm A n) → Set
     
-  data Tree↓ {A : Set} (B : A → Set) :
+  data Tree↓ (A : Set) (B : A → Set) :
       {n : ℕ} {f : Frm A n}
-    → (f↓ : Frm↓ B f) (σ : Tree A f) → Set
+    → (f↓ : Frm↓ A B f) (σ : Tree A f) → Set
 
   postulate
 
-    Cell↓ : {A : Set} (B : A → Set)
+    Cell↓ : (A : Set) (B : A → Set)
       → {n : ℕ} {f : Frm A n}
-      → (f↓ : Frm↓ B f) (τ : Cell A f)
+      → (f↓ : Frm↓ A B f) (τ : Cell A f)
       → Set
 
   Typ↓ : {A : Set} {B : A → Set}
-    → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ B f}
-    → {σ : Tree A f} (σ↓ : Tree↓ B f↓ σ)
+    → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
+    → {σ : Tree A f} (σ↓ : Tree↓ A B f↓ σ)
     → (p : Pos σ)
-    → Frm↓ B (Typ σ p)
+    → Frm↓ A B (Typ σ p)
 
   Inh↓ : {A : Set} {B : A → Set}
-    → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ B f}
-    → {σ : Tree A f} (σ↓ : Tree↓ B f↓ σ)
+    → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
+    → {σ : Tree A f} (σ↓ : Tree↓ A B f↓ σ)
     → (p : Pos σ) 
-    → Cell↓ B (Typ↓ σ↓ p) (Inh σ p)
+    → Cell↓ A B (Typ↓ σ↓ p) (Inh σ p)
 
   infixl 30 _∥_▸_
 
-  data Frm↓ {A} B where
-    ■ : Frm↓ B ●
+  data Frm↓ A B where
+    ■ : Frm↓ A B ●
     _∥_▸_ : {n : ℕ} {f : Frm A n}
-      → (f↓ : Frm↓ B f)
-      → {σ : Tree A f} (σ↓ : Tree↓ B f↓ σ)
-      → {τ : Cell A f} (τ↓ : Cell↓ B f↓ τ)
-      → Frm↓ B (f ∣ σ ▸ τ)
+      → (f↓ : Frm↓ A B f)
+      → {σ : Tree A f} (σ↓ : Tree↓ A B f↓ σ)
+      → {τ : Cell A f} (τ↓ : Cell↓ A B f↓ τ)
+      → Frm↓ A B (f ∣ σ ▸ τ)
 
   η↓ : {A : Set} {B : A → Set}
     → {n : ℕ} {f : Frm A n} {τ : Cell A f}
-    → (f↓ : Frm↓ B f)(τ↓ : Cell↓ B f↓ τ)
-    → Tree↓ B f↓ (η f τ)
+    → (f↓ : Frm↓ A B f)(τ↓ : Cell↓ A B f↓ τ)
+    → Tree↓ A B f↓ (η f τ)
 
   μ↓ : {A : Set} {B : A → Set}
     → {n : ℕ} {f : Frm A n} {σ : Tree A f}
     → {δ : (p : Pos σ) → Tree A (Typ σ p)}
-    → {f↓ : Frm↓ B f} (σ↓ : Tree↓ B f↓ σ)
-    → (δ↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p) (δ p))
-    → Tree↓ B f↓ (μ σ δ)
+    → {f↓ : Frm↓ A B f} (σ↓ : Tree↓ A B f↓ σ)
+    → (δ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p) (δ p))
+    → Tree↓ A B f↓ (μ σ δ)
 
   γ↓ : {A : Set} {B : A → Set}
     → {n : ℕ} {f : Frm A n}
     → {σ : Tree A f} {τ : Cell A f} {ρ : Tree A (f ∣ σ ▸ τ)}
     → {ϕ : (p : Pos σ) → Tree A (Typ σ p)}
     → {ψ : (p : Pos σ) → Tree A (Typ σ p ∣ ϕ p ▸ Inh σ p)}
-    → {f↓ : Frm↓ B f} (σ↓ : Tree↓ B f↓ σ)
-    → (τ↓ : Cell↓ B f↓ τ) (ρ↓ : Tree↓ B (f↓ ∥ σ↓ ▸ τ↓) ρ)
-    → (ϕ↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p) (ϕ p))
-    → (ψ↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p ∥ ϕ↓ p ▸ Inh↓ σ↓ p) (ψ p))
-    → Tree↓ B (f↓ ∥ μ↓ σ↓ ϕ↓ ▸ τ↓) (γ σ τ ρ ϕ ψ)
+    → {f↓ : Frm↓ A B f} (σ↓ : Tree↓ A B f↓ σ)
+    → (τ↓ : Cell↓ A B f↓ τ) (ρ↓ : Tree↓ A B (f↓ ∥ σ↓ ▸ τ↓) ρ)
+    → (ϕ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p) (ϕ p))
+    → (ψ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p ∥ ϕ↓ p ▸ Inh↓ σ↓ p) (ψ p))
+    → Tree↓ A B (f↓ ∥ μ↓ σ↓ ϕ↓ ▸ τ↓) (γ σ τ ρ ϕ ψ)
 
-  data Tree↓ {A} B where
+  data Tree↓ A B where
   
-    ob↓ : {τ : Cell A ●} (τ↓ : Cell↓ B ■ τ)
-      → Tree↓ B ■ (ob τ)
+    ob↓ : {τ : Cell A ●} (τ↓ : Cell↓ A B ■ τ)
+      → Tree↓ A B ■ (ob τ)
 
     lf↓ : {n : ℕ} {f : Frm A n} {τ : Cell A f}
-      → (f↓ : Frm↓ B f) (τ↓ : Cell↓ B f↓ τ)
-      → Tree↓ B (f↓ ∥ η↓ f↓ τ↓ ▸ τ↓) (lf f τ)
+      → (f↓ : Frm↓ A B f) (τ↓ : Cell↓ A B f↓ τ)
+      → Tree↓ A B (f↓ ∥ η↓ f↓ τ↓ ▸ τ↓) (lf f τ)
 
     nd↓ : {n : ℕ} {f : Frm A n}
       → {σ : Tree A f} {τ : Cell A f} {θ : Cell A (f ∣ σ ▸ τ)}
       → {δ : (p : Pos σ) → Tree A (Typ σ p)}
       → {ε : (p : Pos σ) → Tree A (Typ σ p ∣ δ p ▸ Inh σ p)}
-      → {f↓ : Frm↓ B f} (σ↓ : Tree↓ B f↓ σ) (τ↓ : Cell↓ B f↓ τ)
-      → (θ↓ : Cell↓ B (f↓ ∥ σ↓ ▸ τ↓) θ)
-      → (δ↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p) (δ p))
-      → (ε↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p ∥ δ↓ p ▸ Inh↓ σ↓ p) (ε p))
-      → Tree↓ B (f↓ ∥ μ↓ σ↓ δ↓ ▸ τ↓) (nd f σ τ θ δ ε)
+      → {f↓ : Frm↓ A B f} (σ↓ : Tree↓ A B f↓ σ) (τ↓ : Cell↓ A B f↓ τ)
+      → (θ↓ : Cell↓ A B (f↓ ∥ σ↓ ▸ τ↓) θ)
+      → (δ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p) (δ p))
+      → (ε↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p ∥ δ↓ p ▸ Inh↓ σ↓ p) (ε p))
+      → Tree↓ A B (f↓ ∥ μ↓ σ↓ δ↓ ▸ τ↓) (nd f σ τ θ δ ε)
 
   Typ↓ (ob↓ τ↓) unit = ■
   Typ↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) (inl unit) = _ ∥ σ↓ ▸ τ↓
@@ -94,22 +94,21 @@ module OpetopicTypeOver where
   postulate
 
     -- Cell laws
-    Cell↓-■ : {A : Set} {B : A → Set}
-      → (a : A)
-      → Cell↓ B ■ ↦ B
-    {-# REWRITE Cell↓-■ #-}
+    -- Cell↓-■ : {A : Set} {B : A → Set}
+    --   → Cell↓ A B ■ ↦ B
+    -- {-# REWRITE Cell↓-■ #-}
     
     -- Typ/Inh laws
     η↓-pos-typ : {A : Set} {B : A → Set} {n : ℕ}
       → {f : Frm A n} {τ : Cell A f}
-      → (f↓ : Frm↓ B f) (τ↓ : Cell↓ B f↓ τ)
+      → (f↓ : Frm↓ A B f) (τ↓ : Cell↓ A B f↓ τ)
       → (p : Pos (η f τ))
       → Typ↓ (η↓ f↓ τ↓) p ↦ f↓
     {-# REWRITE η↓-pos-typ #-}
 
     η↓-pos-inh : {A : Set} {B : A → Set} {n : ℕ}
       → {f : Frm A n} {τ : Cell A f}
-      → (f↓ : Frm↓ B f) (τ↓ : Cell↓ B f↓ τ)
+      → (f↓ : Frm↓ A B f) (τ↓ : Cell↓ A B f↓ τ)
       → (p : Pos (η f τ))
       → Inh↓ (η↓ f↓ τ↓) p ↦ τ↓
     {-# REWRITE η↓-pos-inh #-}
@@ -117,8 +116,8 @@ module OpetopicTypeOver where
     μ↓-pos-typ : {A : Set} {B : A → Set} {n : ℕ}
       → {f : Frm A n} {σ : Tree A f}
       → {δ : (p : Pos σ) → Tree A (Typ σ p)}
-      → (f↓ : Frm↓ B f) (σ↓ : Tree↓ B f↓ σ)
-      → (δ↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p) (δ p))
+      → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
+      → (δ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p) (δ p))
       → (p : Pos (μ σ δ))
       → Typ↓ (μ↓ σ↓ δ↓) p ↦ Typ↓ (δ↓ (μ-pos-fst σ δ p)) (μ-pos-snd σ δ p)
     {-# REWRITE μ↓-pos-typ #-}
@@ -126,8 +125,8 @@ module OpetopicTypeOver where
     μ↓-pos-inh : {A : Set} {B : A → Set} {n : ℕ}
       → {f : Frm A n} {σ : Tree A f}
       → {δ : (p : Pos σ) → Tree A (Typ σ p)}
-      → (f↓ : Frm↓ B f) (σ↓ : Tree↓ B f↓ σ)
-      → (δ↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p) (δ p))
+      → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
+      → (δ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p) (δ p))
       → (p : Pos (μ σ δ))
       → Inh↓ (μ↓ σ↓ δ↓) p ↦ Inh↓ (δ↓ (μ-pos-fst σ δ p)) (μ-pos-snd σ δ p)
     {-# REWRITE μ↓-pos-inh #-}
@@ -135,15 +134,15 @@ module OpetopicTypeOver where
     -- μ↓ laws
     μ↓-unit-r : {A : Set} {B : A → Set} {n : ℕ}
       → {f : Frm A n} {σ : Tree A f}
-      → (f↓ : Frm↓ B f) (σ↓ : Tree↓ B f↓ σ)
+      → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
       → μ↓ σ↓ (λ p → η↓ (Typ↓ σ↓ p) (Inh↓ σ↓ p)) ↦ σ↓
     {-# REWRITE μ↓-unit-r #-}
 
     μ↓-unit-l : {A : Set} {B : A → Set} {n : ℕ}
       → {f : Frm A n} {τ : Cell A f}
       → {δ : (p : Pos (η f τ)) → Tree A (Typ (η f τ) p)}
-      → (f↓ : Frm↓ B f) (τ↓ : Cell↓ B f↓ τ)
-      → (δ↓ : (p : Pos (η f τ)) → Tree↓ B (Typ↓ (η↓ f↓ τ↓) p) (δ p))
+      → (f↓ : Frm↓ A B f) (τ↓ : Cell↓ A B f↓ τ)
+      → (δ↓ : (p : Pos (η f τ)) → Tree↓ A B (Typ↓ (η↓ f↓ τ↓) p) (δ p))
       → μ↓ (η↓ f↓ τ↓) δ↓ ↦ δ↓ (η-pos f τ)
     {-# REWRITE μ↓-unit-l #-}
     
@@ -151,9 +150,9 @@ module OpetopicTypeOver where
       → {f : Frm A n} {σ : Tree A f}
       → {δ : (p : Pos σ) → Tree A (Typ σ p)}
       → {ε : (p : Pos (μ σ δ)) → Tree A (Typ (μ σ δ) p)}
-      → (f↓ : Frm↓ B f) (σ↓ : Tree↓ B f↓ σ)
-      → (δ↓ : (p : Pos σ) → Tree↓ B (Typ↓ σ↓ p) (δ p))
-      → (ε↓ : (p : Pos (μ σ δ)) → Tree↓ B (Typ↓ (μ↓ σ↓ δ↓) p) (ε p))
+      → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
+      → (δ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p) (δ p))
+      → (ε↓ : (p : Pos (μ σ δ)) → Tree↓ A B (Typ↓ (μ↓ σ↓ δ↓) p) (ε p))
       → μ↓ (μ↓ σ↓ δ↓) ε↓ ↦ μ↓ σ↓ (λ p → μ↓ (δ↓ p) (λ q →  ε↓ (μ-pos σ δ p q)))
     {-# REWRITE μ↓-assoc #-}
 
