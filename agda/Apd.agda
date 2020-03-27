@@ -9,6 +9,14 @@ module Apd where
   -- Primitive dependent application
 
   -- Do we actually need this? Frankly, I'm not sure....
+  -- Yeah, I don't think we do.  The point is that, for
+  -- example the filler in a pi type has exactly the
+  -- type of apd.  So if you really can compute this filler,
+  -- then apd (at least on paths) can be *defined* by first
+  -- applying a couple kan constructors to your favorite
+  -- function, and then applying this to a path.  Similarly,
+  -- higher versions of the identity will have higher versions
+  -- of apd.  So, yeah, I now think this is superfluous.
 
   Frm-apd : {A : Set} {B : A → Set}
     → (b : (a : A) → B a)

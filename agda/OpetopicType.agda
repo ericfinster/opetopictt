@@ -128,7 +128,7 @@ module OpetopicType where
     η-pos-inh : {A : Set} {n : ℕ}
       → (f : Frm A n) (τ : Cell A f)
       → (p : Pos (η f τ))
-      → Inh (η f τ) (η-pos f τ) ↦ τ
+      → Inh (η f τ) p ↦ τ
     {-# REWRITE η-pos-inh #-}
 
     η-pos-elim-β : {A : Set} {n : ℕ}
