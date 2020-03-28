@@ -11,10 +11,10 @@ module PiDep where
   
   Π↑ : {Γ : Set} (A : Γ → Set) (B : Σ Γ A → Set) → Γ → Set
   Π↑ A B γ = Π (A γ) (λ a → B (γ , a))
-  
+
   Frm-λ↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
     → {n : ℕ} {γ₀ : Frm Γ n}
-    → (a₀ : Frm↓ Γ A γ₀) (b₀ : Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀))
+    → (b₀ : (a₀ : Frm↓ Γ A γ₀) → Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀))
     → Frm↓ Γ (Π↑ A B) γ₀
 
   Frm-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
@@ -24,10 +24,10 @@ module PiDep where
     → Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀)
 
   Tree-λ↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-    → {n : ℕ} {γ₀ : Frm Γ n} (γ : Tree Γ γ₀)
-    → {a₀ : Frm↓ Γ A γ₀} {b₀ : Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀)}
-    → (a : Tree↓ Γ A a₀ γ) (b : Tree↓ (Σ Γ A) B b₀ (Tree-pr γ a))
-    → Tree↓ Γ (Π↑ A B) (Frm-λ↓ a₀ b₀) γ
+    → {n : ℕ} {γ₀ : Frm Γ n} {γ : Tree Γ γ₀}
+    → (b₀ : (a₀ : Frm↓ Γ A γ₀) → Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀))
+    → (b : (a₀ : Frm↓ Γ A γ₀) (a : Tree↓ Γ A a₀ γ) → Tree↓ (Σ Γ A) B (b₀ a₀) (Tree-pr γ a))
+    → Tree↓ Γ (Π↑ A B) (Frm-λ↓ b₀) γ
 
   Tree-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
     → {n : ℕ} {γ₀ : Frm Γ n} (γ : Tree Γ γ₀)
@@ -39,9 +39,9 @@ module PiDep where
 
     Cell-λ↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
       → {n : ℕ} {γ₀ : Frm Γ n} {γ : Cell Γ γ₀}
-      → (a₀ : Frm↓ Γ A γ₀) (b₀ : Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀))
-      → (b : (a : Cell↓ Γ A a₀ γ) → Cell↓ (Σ Γ A) B b₀ (Cell-pr γ a))
-      → Cell↓ Γ (Π↑ A B) (Frm-λ↓ a₀ b₀) γ
+      → (b₀ : (a₀ : Frm↓ Γ A γ₀) → Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀))
+      → (b : (a₀ : Frm↓ Γ A γ₀) (a : Cell↓ Γ A a₀ γ) → Cell↓ (Σ Γ A) B (b₀ a₀) (Cell-pr γ a))
+      → Cell↓ Γ (Π↑ A B) (Frm-λ↓ b₀) γ
 
     Cell-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
       → {n : ℕ} {γ₀ : Frm Γ n} {γ : Cell Γ γ₀}
