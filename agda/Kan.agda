@@ -87,3 +87,12 @@ module Kan where
   --     and this isn't completely clear.
   -- 
 
+  -- A generic definition of having compositions over a base
+  has-compositions : {A : Set} (B : A → Set) → Set
+  has-compositions {A} B =
+      {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (τ : Cell A f) (θ : Cell A (f ∣ σ ▸ τ))
+    → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
+    → Σ (Cell↓ A B f↓ τ) (λ τ↓ → Cell↓ A B (f↓ ∥ σ↓ ▸ τ↓) θ)
+
+
