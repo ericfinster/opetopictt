@@ -4,6 +4,7 @@ open import Base
 open import OpetopicType
 open import OpetopicTypeOver
 open import Sigma
+open import Kan
 
 module SigmaDep where
 
@@ -273,3 +274,12 @@ module SigmaDep where
         δ↓₁ p = Tree-snd↓ (δ↓ p)
         ε↓₁ p = Tree-snd↓ (ε↓ p)
     in nd↓ x₁ τ↑₁ θ↓₁ δ↓₁ ε↓₁
+
+  Σ↑-has-comp : {Γ : Set} {A : Γ → Set} (B : Σ Γ A → Set)
+    → has-compositions A
+    → has-compositions B
+    → has-compositions (Σ↑ A B)
+  Σ↑-has-comp B has-comp-A has-comp-B σ τ θ f↓ σ↓ = 
+    let (τ₀₀ , τ₀₁) = has-comp-A _ _ _ _ _
+        (τ₁₀ , τ₁₁) = has-comp-B _ _ _ _ _ 
+    in Cell-pr↓ τ₀₀ τ₁₀ , Cell-pr↓ τ₀₁ τ₁₁
