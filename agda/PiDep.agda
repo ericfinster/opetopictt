@@ -94,3 +94,21 @@ module PiDep where
     let ϕ p = Tree-ap↓ _ (δ↓ p) _ (δ↓₁ p)
         ψ p = Tree-ap↓ _ (ε↓ p) _ (ε↓₁ p)
     in nd↓ (Tree-ap↓ _ π _ a) (Cell-ap↓ τ↓ τ↓₁) (Cell-ap↓ θ↓ θ↓₁) ϕ ψ
+
+  --
+  --  Compositions for Pi
+  --
+
+  has-compositions : {A : Set} (B : A → Set) → Set
+  has-compositions {A} B =
+      {n : ℕ} {f : Frm A n}
+    → (σ : Tree A f) (τ : Cell A f) (θ : Cell A (f ∣ σ ▸ τ))
+    → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
+    → Σ (Cell↓ A B f↓ τ) (λ τ↓ → Cell↓ A B (f↓ ∥ σ↓ ▸ τ↓) θ)
+
+  module _ (Γ : Set) (A : Γ → Set) (B : Σ Γ A → Set) 
+    (AKan : has-compositions A)
+    (BKan : has-compositions B) where
+
+    thm : has-compositions (Π↑ A B)
+    thm = {!!}

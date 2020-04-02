@@ -6,11 +6,11 @@ module OpetopicType where
 
   data Frm (A : Set) : ℕ → Set
   data Tree (A : Set) : {n : ℕ} (f : Frm A n) → Set
-
+  
   postulate
 
     Cell : (A : Set) {n : ℕ} → Frm A n → Set
-
+    
   Pos : {A : Set} {n : ℕ} {f : Frm A n} → Tree A f → Set
 
   Typ : {A : Set} {n : ℕ} {f : Frm A n}
@@ -119,9 +119,19 @@ module OpetopicType where
   postulate
 
     -- Cell laws
-    -- Cell-● : {A : Set}
-    --   → Cell A ● ↦ A
-    -- {-# REWRITE Cell-● #-}
+    [_]↑ : {A : Set}
+      → A → Cell A ● 
+
+    [_]↓ : {A : Set}
+      → Cell A ● → A
+
+    Cell-●-↑↓ : {A : Set} (a : A)
+      → [ [ a ]↑ ]↓ ↦ a
+    {-# REWRITE Cell-●-↑↓ #-}
+
+    Cell-●-↓↑ : {A : Set} (a : Cell A ●)
+      → [ [ a ]↓ ]↑ ↦ a
+    {-# REWRITE Cell-●-↓↑ #-}
 
     -- η-pos laws
     η-pos-typ : {A : Set} {n : ℕ}

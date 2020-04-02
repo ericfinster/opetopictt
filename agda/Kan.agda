@@ -95,4 +95,4 @@ module Kan where
     → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
     → Σ (Cell↓ A B f↓ τ) (λ τ↓ → Cell↓ A B (f↓ ∥ σ↓ ▸ τ↓) θ)
 
-
+  
