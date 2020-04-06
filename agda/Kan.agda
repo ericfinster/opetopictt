@@ -95,4 +95,22 @@ module Kan where
     → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
     → Σ (Cell↓ A B f↓ τ) (λ τ↓ → Cell↓ A B (f↓ ∥ σ↓ ▸ τ↓) θ)
 
-  
+  --
+  --  Non-dependent source kan condition
+  --
+
+  postulate
+
+    -- This is just the "lift".  There will be another
+    -- for the filler which needs to graft ζ with
+    -- the tree given by ε ....
+    source-kan-nondep : {A : Set} {n : ℕ}
+      → (f : Frm A n) (σ : Tree A f) (τ : Cell A f)
+      → (p : Pos σ) (σ' : Tree A (Typ σ p))
+      → (δ : (q : Pos σ') → Tree A (Typ σ' q))
+      → (ε : (q : Pos σ') → Tree A (Typ σ' q ∣ δ q ▸ Inh σ' q))
+      → (ζ : Tree A (f ∣ σ ▸ τ))
+      → (θ : Cell A (f ∣ μ σ (λ q → {!!}) ▸ τ))
+      -- Decoration says: if p == q then σ' otherwise, leaf
+      → Cell A (Typ σ p ∣ σ' ▸ Inh σ p)
+
