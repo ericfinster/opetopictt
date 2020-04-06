@@ -207,5 +207,20 @@ module Sigma where
     (λ p → Tree-snd (δ p)) 
     (λ p → Tree-snd (ε p)) 
 
+  -- Low dimensional rewrites
+  postulate
 
+    Cell-pr-● : {A : Set} {B : A → Set}
+      → (a : Cell A ●) (b : Cell↓ A B ■ a)
+      → Cell-pr a b ↦ [ [ a ]↓ , ⟦ B ∣ b ⟧↓ ]↑
+    {-# REWRITE Cell-pr-● #-}
+      
+    Cell-fst-● : {A : Set} {B : A → Set}
+      → (ab : Cell (Σ A B) ●)
+      → Cell-fst ab ↦ [ fst [ ab ]↓ ]↑
+    {-# REWRITE Cell-fst-● #-}
 
+    Cell-snd-● : {A : Set} {B : A → Set}
+      → (ab : Cell (Σ A B) ●)
+      → Cell-snd ab ↦ ⟦ B ∣ snd [ ab ]↓ ⟧↑ 
+    {-# REWRITE Cell-snd-● #-}

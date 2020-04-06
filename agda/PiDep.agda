@@ -80,6 +80,7 @@ module PiDep where
       → Cell-ap↓ (Inh↓ σ↓ p) (Inh↓ σ↓₁ p) ↦ Inh↓ (Tree-ap↓ σ σ↓ f↓₁ σ↓₁) p
     {-# REWRITE Cell-ap-Inh↓ #-}
 
+     
   Frm-ap↓ ■ ■ = ■
   Frm-ap↓ (π₀ ∥ σ↓ ▸ τ↓) (a₀ ∥ σ↓₁ ▸ τ↓₁) =
     let f = Frm-ap↓ π₀ a₀
@@ -95,20 +96,78 @@ module PiDep where
         ψ p = Tree-ap↓ _ (ε↓ p) _ (ε↓₁ p)
     in nd↓ (Tree-ap↓ _ π _ a) (Cell-ap↓ τ↓ τ↓₁) (Cell-ap↓ θ↓ θ↓₁) ϕ ψ
 
+  -- Low dimensional rewrites
+  postulate
+
+    Cell-ap↓-● : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
+      → (γ : Cell Γ ●) (π : Cell↓ Γ (Π↑ A B) ■ γ) (a : Cell↓ Γ A ■ γ)
+      → Cell-ap↓ {γ₀ = ●} {π₀ = ■} π a ↦ ⟦ B ∣ ⟦ Π↑ A B ∣ π ⟧↓ ⟦ A ∣ a ⟧↓ ⟧↑
+    {-# REWRITE Cell-ap↓-● #-}
+
   --
   --  Compositions for Pi
   --
 
-  has-compositions : {A : Set} (B : A → Set) → Set
-  has-compositions {A} B =
+  has-comps : {A : Set} (B : A → Set) → Set
+  has-comps {A} B =
+      {n : ℕ} {f : Frm A n}
+    → {σ : Tree A f} {τ : Cell A f} (θ : Cell A (f ∣ σ ▸ τ))
+    → {f↓ : Frm↓ A B f} (σ↓ : Tree↓ A B f↓ σ)
+    → Cell↓ A B f↓ τ
+
+  has-fills : {A : Set} (B : A → Set) (hc : has-comps B) → Set
+  has-fills {A} B hc =
       {n : ℕ} {f : Frm A n}
     → (σ : Tree A f) (τ : Cell A f) (θ : Cell A (f ∣ σ ▸ τ))
     → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
-    → Σ (Cell↓ A B f↓ τ) (λ τ↓ → Cell↓ A B (f↓ ∥ σ↓ ▸ τ↓) θ)
+    → Cell↓ A B (f↓ ∥ σ↓ ▸ hc θ σ↓) θ 
 
+  has-compositions : {A : Set} (B : A → Set) → Set
+  has-compositions B = Σ (has-comps B) (has-fills B)
+  
   module _ (Γ : Set) (A : Γ → Set) (B : Σ Γ A → Set) 
     (AKan : has-compositions A)
     (BKan : has-compositions B) where
 
-    thm : has-compositions (Π↑ A B)
-    thm = {!!}
+    first-step : (γ : Γ) (σ : (a : A γ) → B (γ , a)) (a : A γ)
+      → Cell↓ (Σ Γ A) B {f = ● ∣ ob [ γ , a ]↑ ▸ [ γ , a ]↑} (■ ∥ ob↓ {!!} ▸ {!!}) {!!} 
+    first-step = {!!}
+
+    -- Tree-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
+    --   → {n : ℕ} {γ₀ : Frm Γ n} (γ : Tree Γ γ₀)
+    --   → {π₀ : Frm↓ Γ (Π↑ A B) γ₀} (π : Tree↓ Γ (Π↑ A B) π₀ γ)
+    --   → (a₀ : Frm↓ Γ A γ₀) (a : Tree↓ Γ A a₀ γ)
+    --   → Tree↓ (Σ Γ A) B (Frm-ap↓ π₀ a₀) (Tree-pr γ a)
+
+
+    -- Okay, I want to try this in a very special
+    -- case: identity composites.
+
+    has-ids : (γ : Γ) (γ-loop : Cell Γ (● ∣ ob [ γ ]↑ ▸ [ γ ]↑))
+      → (γ-null : Cell Γ (● ∣ ob [ γ ]↑ ▸ [ γ ]↑ ∣ lf ● [ γ ]↑ ▸ γ-loop))
+      → (σ : (a : A γ) → B (γ , a))
+      → Cell↓ Γ (Π↑ A B) (■ ∥ ob↓ ⟦ Π↑ A B ∣ σ ⟧↑ ▸ ⟦ Π↑ A B ∣ σ ⟧↑) γ-loop
+    has-ids γ γ-loop γ-null σ = Cell-λ↓ (λ { (■ ∥ ob↓ a₀ ▸ a₁) p →
+      let a₀↓ = ⟦ A ∣ a₀ ⟧↓
+          a₁↓ = ⟦ A ∣ a₁ ⟧↓
+      in {!!} })
+
+    -- Indeed.  So it's a bit like I expected.  We do indeed get
+    -- two elements in the same fiber together with a path between
+    -- them.  But how do we finish?
+
+    -- Need, I think, to get our J-principle or something into
+    -- the game, right?  So the first step is something like, this
+    -- works when we have a null-homotopy in the fiber, and we
+    -- can reduce to that case.
+
+    -- Okay, I've been thinking more about opetopic J.  Here's what
+    -- seems to be the case: given the triangle rule, if you have
+    -- for a fixed tree σ, a Kan fibration over the space of pairs
+    -- consisting of a target and a filler, then you can eliminate
+    -- into that fibration.  This is just because Kan conditions in
+    -- the base will give you the triangle, which becomes a path
+    -- in the space of pairs.  And then that becomes a guy you can
+    -- transport by.
+    
+
