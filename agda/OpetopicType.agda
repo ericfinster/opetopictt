@@ -24,7 +24,7 @@ module OpetopicType where
   infixl 30 _∣_▸_
   
   data Frm A where
-    ● : Frm A O 
+    ●_▸_ : (a₀ : A) → (a₁ : A) → Frm A O 
     _∣_▸_ : {n : ℕ} (f : Frm A n)
       → (σ : Tree A f) (τ : Cell A f)
       → Frm A (S n)
@@ -63,6 +63,29 @@ module OpetopicType where
     → (δ : (p : Pos σ) → Tree A (Typ σ p))
     → (p : Pos (μ σ δ)) → Pos (δ (μ-pos-fst σ δ p))
 
+  α : {A : Set} {a₀ a₁ a₂ : A}
+    → Tree A (● a₀ ▸ a₁)
+    → Tree A (● a₁ ▸ a₂)
+    → Tree A (● a₀ ▸ a₂)
+
+  α-pos-inl : {A : Set} {a₀ a₁ a₂ : A}
+    → {σ₀ : Tree A (● a₀ ▸ a₁)}
+    → {σ₁ : Tree A (● a₁ ▸ a₂)}
+    → Pos σ₀ → Pos (α σ₀ σ₁)
+
+  α-pos-inr : {A : Set} {a₀ a₁ a₂ : A}
+    → {σ₀ : Tree A (● a₀ ▸ a₁)}
+    → {σ₁ : Tree A (● a₁ ▸ a₂)}
+    → Pos σ₁ → Pos (α σ₀ σ₁)
+
+  α-pos-elim : {A : Set} {a₀ a₁ a₂ : A}
+    → (σ₀ : Tree A (● a₀ ▸ a₁))
+    → (σ₁ : Tree A (● a₁ ▸ a₂))
+    → (X : Pos (α σ₀ σ₁) → Set)
+    → (inl* : (p : Pos σ₀) → X (α-pos-inl p))
+    → (inr* : (p : Pos σ₁) → X (α-pos-inr p))
+    → (p : Pos (α σ₀ σ₁)) → X p
+
   γ : {A : Set} {n : ℕ} {f : Frm A n}
     → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∣ σ ▸ τ))
     → (δ : (p : Pos σ) → Tree A (Typ σ p))
@@ -92,7 +115,13 @@ module OpetopicType where
     → (p : Pos (γ σ τ ρ ϕ ψ)) → X p
 
   data Tree A where
-    ob : (τ : Cell A ●) → Tree A ●
+
+    nil : (a : A) → Tree A (● a ▸ a)
+    cns : {a₀ a₁ a₂ : A} 
+      → (ρ : Cell A (● a₀ ▸ a₁))
+      → (θ : Tree A (● a₁ ▸ a₂))
+      → Tree A (● a₀ ▸ a₂)
+    
     lf : {n : ℕ} (f : Frm A n) (τ : Cell A f)
       → Tree A (f ∣ η f τ ▸ τ)
     nd : {n : ℕ} (f : Frm A n) 
@@ -101,37 +130,23 @@ module OpetopicType where
       → (ε : (p : Pos σ) → Tree A (Typ σ p ∣ δ p ▸ Inh σ p))
       → Tree A (f ∣ μ σ δ ▸ τ)
 
-  Pos (ob τ) = ⊤
+  Pos (nil a) = ⊥
+  Pos (cns ρ θ) = ⊤ ⊔ Pos θ
   Pos (lf f τ) = ⊥
   Pos (nd f σ τ θ δ ε) =
     ⊤ ⊔ Σ (Pos σ) (λ p → Pos (ε p))
 
-  Typ (ob τ) p = ●
-  Typ (lf f τ) ()
+  Typ (cns {a₀} {a₁} ρ σ) (inl unit) = ● a₀ ▸ a₁
+  Typ (cns ρ σ) (inr p) = Typ σ p
   Typ (nd f σ τ θ δ ε) (inl unit) = f ∣ σ ▸ τ
   Typ (nd f σ τ θ δ ε) (inr (p , q)) = Typ (ε p) q
-  
-  Inh (ob τ) p = τ
-  Inh (lf f τ) ()
+
+  Inh (cns ρ σ) (inl unit) = ρ
+  Inh (cns ρ σ) (inr p) = Inh σ p
   Inh (nd f σ τ θ δ ε) (inl unit) = θ
   Inh (nd f σ τ θ δ ε) (inr (p , q)) = Inh (ε p) q
 
   postulate
-
-    -- Cell laws
-    [_]↑ : {A : Set}
-      → A → Cell A ● 
-
-    [_]↓ : {A : Set}
-      → Cell A ● → A
-
-    Cell-●-↑↓ : {A : Set} (a : A)
-      → [ [ a ]↑ ]↓ ↦ a
-    {-# REWRITE Cell-●-↑↓ #-}
-
-    Cell-●-↓↑ : {A : Set} (a : Cell A ●)
-      → [ [ a ]↓ ]↑ ↦ a
-    {-# REWRITE Cell-●-↓↑ #-}
 
     -- η-pos laws
     η-pos-typ : {A : Set} {n : ℕ}
@@ -203,6 +218,27 @@ module OpetopicType where
       → μ (μ σ δ) ε ↦ μ σ (λ p → μ (δ p) (λ q → ε (μ-pos σ δ p q)))
     {-# REWRITE μ-assoc #-}
 
+    -- α elim comp rules
+    α-pos-elim-inl-β : {A : Set} {a₀ a₁ a₂ : A}
+      → (σ₀ : Tree A (● a₀ ▸ a₁))
+      → (σ₁ : Tree A (● a₁ ▸ a₂))
+      → (X : Pos (α σ₀ σ₁) → Set)
+      → (inl* : (p : Pos σ₀) → X (α-pos-inl p))
+      → (inr* : (p : Pos σ₁) → X (α-pos-inr p))
+      → (p : Pos σ₀)
+      → α-pos-elim σ₀ σ₁ X inl* inr* (α-pos-inl p) ↦ inl* p
+    {-# REWRITE α-pos-elim-inl-β #-}
+    
+    α-pos-elim-inr-β : {A : Set} {a₀ a₁ a₂ : A}
+      → (σ₀ : Tree A (● a₀ ▸ a₁))
+      → (σ₁ : Tree A (● a₁ ▸ a₂))
+      → (X : Pos (α σ₀ σ₁) → Set)
+      → (inl* : (p : Pos σ₀) → X (α-pos-inl p))
+      → (inr* : (p : Pos σ₁) → X (α-pos-inr p))
+      → (p : Pos σ₁)
+      → α-pos-elim σ₀ σ₁ X inl* inr* (α-pos-inr p) ↦ inr* p
+    {-# REWRITE α-pos-elim-inr-β #-}
+      
     -- γ elim comp rules
     γ-pos-elim-inl-β : {A : Set} {n : ℕ} {f : Frm A n}
       → (σ : Tree A f) (τ : Cell A f) (ρ : Tree A (f ∣ σ ▸ τ))
@@ -226,20 +262,38 @@ module OpetopicType where
       → γ-pos-elim σ τ ρ ϕ ψ X inl* inr* (γ-pos-inr σ τ ρ ϕ ψ p q) ↦ inr* p q
     {-# REWRITE γ-pos-elim-inr-β #-}
 
-  η ● τ = ob τ
+  η (● a₀ ▸ a₁) τ = cns τ (nil a₁)
   η (f ∣ σ ▸ τ) θ =
     let η-dec p = η (Typ σ p) (Inh σ p)
         lf-dec p = lf (Typ σ p) (Inh σ p)
     in nd f σ τ θ η-dec lf-dec
 
-  η-pos ● τ = unit
-  η-pos (f ∣ σ ▸ τ) θ =
-    inl unit
-
-  η-pos-elim ● τ X η-pos* unit = η-pos*
-  η-pos-elim (f ∣ σ ▸ τ) θ X η-pos* (inl unit) = η-pos*
+  η-pos (● a₀ ▸ a₁) τ = inl unit
+  η-pos (f ∣ σ ▸ τ) θ = inl unit
   
-  μ (ob τ) κ = κ unit
+  η-pos-elim (● a₀ ▸ a₁) τ X η-pos* (inl unit) = η-pos*
+  η-pos-elim (f ∣ σ ▸ τ) θ X η-pos* (inl unit) = η-pos*
+
+  α (nil _) y = y
+  α (cns ρ x) y = cns ρ (α x y)
+
+  α-pos-inl {σ₀ = cns ρ σ₀} (inl unit) = inl unit
+  α-pos-inl {σ₀ = cns ρ σ₀} (inr p) = inr (α-pos-inl p)
+
+  α-pos-inr {σ₀ = nil _} p = p
+  α-pos-inr {σ₀ = cns ρ σ₀} p =
+    inr (α-pos-inr p)
+
+  α-pos-elim (nil _) σ₁ X inl* inr* = inr*
+  α-pos-elim (cns ρ σ₀) σ₁ X inl* inr* (inl unit) = inl* (inl unit)
+  α-pos-elim (cns ρ σ₀) σ₁ X inl* inr* (inr p) =
+    α-pos-elim σ₀ σ₁ (λ p → X (inr p)) (λ p → inl* (inr p)) inr* p
+
+  μ (nil a) κ = nil a
+  μ (cns ρ σ) κ =
+    let w = κ (inl unit)
+        κ↑ p = κ (inr p)
+    in α w (μ σ κ↑)
   μ (lf f τ) κ = lf f τ
   μ (nd f σ τ θ δ ε) κ =
     let w = κ (inl unit)
@@ -247,8 +301,11 @@ module OpetopicType where
         ψ p = μ (ε p) (κ↑ p) 
     in γ σ τ w δ ψ
 
-  μ-pos (ob τ) κ unit q = q
-  μ-pos (lf f τ) κ p q = p
+  μ-pos (cns ρ σ) κ (inl unit) q = α-pos-inl q
+  μ-pos (cns ρ σ) κ (inr p) q =
+    let w = κ (inl unit)
+        κ↑ p = κ (inr p)
+    in α-pos-inr (μ-pos σ κ↑ p q)
   μ-pos (nd f σ τ θ δ ε) κ (inl unit) r = 
     let w = κ (inl unit)
         κ↑ p q = κ (inr (p , q))
@@ -260,8 +317,13 @@ module OpetopicType where
         ψ p = μ (ε p) (κ↑ p) 
     in γ-pos-inr σ τ w δ ψ p (μ-pos (ε p) (κ↑ p) q r)
 
-  μ-pos-fst (ob τ) κ p = unit
-  μ-pos-fst (lf f τ) κ p = p
+  μ-pos-fst (cns ρ σ) κ p =
+    let w = κ (inl unit)
+        κ↑ p = κ (inr p)
+        X p = ⊤ ⊔ Pos σ
+        inl* p = inl unit
+        inr* p = inr (μ-pos-fst σ κ↑ p)
+    in α-pos-elim w (μ σ κ↑) X inl* inr* p
   μ-pos-fst (nd f σ τ θ δ ε) κ p = 
     let w = κ (inl unit)
         κ↑ p q = κ (inr (p , q))
@@ -270,15 +332,20 @@ module OpetopicType where
         inr* p q = inr (p , μ-pos-fst (ε p) (κ↑ p) q)
     in γ-pos-elim σ τ w δ ψ _ inl* inr* p
 
-  μ-pos-snd (ob τ) κ p = p
-  μ-pos-snd (lf f τ) κ ()
+  μ-pos-snd (cns ρ σ) κ p = 
+    let w = κ (inl unit)
+        κ↑ p = κ (inr p)
+        X p = Pos (κ (μ-pos-fst (cns ρ σ) κ p))
+        inl* p = p
+        inr* p = μ-pos-snd σ κ↑ p
+    in α-pos-elim w (μ σ κ↑) X inl* inr* p
   μ-pos-snd (nd f σ τ θ δ ε) κ p = 
     let w = κ (inl unit)
         κ↑ p q = κ (inr (p , q))
         ψ p = μ (ε p) (κ↑ p)
+        X p = Pos (κ (μ-pos-fst (nd f σ τ θ δ ε) κ p))
         inl* p = p
         inr* p q = μ-pos-snd (ε p) (κ↑ p) q
-        X p = Pos (κ (μ-pos-fst (nd f σ τ θ δ ε) κ p))
     in γ-pos-elim σ τ w δ ψ X inl* inr* p
 
   γ .(η f τ) .τ (lf f τ) ϕ ψ = ψ (η-pos f τ)
@@ -319,3 +386,4 @@ module OpetopicType where
     in γ-pos-elim (δ p) (Inh σ p) (ε p) (ϕ↑ p) (ψ↑ p)
                   (λ q → X (inr (p , q))) (λ q → inl* (inr (p , q)))
                   (λ p₀ q₀ → inr* (μ-pos σ δ p p₀) q₀) q
+
