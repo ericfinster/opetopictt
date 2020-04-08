@@ -174,19 +174,35 @@ module QuantifiedOpetopicType where
   --
 
   Id-frm : {A : Set} (a : A)
-    → {n : ℕ} (o : 𝕆 n)
+    → {n : ℕ} (o : 𝕆 (S n))
     → Frm A o
 
   Id-tr : {A : Set} (a : A)
-    → {n : ℕ} {o : 𝕆 n} (t : 𝕋 o)
+    → {n : ℕ} {o : 𝕆 (S n)} (t : 𝕋 o)
     → Tree A (Id-frm a o) t
 
   postulate
 
     Id-cell : {A : Set} (a : A)
-      → {n : ℕ} (o : 𝕆 n)
+      → {n : ℕ} (o : 𝕆 (S n))
       → Cell A (Id-frm a o)
 
-  Id-frm = {!!}
-  Id-tr = {!!}
+  Id-frm a (○ ▹ arr) = ● a ▸ a
+  Id-frm a (o ▹ s ▹ t) = Id-frm a (o ▹ s) ∣
+    Id-tr a t ▸ Id-cell a (o ▹ s)
+  
+  Id-tr a (lfₒ ○) = nil a
+  Id-tr a (ndₒ ○ arr δ ε) = {!!}
+  Id-tr a (lfₒ (o ▹ t)) = {!lf!}
+  Id-tr a (ndₒ (o ▹ s) t δ ε) = {!!}
+
+  -- Tree-id a (○ ▹ arr) = η (● a ▸ a) (Cell-id a (○ ▹ arr))
+  -- Tree-id a (o ▹ .(ηₒ o) ▹ lfₒ .o) =
+  --   lf (Frm-id a (o ▹ ηₒ o)) (Cell-id a (o ▹ ηₒ o))
+  -- Tree-id a (o ▹ .(μₒ t δ) ▹ ndₒ .o t δ ε) =
+  --   let f-id = Frm-id a (o ▹ μₒ t δ)
+  --       σ-id = Tree-id a (o ▹ μₒ t δ)
+  --       τ-id = Cell-id a (o ▹ μₒ t δ)
+  --       θ-id = Cell-id a (o ▹ μₒ t δ ▹ ndₒ o t δ ε)
+  --   in {!nd f-id σ-id τ-id θ-id   !}
 
