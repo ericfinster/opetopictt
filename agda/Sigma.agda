@@ -51,14 +51,14 @@ module Sigma where
       → (τ : Cell (Σ A B) f)
       → Cell↓ A B (Frm-snd f) (Cell-fst τ)
 
-  Frm-pr ● ■ = ●
+  Frm-pr (● a₀ ▸ a₁) (■ b₀ ▸ b₁) = ● (a₀ , b₀) ▸ (a₁ , b₁)
   Frm-pr (f ∣ σ ▸ τ) (f↓ ∥ σ↓ ▸ τ↓) =
     Frm-pr f f↓ ∣ Tree-pr σ σ↓ ▸ Cell-pr τ τ↓
 
-  Frm-fst ● = ●
+  Frm-fst (● a₀ ▸ a₁) = ● fst a₀ ▸ fst a₁
   Frm-fst (f ∣ σ ▸ τ) = Frm-fst f ∣ Tree-fst σ ▸ Cell-fst τ
   
-  Frm-snd ● = ■
+  Frm-snd (● a₀ ▸ a₁) = ■ snd a₀ ▸ snd a₁
   Frm-snd (f ∣ σ ▸ τ) = Frm-snd f ∥ Tree-snd σ ▸ Cell-snd τ
 
   postulate
@@ -188,39 +188,25 @@ module Sigma where
       → Tree-snd (μ σ δ) ↦ μ↓ (Tree-snd σ) (λ p → Tree-snd (δ p))
     {-# REWRITE Tree-snd-μ #-}
 
-  Tree-pr (ob τ) (ob↓ τ↓) = ob (Cell-pr τ τ↓)
+  Tree-pr (nil a) (nil↓ b) = nil (a , b)
+  Tree-pr (cns ρ σ) (cns↓ ρ↓ σ↓) = cns (Cell-pr ρ ρ↓) (Tree-pr σ σ↓)
   Tree-pr (lf f τ) (lf↓ f↓ τ↓) = lf (Frm-pr f f↓) (Cell-pr τ τ↓)
   Tree-pr (nd f σ τ θ δ ε) (nd↓ {f↓ = f↓} σ↓ τ↓ θ↓ δ↓ ε↓) =
     nd (Frm-pr f f↓) (Tree-pr σ σ↓) (Cell-pr τ τ↓) (Cell-pr θ θ↓)
        (λ p → Tree-pr (δ p) (δ↓ p))
        (λ p → Tree-pr (ε p) (ε↓ p))
 
-  Tree-fst (ob τ) = ob (Cell-fst τ)
+  Tree-fst (nil τ) = nil (fst τ)
+  Tree-fst (cns ρ σ) = cns (Cell-fst ρ) (Tree-fst σ)
   Tree-fst (lf f α) = lf (Frm-fst f) (Cell-fst α)
   Tree-fst (nd f σ τ θ δ ε) = nd (Frm-fst f) (Tree-fst σ) (Cell-fst τ) (Cell-fst θ)
     (λ p → Tree-fst (δ p)) 
     (λ p → Tree-fst (ε p)) 
 
-  Tree-snd (ob τ) = ob↓ (Cell-snd τ)
+  Tree-snd (nil τ) = nil↓ (snd τ)
+  Tree-snd (cns ρ σ) = cns↓ (Cell-snd ρ) (Tree-snd σ)
   Tree-snd (lf f τ) = lf↓ (Frm-snd f) (Cell-snd τ)
   Tree-snd (nd f σ τ θ δ ε) = nd↓ (Tree-snd σ) (Cell-snd τ) (Cell-snd θ)
     (λ p → Tree-snd (δ p)) 
     (λ p → Tree-snd (ε p)) 
 
-  -- Low dimensional rewrites
-  postulate
-
-    Cell-pr-● : {A : Set} {B : A → Set}
-      → (a : Cell A ●) (b : Cell↓ A B ■ a)
-      → Cell-pr a b ↦ [ [ a ]↓ , ⟦ B ∣ b ⟧↓ ]↑
-    {-# REWRITE Cell-pr-● #-}
-      
-    Cell-fst-● : {A : Set} {B : A → Set}
-      → (ab : Cell (Σ A B) ●)
-      → Cell-fst ab ↦ [ fst [ ab ]↓ ]↑
-    {-# REWRITE Cell-fst-● #-}
-
-    Cell-snd-● : {A : Set} {B : A → Set}
-      → (ab : Cell (Σ A B) ●)
-      → Cell-snd ab ↦ ⟦ B ∣ snd [ ab ]↓ ⟧↑ 
-    {-# REWRITE Cell-snd-● #-}
