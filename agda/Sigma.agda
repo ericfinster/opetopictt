@@ -1,212 +1,114 @@
 {-# OPTIONS --without-K --rewriting #-}
 
 open import Base
+open import Opetopes
 open import OpetopicType
 open import OpetopicTypeOver
 
 module Sigma where
 
   -- Rules for non-dependent Σ
-  -- (i.e. context extension)
-
-  Frm-pr : {A : Set} {B : A → Set}
-    → {n : ℕ} (f : Frm A n) (f↓ : Frm↓ A B f)
-    → Frm (Σ A B) n
+  -- (i.e. context extension) using rewrites
     
   Frm-fst : {A : Set} {B : A → Set}
-    → {n : ℕ} (f : Frm (Σ A B) n)
-    → Frm A n
+    → {n : ℕ} {o : 𝕆 n}
+    → (f : Frm (Σ A B) o)
+    → Frm A o
 
   Frm-snd : {A : Set} {B : A → Set}
-    → {n : ℕ} (f : Frm (Σ A B) n)
+    → {n : ℕ} {o : 𝕆 n}
+    → (f : Frm (Σ A B) o)
     → Frm↓ A B (Frm-fst f)
 
-  Tree-pr : {A : Set} {B : A → Set}
-    → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-    → (σ : Tree A f) (σ↓ : Tree↓ A B f↓ σ)
-    → Tree (Σ A B) (Frm-pr f f↓)
-
   Tree-fst : {A : Set} {B : A → Set}
-    → {n : ℕ} {f : Frm (Σ A B) n}
-    → Tree (Σ A B) f → Tree A (Frm-fst f)
+    → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+    → {f : Frm (Σ A B) o}
+    → Tree (Σ A B) f t → Tree A (Frm-fst f) t
 
   Tree-snd : {A : Set} {B : A → Set}
-    → {n : ℕ} {f : Frm (Σ A B) n}
-    → (σ : Tree (Σ A B) f)
+    → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+    → {f : Frm (Σ A B) o}
+    → (σ : Tree (Σ A B) f t)
     → Tree↓ A B (Frm-snd f) (Tree-fst σ)
     
   postulate
 
-    Cell-pr : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-      → (a : Cell A f) (b : Cell↓ A B f↓ a)
-      → Cell (Σ A B) (Frm-pr f f↓)
+    Cell-Σ : {A : Set} {B : A → Set}
+      → {n : ℕ} {o : 𝕆 n}
+      → {f : Frm (Σ A B) o}
+      → Cell (Σ A B) f ↦ Σ (Cell A (Frm-fst f)) (Cell↓ A B (Frm-snd f))
+    {-# REWRITE Cell-Σ #-}
+
+    Tree-fst-typ : {A : Set} {B : A → Set}
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
+      → (p : Pos t)
+      → Typ (Tree-fst σ) p ↦ Frm-fst (Typ σ p)
+    {-# REWRITE Tree-fst-typ #-}
+
+    Tree-snd-typ : {A : Set} {B : A → Set}
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
+      → (p : Pos t)
+      → Typ↓ (Tree-snd σ) p ↦ Frm-snd (Typ σ p)
+    {-# REWRITE Tree-snd-typ #-}
       
-    Cell-fst : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm (Σ A B) n}
-      → Cell (Σ A B) f → Cell A (Frm-fst f)
+    Tree-fst-inh : {A : Set} {B : A → Set}
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
+      → (p : Pos t)
+      → Inh (Tree-fst σ) p ↦ fst (Inh σ p)
+    {-# REWRITE Tree-fst-inh #-}
 
-    Cell-snd : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm (Σ A B) n}
-      → (τ : Cell (Σ A B) f)
-      → Cell↓ A B (Frm-snd f) (Cell-fst τ)
-
-  Frm-pr (● a₀ ▸ a₁) (■ b₀ ▸ b₁) = ● (a₀ , b₀) ▸ (a₁ , b₁)
-  Frm-pr (f ∣ σ ▸ τ) (f↓ ∥ σ↓ ▸ τ↓) =
-    Frm-pr f f↓ ∣ Tree-pr σ σ↓ ▸ Cell-pr τ τ↓
-
-  Frm-fst (● a₀ ▸ a₁) = ● fst a₀ ▸ fst a₁
-  Frm-fst (f ∣ σ ▸ τ) = Frm-fst f ∣ Tree-fst σ ▸ Cell-fst τ
-  
-  Frm-snd (● a₀ ▸ a₁) = ■ snd a₀ ▸ snd a₁
-  Frm-snd (f ∣ σ ▸ τ) = Frm-snd f ∥ Tree-snd σ ▸ Cell-snd τ
-
-  postulate
-
-    -- Pos/Typ/Inh equations
-    Pos-pr : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-      → (σ : Tree A f) (σ↓ : Tree↓ A B f↓ σ)
-      → Pos (Tree-pr σ σ↓) ↦ Pos σ
-    {-# REWRITE Pos-pr #-}
-
-    Typ-pr : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-      → (σ : Tree A f) (σ↓ : Tree↓ A B f↓ σ)
-      → (p : Pos σ)
-      → Typ (Tree-pr σ σ↓) p ↦ Frm-pr (Typ σ p) (Typ↓ σ↓ p)
-    {-# REWRITE Typ-pr #-}
-
-    Inh-pr : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-      → (σ : Tree A f) (σ↓ : Tree↓ A B f↓ σ)
-      → (p : Pos σ)
-      → Inh (Tree-pr σ σ↓) p ↦ Cell-pr (Inh σ p) (Inh↓ σ↓ p)
-    {-# REWRITE Inh-pr #-}
-
-    -- Should these equations be in the other direction?
-    Pos-fst : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n) (σ : Tree (Σ A B) f)
-      → Pos (Tree-fst σ) ↦ Pos σ 
-    {-# REWRITE Pos-fst #-}
-
-    Typ-fst : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n)
-      → (σ : Tree (Σ A B) f) (p : Pos σ)
-      → Typ (Tree-fst σ) p ↦ Frm-fst (Typ σ p) 
-    {-# REWRITE Typ-fst #-}
-
-    Inh-fst : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n)
-      → (σ : Tree (Σ A B) f) (p : Pos σ)
-      → Inh (Tree-fst σ) p ↦ Cell-fst (Inh σ p) 
-    {-# REWRITE Inh-fst #-}
-
-    Typ-snd : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n)
-      → (σ : Tree (Σ A B) f) (p : Pos σ)
-      → Typ↓ (Tree-snd σ) p ↦ Frm-snd (Typ σ p) 
-    {-# REWRITE Typ-snd #-}
-
-    Inh-snd : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n)
-      → (σ : Tree (Σ A B) f) (p : Pos σ)
-      → Inh↓ (Tree-snd σ) p ↦ Cell-snd (Inh σ p) 
-    {-# REWRITE Inh-snd #-}
-
-    -- Frm equations
-    Frm-fst-β : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm A n) (f↓ : Frm↓ A B f)
-      → Frm-fst (Frm-pr f f↓) ↦ f
-    {-# REWRITE Frm-fst-β #-}
-
-    Frm-snd-β : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm A n) (f↓ : Frm↓ A B f)
-      → Frm-snd (Frm-pr f f↓) ↦ f↓
-    {-# REWRITE Frm-snd-β #-}
-    
-    Frm-pr-β : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n)
-      → Frm-pr (Frm-fst f) (Frm-snd f) ↦ f
-    {-# REWRITE Frm-pr-β #-}
-
-    -- Tree equations
-    Tree-fst-β : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-      → (σ : Tree A f) (σ↓ : Tree↓ A B f↓ σ)
-      → Tree-fst (Tree-pr σ σ↓) ↦ σ
-    {-# REWRITE Tree-fst-β #-}
-      
-    Tree-snd-β : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-      → (σ : Tree A f) (σ↓ : Tree↓ A B f↓ σ)
-      → Tree-snd (Tree-pr σ σ↓) ↦ σ↓
-    {-# REWRITE Tree-snd-β #-}
-      
-    Tree-pr-β : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm (Σ A B) n}
-      → (σ : Tree (Σ A B) f)
-      → Tree-pr (Tree-fst σ) (Tree-snd σ) ↦ σ
-    {-# REWRITE Tree-pr-β #-}
-
-    -- Again, I'm not so sure about the orientation here ...
-    Tree-pr-η : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {f↓ : Frm↓ A B f}
-      → (τ : Cell A f) (τ↓ : Cell↓ A B f↓ τ)
-      → Tree-pr (η f τ) (η↓ f↓ τ↓) ↦ η (Frm-pr f f↓) (Cell-pr τ τ↓)
-    {-# REWRITE Tree-pr-η #-}
+    Tree-snd-inh : {A : Set} {B : A → Set}
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
+      → (p : Pos t)
+      → Inh↓ (Tree-snd σ) p ↦ snd (Inh σ p)
+    {-# REWRITE Tree-snd-inh #-}
 
     Tree-fst-η : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n) (τ : Cell (Σ A B) f)
-      → Tree-fst (η f τ) ↦ η (Frm-fst f) (Cell-fst τ)
+      → {n : ℕ} {o : 𝕆 n} 
+      → {f : Frm (Σ A B) o} (τ : Cell (Σ A B) f)
+      → Tree-fst (η f τ) ↦ η (Frm-fst f) (fst τ)
     {-# REWRITE Tree-fst-η #-}
 
     Tree-snd-η : {A : Set} {B : A → Set}
-      → {n : ℕ} (f : Frm (Σ A B) n) (τ : Cell (Σ A B) f)
-      → Tree-snd (η f τ) ↦ η↓ (Frm-snd f) (Cell-snd τ)
+      → {n : ℕ} {o : 𝕆 n} 
+      → {f : Frm (Σ A B) o} (τ : Cell (Σ A B) f)
+      → Tree-snd (η f τ) ↦ η↓ (Frm-snd f) (snd τ)
     {-# REWRITE Tree-snd-η #-}
-
-    Tree-pr-μ : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm A n} {σ : Tree A f}
-      → {δ : (p : Pos σ) → Tree A (Typ σ p)}
-      → {f↓ : Frm↓ A B f} (σ↓ : Tree↓ A B f↓ σ)
-      → (δ↓ : (p : Pos σ) → Tree↓ A B (Typ↓ σ↓ p) (δ p))
-      → Tree-pr (μ σ δ) (μ↓ σ↓ δ↓) ↦ μ (Tree-pr σ σ↓) (λ p → Tree-pr (δ p) (δ↓ p))
-    {-# REWRITE Tree-pr-μ #-}
-
+    
     Tree-fst-μ : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm (Σ A B) n}
-      → (σ : Tree (Σ A B) f)
-      → (δ : (p : Pos σ) → Tree (Σ A B) (Typ σ p))
-      → Tree-fst (μ σ δ) ↦ μ (Tree-fst σ) (λ p → Tree-fst (δ p)) 
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {δₒ : (p : Pos t) → 𝕋 (Typₒ t p)}
+      → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
+      → (δ : (p : Pos t) → Tree (Σ A B) (Typ σ p) (δₒ p))
+      → Tree-fst (μ σ δ) ↦ μ (Tree-fst σ) (λ p → Tree-fst (δ p))
     {-# REWRITE Tree-fst-μ #-}
 
     Tree-snd-μ : {A : Set} {B : A → Set}
-      → {n : ℕ} {f : Frm (Σ A B) n}
-      → (σ : Tree (Σ A B) f)
-      → (δ : (p : Pos σ) → Tree (Σ A B) (Typ σ p))
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {δₒ : (p : Pos t) → 𝕋 (Typₒ t p)}
+      → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
+      → (δ : (p : Pos t) → Tree (Σ A B) (Typ σ p) (δₒ p))
       → Tree-snd (μ σ δ) ↦ μ↓ (Tree-snd σ) (λ p → Tree-snd (δ p))
     {-# REWRITE Tree-snd-μ #-}
 
-  Tree-pr (nil a) (nil↓ b) = nil (a , b)
-  Tree-pr (cns ρ σ) (cns↓ ρ↓ σ↓) = cns (Cell-pr ρ ρ↓) (Tree-pr σ σ↓)
-  Tree-pr (lf f τ) (lf↓ f↓ τ↓) = lf (Frm-pr f f↓) (Cell-pr τ τ↓)
-  Tree-pr (nd f σ τ θ δ ε) (nd↓ {f↓ = f↓} σ↓ τ↓ θ↓ δ↓ ε↓) =
-    nd (Frm-pr f f↓) (Tree-pr σ σ↓) (Cell-pr τ τ↓) (Cell-pr θ θ↓)
-       (λ p → Tree-pr (δ p) (δ↓ p))
-       (λ p → Tree-pr (ε p) (ε↓ p))
+  Frm-fst (□ a₀ ▹ a₁) = □ fst a₀ ▹ fst a₁
+  Frm-fst (f ∥ σ ▹ τ) = Frm-fst f ∥ Tree-fst σ ▹ fst τ
+  
+  Frm-snd (□ a₀ ▹ a₁) = ■ snd a₀ ▸ snd a₁
+  Frm-snd (f ∥ σ ▹ τ) = Frm-snd f ∥ Tree-snd σ ▸ snd τ
 
-  Tree-fst (nil τ) = nil (fst τ)
-  Tree-fst (cns ρ σ) = cns (Cell-fst ρ) (Tree-fst σ)
-  Tree-fst (lf f α) = lf (Frm-fst f) (Cell-fst α)
-  Tree-fst (nd f σ τ θ δ ε) = nd (Frm-fst f) (Tree-fst σ) (Cell-fst τ) (Cell-fst θ)
-    (λ p → Tree-fst (δ p)) 
-    (λ p → Tree-fst (ε p)) 
-
-  Tree-snd (nil τ) = nil↓ (snd τ)
-  Tree-snd (cns ρ σ) = cns↓ (Cell-snd ρ) (Tree-snd σ)
-  Tree-snd (lf f τ) = lf↓ (Frm-snd f) (Cell-snd τ)
-  Tree-snd (nd f σ τ θ δ ε) = nd↓ (Tree-snd σ) (Cell-snd τ) (Cell-snd θ)
-    (λ p → Tree-snd (δ p)) 
-    (λ p → Tree-snd (ε p)) 
-
+  Tree-fst (nil a) = nil (fst a)
+  Tree-fst (cns ρ σ) = cns (fst ρ) (Tree-fst σ)
+  Tree-fst (lf f τ) = lf (Frm-fst f) (fst τ)
+  Tree-fst (nd σ τ θ δ ε) = nd (Tree-fst σ) (fst τ) (fst θ)
+    (λ p → Tree-fst (δ p)) (λ p → Tree-fst (ε p))
+  
+  Tree-snd (nil a) = nil↓ (snd a)
+  Tree-snd (cns ρ σ) = cns↓ (snd ρ) (Tree-snd σ)
+  Tree-snd (lf f τ) = lf↓ (Frm-snd f) (snd τ)
+  Tree-snd (nd σ τ θ δ ε) = nd↓ (Tree-snd σ) (snd τ) (snd θ)
+    (λ p → Tree-snd (δ p)) (λ p → Tree-snd (ε p))
