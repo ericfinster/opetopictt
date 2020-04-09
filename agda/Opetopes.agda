@@ -324,3 +324,52 @@ module Opetopes where
         inr* q r = inr* (μₒ-pos t δ p q) r
     in γₒ-pos-elim (Typₒ t p) (δ p) (ε p) (ϕ↑ p) (ψ↑ p) X inl* inr* q
 
+  --
+  -- Opetopic Sum
+  --
+
+  infixl 70 _⊕_ _⊕t_ _⊝p_
+  
+  _⊕_ : {m n : ℕ} → 𝕆 m → 𝕆 n → 𝕆 (S (m + n))
+
+  _⊕t_ : {m n : ℕ}
+    → (o : 𝕆 m) {p : 𝕆 n}
+    → 𝕋 p → 𝕋 (o ⊕ p)
+
+  _⊝p_ : {m n : ℕ}
+    → (o : 𝕆 m) {p : 𝕆 n} {t : 𝕋 p}
+    → Pos (o ⊕t t) → Pos t
+    
+  postulate
+
+    ⊕-η : {m n : ℕ}
+      → (o : 𝕆 m) {p : 𝕆 n}
+      → o ⊕t ηₒ p ↦ ηₒ (o ⊕ p)
+    {-# REWRITE ⊕-η #-}
+
+    ⊕-typ : {m n : ℕ}
+      → (o : 𝕆 m) {p : 𝕆 n}
+      → {t : 𝕋 p} (q : Pos (o ⊕t t))
+      → Typₒ (o ⊕t t) q ↦ o ⊕ Typₒ t (o ⊝p q)
+    {-# REWRITE ⊕-typ #-}
+    
+    ⊕-μ : {m n : ℕ}
+      → (o : 𝕆 m) {p : 𝕆 n}
+      → (t : 𝕋 p) (δ : (q : Pos t) → 𝕋 (Typₒ t q))
+      → o ⊕t μₒ t δ ↦ μₒ (o ⊕t t) (λ q → o ⊕t (δ (o ⊝p q)))
+    {-# REWRITE ⊕-μ #-}
+
+  o ⊕ ○ = o ∣ ηₒ o
+  o ⊕ (p ∣ t) = o ⊕ p ∣ o ⊕t t
+
+  o ⊕t nilₒ = lfₒ o
+  o ⊕t cnsₒ t = ndₒ o (ηₒ o) (λ _ → ηₒ o) (λ _ → o ⊕t t)
+  o ⊕t lfₒ p = lfₒ (o ⊕ p)
+  o ⊕t ndₒ p t δ ε = ndₒ (o ⊕ p) (o ⊕t t)
+    (λ p → o ⊕t (δ (o ⊝p p)))
+    (λ p → o ⊕t (ε (o ⊝p p)))
+
+  _⊝p_ o {t = cnsₒ t} (inl unit) = inl unit
+  _⊝p_ o {t = cnsₒ t} (inr (_ , p)) = inr (o ⊝p p)
+  _⊝p_ o {t = ndₒ p t δ ε} (inl unit) = inl unit
+  _⊝p_ o {t = ndₒ p t δ ε} (inr (q , r)) = inr (o ⊝p q , o ⊝p r)

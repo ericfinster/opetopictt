@@ -42,8 +42,8 @@ module Base where
   {-# BUILTIN NATURAL ℕ #-}
 
   _+_ : ℕ → ℕ → ℕ
-  O + m = m
-  S n + m = S (n + m)
+  m + O = m
+  m + S n = S (m + n)
 
   data _⊔_ {i j} (A : Set i) (B : Set j) : Set (lmax i j) where
     inl : A → A ⊔ B

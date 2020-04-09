@@ -176,55 +176,55 @@ module OpetopicType where
     
 
   --
-  --  Terms
+  --  Reflexivity terms
   --
 
-  Id-frm : {A : Set} (a : A)
+  Frm-refl : {A : Set} (a : A)
     → {n : ℕ} (o : 𝕆 n)
     → Frm A o
 
-  Id-tr : {A : Set} (a : A)
+  Tree-refl : {A : Set} (a : A)
     → {n : ℕ} {o : 𝕆 n} (t : 𝕋 o)
-    → Tree A (Id-frm a o) t
+    → Tree A (Frm-refl a o) t
 
   postulate
 
-    Id-cell : {A : Set} (a : A)
+    Cell-refl : {A : Set} (a : A)
       → {n : ℕ} (o : 𝕆 n)
-      → Cell A (Id-frm a o)
+      → Cell A (Frm-refl a o)
 
-    Id-tr-η : {A : Set} (a : A)
+    Tree-refl-η : {A : Set} (a : A)
       → {n : ℕ} (o : 𝕆 n)
-      → Id-tr a (ηₒ o) ↦ η (Id-frm a o) (Id-cell a o)
-    {-# REWRITE Id-tr-η #-}
+      → Tree-refl a (ηₒ o) ↦ η (Frm-refl a o) (Cell-refl a o)
+    {-# REWRITE Tree-refl-η #-}
 
-    Id-tr-typ : {A : Set} (a : A)
+    Tree-refl-typ : {A : Set} (a : A)
       → {n : ℕ} {o : 𝕆 n} (t : 𝕋 o)
       → (p : Pos t)
-      → Typ (Id-tr a t) p ↦ Id-frm a (Typₒ t p)
-    {-# REWRITE Id-tr-typ #-}
+      → Typ (Tree-refl a t) p ↦ Frm-refl a (Typₒ t p)
+    {-# REWRITE Tree-refl-typ #-}
     
-    Id-tr-inh : {A : Set} (a : A)
+    Tree-refl-inh : {A : Set} (a : A)
       → {n : ℕ} {o : 𝕆 n} (t : 𝕋 o)
       → (p : Pos t)
-      → Inh (Id-tr a t) p ↦ Id-cell a (Typₒ t p)
-    {-# REWRITE Id-tr-inh #-}
+      → Inh (Tree-refl a t) p ↦ Cell-refl a (Typₒ t p)
+    {-# REWRITE Tree-refl-inh #-}
     
-    Id-tr-μ : {A : Set} (a : A)
+    Tree-refl-μ : {A : Set} (a : A)
       → {n : ℕ} {o : 𝕆 n} (t : 𝕋 o)
       → (κ : (p : Pos t) → 𝕋 (Typₒ t p))
-      → Id-tr a (μₒ t κ) ↦ μ (Id-tr a t) (λ p → Id-tr a (κ p))
-    {-# REWRITE Id-tr-μ #-}
+      → Tree-refl a (μₒ t κ) ↦ μ (Tree-refl a t) (λ p → Tree-refl a (κ p))
+    {-# REWRITE Tree-refl-μ #-}
     
-  Id-frm a ○ = □ a ▹ a
-  Id-frm a (o ∣ t) = Id-frm a o ∥ Id-tr a t ▹ Id-cell a o
+  Frm-refl a ○ = □ a ▹ a
+  Frm-refl a (o ∣ t) = Frm-refl a o ∥ Tree-refl a t ▹ Cell-refl a o
 
-  Id-tr a nilₒ = nil a
-  Id-tr a (cnsₒ t) = cns (Id-cell a ○) (Id-tr a t)
-  Id-tr a (lfₒ o) = lf (Id-frm a o) (Id-cell a o)
-  Id-tr a (ndₒ o t δ ε) =
-    nd (Id-tr a t) (Id-cell a o) (Id-cell a (o ∣ t))
-       (λ p → Id-tr a (δ p))
-       (λ p → Id-tr a (ε p))
+  Tree-refl a nilₒ = nil a
+  Tree-refl a (cnsₒ t) = cns (Cell-refl a ○) (Tree-refl a t)
+  Tree-refl a (lfₒ o) = lf (Frm-refl a o) (Cell-refl a o)
+  Tree-refl a (ndₒ o t δ ε) =
+    nd (Tree-refl a t) (Cell-refl a o) (Cell-refl a (o ∣ t))
+       (λ p → Tree-refl a (δ p))
+       (λ p → Tree-refl a (ε p))
 
 
