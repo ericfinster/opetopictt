@@ -15,7 +15,7 @@ module Opetopes where
   infixl 40 _∣_
   
   data 𝕆 where
-    □ : 𝕆 O
+    ○ : 𝕆 O
     _∣_ : {n : ℕ} (o : 𝕆 n) (t : 𝕋 o) → 𝕆 (S n)
 
   ηₒ : {n : ℕ} (o : 𝕆 n) → 𝕋 o
@@ -45,15 +45,15 @@ module Opetopes where
     → (κ : (p : Pos o) → 𝕋 (Typₒ o p))
     → (p : Pos (μₒ o κ)) → Pos (κ (μₒ-pos-fst o κ p))
 
-  αₒ : 𝕋 □ → 𝕋 □ → 𝕋 □ 
+  αₒ : 𝕋 ○ → 𝕋 ○ → 𝕋 ○ 
 
-  αₒ-pos-inl : {t₀ : 𝕋 □} {t₁ : 𝕋 □}
+  αₒ-pos-inl : {t₀ : 𝕋 ○} {t₁ : 𝕋 ○}
     → Pos t₀ → Pos (αₒ t₀ t₁)
 
-  αₒ-pos-inr : {t₀ : 𝕋 □} {t₁ : 𝕋 □}
+  αₒ-pos-inr : {t₀ : 𝕋 ○} {t₁ : 𝕋 ○}
     → Pos t₁ → Pos (αₒ t₀ t₁)
 
-  αₒ-pos-elim : (t₀ : 𝕋 □) (t₁ : 𝕋 □)
+  αₒ-pos-elim : (t₀ : 𝕋 ○) (t₁ : 𝕋 ○)
     → (X : Pos (αₒ t₀ t₁) → Set)
     → (inl* : (p : Pos t₀) → X (αₒ-pos-inl p))
     → (inr* : (p : Pos t₁) → X (αₒ-pos-inr p))
@@ -85,8 +85,8 @@ module Opetopes where
 
   data 𝕋 where
 
-    nilₒ : 𝕋 □ 
-    cnsₒ : 𝕋 □ → 𝕋 □ 
+    nilₒ : 𝕋 ○ 
+    cnsₒ : 𝕋 ○ → 𝕋 ○ 
     
     lfₒ : {n : ℕ} (o : 𝕆 n) → 𝕋 (o ∣ ηₒ o)
     ndₒ : {n : ℕ} (o : 𝕆 n) (t : 𝕋 o)
@@ -99,7 +99,7 @@ module Opetopes where
   Pos (lfₒ o) = ⊥
   Pos (ndₒ o t δ ε) = ⊤ ⊔ Σ (Pos t) (λ p → Pos (ε p))
 
-  Typₒ (cnsₒ t) (inl unit) = □
+  Typₒ (cnsₒ t) (inl unit) = ○
   Typₒ (cnsₒ t) (inr p) = Typₒ t p
   Typₒ (ndₒ o t δ ε) (inl unit) = o ∣ t
   Typₒ (ndₒ o t δ ε) (inr (p , q)) = Typₒ (ε p) q
@@ -159,7 +159,7 @@ module Opetopes where
     {-# REWRITE μₒ-assoc #-}
 
     -- αₒ elim rules
-    αₒ-pos-elim-inl-β : (t₀ : 𝕋 □) (t₁ : 𝕋 □)
+    αₒ-pos-elim-inl-β : (t₀ : 𝕋 ○) (t₁ : 𝕋 ○)
       → (X : Pos (αₒ t₀ t₁) → Set)
       → (inl* : (p : Pos t₀) → X (αₒ-pos-inl p))
       → (inr* : (p : Pos t₁) → X (αₒ-pos-inr p))
@@ -167,7 +167,7 @@ module Opetopes where
       → αₒ-pos-elim t₀ t₁ X inl* inr* (αₒ-pos-inl p) ↦ inl* p
     {-# REWRITE αₒ-pos-elim-inl-β #-}
 
-    αₒ-pos-elim-inr-β : (t₀ : 𝕋 □) (t₁ : 𝕋 □)
+    αₒ-pos-elim-inr-β : (t₀ : 𝕋 ○) (t₁ : 𝕋 ○)
       → (X : Pos (αₒ t₀ t₁) → Set)
       → (inl* : (p : Pos t₀) → X (αₒ-pos-inl p))
       → (inr* : (p : Pos t₁) → X (αₒ-pos-inr p))
@@ -196,16 +196,16 @@ module Opetopes where
       → γₒ-pos-elim o s t δ ε X inl* inr* (γₒ-pos-inr o s t δ ε p q) ↦ inr* p q
     {-# REWRITE γₒ-pos-elim-inr-β #-}
 
-  ηₒ □ = cnsₒ nilₒ
+  ηₒ ○ = cnsₒ nilₒ
   ηₒ (o ∣ t) =
     let η-dec p = ηₒ (Typₒ t p)
         lfₒ-dec p = lfₒ (Typₒ t p)
     in ndₒ o t η-dec lfₒ-dec
 
-  ηₒ-pos □ = inl unit
+  ηₒ-pos ○ = inl unit
   ηₒ-pos (o ∣ t) = inl unit
 
-  ηₒ-pos-elim □ X η-pos* (inl unit) = η-pos*
+  ηₒ-pos-elim ○ X η-pos* (inl unit) = η-pos*
   ηₒ-pos-elim (o ∣ t) X η-pos* (inl unit) = η-pos*
 
   μₒ nilₒ κ = nilₒ
