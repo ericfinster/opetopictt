@@ -6,7 +6,6 @@ open import OpetopicType
 open import OpetopicTypeOver
 open import Cell
 
-
 module CellOverCell where
 
   -- Cell↓ in the fibration of fillers
