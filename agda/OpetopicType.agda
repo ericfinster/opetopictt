@@ -46,8 +46,8 @@ module OpetopicType where
 
   α : {A : Set} {a₀ a₁ a₂ : A}
     → {t₀ : 𝕋 ○} {t₁ : 𝕋 ○}
-    → (σ₀ : Tree A (□ a₀ ▹ a₁) t₀)
-    → (σ₁ : Tree A (□ a₁ ▹ a₂) t₁)
+    → (σ₀ : Tree A (□ a₁ ▹ a₂) t₀)
+    → (σ₁ : Tree A (□ a₀ ▹ a₁) t₁)
     → Tree A (□ a₀ ▹ a₂) (αₒ t₀ t₁)
 
   γ : {A : Set} {n : ℕ} {o : 𝕆 n} {s : 𝕋 o} {t : 𝕋 (o ∣ s)}
@@ -64,8 +64,8 @@ module OpetopicType where
     nil : (a : A) → Tree A (□ a ▹ a) nilₒ
 
     cns : {t : 𝕋 ○} {a₀ a₁ a₂ : A}
-      → (ρ : Cell A (□ a₀ ▹ a₁))
-      → (θ : Tree A (□ a₁ ▹ a₂) t)
+      → (ρ : Cell A (□ a₁ ▹ a₂))
+      → (θ : Tree A (□ a₀ ▹ a₁) t)
       → Tree A (□ a₀ ▹ a₂) (cnsₒ t)
 
     lf : {n : ℕ} {o : 𝕆 n}
@@ -81,7 +81,7 @@ module OpetopicType where
       → (ε : (p : Pos t) → Tree A (Typ σ p ∥ δ p ▹ Inh σ p) (εₒ p))
       → Tree A (f ∥ μ σ δ ▹ τ) (ndₒ o t δₒ εₒ)
 
-  Typ (cns {a₀ = a₀} {a₁ = a₁} ρ σ) (inl unit) = □ a₀ ▹ a₁
+  Typ (cns {a₀ = a₀} {a₁ = a₁} {a₂ = a₂} ρ σ) (inl unit) = □ a₁ ▹ a₂
   Typ (cns ρ σ) (inr p) = Typ σ p
   Typ (nd σ τ θ δ ε) (inl unit) = _ ∥ σ ▹ τ
   Typ (nd σ τ θ δ ε) (inr (p , q)) = Typ (ε p) q
@@ -145,7 +145,7 @@ module OpetopicType where
     {-# REWRITE μ-assoc #-}
 
 
-  η (□ a₀ ▹ a₁) τ = cns τ (nil a₁)
+  η (□ a₀ ▹ a₁) τ = cns τ (nil a₀)
   η (f ∥ σ ▹ τ) θ = 
     let η-dec p = η (Typ σ p) (Inh σ p)
         lf-dec p = lf (Typ σ p) (Inh σ p)
@@ -155,7 +155,7 @@ module OpetopicType where
   μ (cns ρ σ) κ = 
     let w = κ (inl unit)
         κ↑ p = κ (inr p)
-    in α w (μ σ κ↑)
+    in α w (μ σ κ↑) 
   μ (lf f τ) κ = lf f τ
   μ (nd σ τ θ δ ε) κ =
     let w = κ (inl unit)
@@ -163,8 +163,8 @@ module OpetopicType where
         ψ p = μ (ε p) (κ↑ p) 
     in γ σ τ w δ ψ
 
-  α (nil _) σ₁ = σ₁
-  α (cns ρ σ₀) σ₁ = cns ρ (α σ₀ σ₁)
+  α (nil _) σ₁ = σ₁ 
+  α (cns ρ σ₀) σ₁ = cns ρ (α σ₀ σ₁) 
 
   γ {o = o} .(η f τ) .τ (lf f τ) ϕ ψ = ψ (ηₒ-pos o)
   γ {t = ndₒ o t δₒ εₒ} .(μ σ δ) .τ (nd σ τ θ δ ε) ϕ ψ = 

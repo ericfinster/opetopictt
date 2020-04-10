@@ -11,69 +11,68 @@ module Cell where
   --  Cell concatenation
   --
   
-  -- Frm-concat : {A : Set} {n m : ℕ} 
-  --   → (f : Frm A n) (fc : Frm (Cell A f) m)
-  --   → Frm A (m + n)
+  Frm-⊕ : {A : Set}
+    → {m n : ℕ} {o₀ : 𝕆 m} {o₁ : 𝕆 n}
+    → (f : Frm A o₀) (fc : Frm (Cell A f) o₁)
+    → Frm A (o₀ ⊕ o₁)
 
-  -- Tree-concat : {A : Set} {n m : ℕ} 
-  --   → (f : Frm A n) {fc : Frm (Cell A f) m}
-  --   → (σ : Tree (Cell A f) fc)
-  --   → Tree A (Frm-concat f fc)
+  Tree-⊕ : {A : Set}
+    → {m n : ℕ} {o₀ : 𝕆 m} {o₁ : 𝕆 n} {t : 𝕋 o₁}
+    → (f : Frm A o₀) {fc : Frm (Cell A f) o₁}
+    → Tree (Cell A f) fc t → Tree A (Frm-⊕ f fc) (o₀ ⊕t t)
 
-  -- postulate
+  postulate
 
-  --   Cell-Cell : {A : Set} {n m : ℕ} 
-  --     → {f : Frm A n} {fc : Frm (Cell A f) m}
-  --     → (τ : Cell (Cell A f) fc)
-  --     → Cell A (Frm-concat f fc)
+    Cell-Cell : {A : Set} {n m : ℕ} 
+      → {m n : ℕ} {o₀ : 𝕆 m} {o₁ : 𝕆 n}
+      → (f : Frm A o₀) (fc : Frm (Cell A f) o₁)
+      → Cell (Cell A f) fc ↦ Cell A (Frm-⊕ f fc)
+    {-# REWRITE Cell-Cell #-}
 
-  --   Pos-concat : {A : Set} {n m : ℕ}
-  --     → (f : Frm A n) (fc : Frm (Cell A f) m)
-  --     → (σ : Tree (Cell A f) fc)
-  --     → Pos (Tree-concat f σ) ↦ Pos σ 
-  --   {-# REWRITE Pos-concat #-}
-
-  --   Typ-concat : {A : Set} {n m : ℕ}
-  --     → (f : Frm A n) (fc : Frm (Cell A f) m)
-  --     → (σ : Tree (Cell A f) fc) (p : Pos σ)
-  --     → Typ (Tree-concat f σ) p ↦ Frm-concat f (Typ σ p)
-  --   {-# REWRITE Typ-concat #-}
-
-  --   Inh-concat : {A : Set} {n m : ℕ}
-  --     → (f : Frm A n) (fc : Frm (Cell A f) m)
-  --     → (σ : Tree (Cell A f) fc) (p : Pos σ)
-  --     → Inh (Tree-concat f σ) p ↦ Cell-concat (Inh σ p)
-  --   {-# REWRITE Inh-concat #-}
-
-  --   Tree-concat-η : {A : Set} {n m : ℕ}
-  --     → {f : Frm A n} {fc : Frm (Cell A f) m}
-  --     → (τ : Cell (Cell A f) fc)
-  --     → Tree-concat f (η fc τ) ↦ η (Frm-concat f fc) (Cell-concat τ) 
-  --   {-# REWRITE Tree-concat-η #-}
-
-  --   Tree-concat-μ : {A : Set} {n m : ℕ}
-  --     → {f : Frm A n} {fc : Frm (Cell A f) m}
-  --     → (σ : Tree (Cell A f) fc)
-  --     → (δ : (p : Pos σ) → Tree (Cell A f) (Typ σ p))
-  --     → Tree-concat f (μ σ δ) ↦ μ (Tree-concat f σ) (λ p → Tree-concat f (δ p))
-  --   {-# REWRITE Tree-concat-μ #-}
+    Tree-⊕-typ : {A : Set}
+      → {m n : ℕ} {o₀ : 𝕆 m} {o₁ : 𝕆 n} {t : 𝕋 o₁}
+      → (f : Frm A o₀) {fc : Frm (Cell A f) o₁}
+      → (σ : Tree (Cell A f) fc t) (p : Pos (o₀ ⊕t t))
+      → Typ (Tree-⊕ f σ) p ↦ Frm-⊕ f (Typ σ (o₀ ⊝p p))
+    {-# REWRITE Tree-⊕-typ #-}
     
-  -- Frm-concat f ● = f
-  -- Frm-concat f (fc ∣ σ ▸ τ) =
-  --   Frm-concat f fc ∣ Tree-concat f σ ▸ Cell-concat τ
+    Tree-⊕-inh : {A : Set}
+      → {m n : ℕ} {o₀ : 𝕆 m} {o₁ : 𝕆 n} {t : 𝕋 o₁}
+      → (f : Frm A o₀) {fc : Frm (Cell A f) o₁}
+      → (σ : Tree (Cell A f) fc t) (p : Pos (o₀ ⊕t t))
+      → Inh (Tree-⊕ f σ) p ↦ Inh σ (o₀ ⊝p p)
+    {-# REWRITE Tree-⊕-inh #-}
 
-  -- Tree-concat f (ob τ) = η _ [ τ ]↓
-  -- Tree-concat f (lf fc τ) =
-  --   lf (Frm-concat f fc) (Cell-concat τ)
-  -- Tree-concat f (nd fc σ τ θ δ ε) =
-  --   nd (Frm-concat f fc) (Tree-concat f σ)
-  --      (Cell-concat τ) (Cell-concat θ)
-  --      (λ p → Tree-concat f (δ p))
-  --      (λ p → Tree-concat f (ε p))
+    Tree-⊕-η : {A : Set}
+      → {m n : ℕ} {o₀ : 𝕆 m} {o₁ : 𝕆 n} 
+      → (f : Frm A o₀) {fc : Frm (Cell A f) o₁}
+      → (τ : Cell (Cell A f) fc)
+      → Tree-⊕ f (η fc τ) ↦ η (Frm-⊕ f fc) τ
+    {-# REWRITE Tree-⊕-η #-}
 
-  -- --
-  -- --  Cells-over-cells are commutative triangles
-  -- --
+    Tree-⊕-μ : {A : Set}
+      → {m n : ℕ} {o₀ : 𝕆 m} {o₁ : 𝕆 n} {t : 𝕋 o₁}
+      → {δₒ : (p : Pos t) → 𝕋 (Typₒ t p)}
+      → (f : Frm A o₀) {fc : Frm (Cell A f) o₁}
+      → (σ : Tree (Cell A f) fc t)
+      → (δ : (p : Pos t) → Tree (Cell A f) (Typ σ p) (δₒ p))
+      → Tree-⊕ f (μ σ δ) ↦ μ (Tree-⊕ f σ) (λ p → Tree-⊕ f (δ (o₀ ⊝p p)))
+    {-# REWRITE Tree-⊕-μ #-}
+
+  Frm-⊕ f (□ a₀ ▹ a₁) = f ∥ η f a₀ ▹ a₁
+  Frm-⊕ f (fc ∥ σ ▹ τ) = Frm-⊕ f fc ∥ Tree-⊕ f σ ▹ τ
+  
+  Tree-⊕ f (nil a) = lf f a
+  Tree-⊕ f (cns {a₀ = a₀} {a₁ = a₁} {a₂ = a₂} ρ σ) =
+    nd (η f a₁) a₂ ρ (λ _ → η f a₀) (λ _ → Tree-⊕ f σ)
+  Tree-⊕ f (lf fc τ) = lf (Frm-⊕ f fc) τ
+  Tree-⊕ {o₀ = o₀} f (nd σ τ θ δ ε) = nd (Tree-⊕ f σ) τ θ
+    (λ p → Tree-⊕ f (δ (o₀ ⊝p p)))
+    (λ p → Tree-⊕ f (ε (o₀ ⊝p p)))
+
+  --
+  --  Cells-over-cells are commutative triangles
+  --
 
   -- postulate
   

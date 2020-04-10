@@ -65,10 +65,10 @@ module OpetopicTypeOver where
   α↓ : {A : Set} {B : A → Set}
     → {t₀ : 𝕋 ○} {t₁ : 𝕋 ○}
     → {a₀ : A} {a₁ : A} {a₂ : A} 
-    → {σ₀ : Tree A (□ a₀ ▹ a₁) t₀} {σ₁ : Tree A (□ a₁ ▹ a₂) t₁}
+    → {σ₀ : Tree A (□ a₁ ▹ a₂) t₀} {σ₁ : Tree A (□ a₀ ▹ a₁) t₁}
     → {b₀ : B a₀} {b₁ : B a₁} {b₂ : B a₂}
-    → (σ↓₀ : Tree↓ A B (■ b₀ ▸ b₁) σ₀)
-    → (σ↓₁ : Tree↓ A B (■ b₁ ▸ b₂) σ₁)
+    → (σ↓₀ : Tree↓ A B (■ b₁ ▸ b₂) σ₀)
+    → (σ↓₁ : Tree↓ A B (■ b₀ ▸ b₁) σ₁)
     → Tree↓ A B (■ b₀ ▸ b₂) (α σ₀ σ₁)
   
   γ↓ : {A : Set} {B : A → Set}
@@ -91,10 +91,10 @@ module OpetopicTypeOver where
       → Tree↓ A B (■ b ▸ b) (nil a)
 
     cns↓ : {t : 𝕋 ○} {a₀ : A} {a₁ : A} {a₂ : A}
-      → {ρ : Cell A (□ a₀ ▹ a₁)} {θ : Tree A (□ a₁ ▹ a₂) t}
+      → {ρ : Cell A (□ a₁ ▹ a₂)} {θ : Tree A (□ a₀ ▹ a₁) t}
       → {b₀ : B a₀} {b₁ : B a₁} {b₂ : B a₂}
-      → (ρ↓ : Cell↓ A B (■ b₀ ▸ b₁) ρ)
-      → (θ↓ : Tree↓ A B (■ b₁ ▸ b₂) θ)
+      → (ρ↓ : Cell↓ A B (■ b₁ ▸ b₂) ρ)
+      → (θ↓ : Tree↓ A B (■ b₀ ▸ b₁) θ)
       → Tree↓ A B (■ b₀ ▸ b₂) (cns ρ θ)
 
     lf↓ : {n : ℕ} {o : 𝕆 n}
@@ -115,7 +115,7 @@ module OpetopicTypeOver where
       → (ε↓ : (p : Pos t) → Tree↓ A B (Typ↓ σ↓ p ∥ δ↓ p ▸ Inh↓ σ↓ p) (ε p))
       → Tree↓ A B (f↓ ∥ μ↓ σ↓ δ↓ ▸ τ↓) (nd σ τ θ δ ε)
 
-  Typ↓ (cns↓ {b₀ = b₀} {b₁ = b₁} ρ↓ σ↓) (inl unit) = ■ b₀ ▸ b₁
+  Typ↓ (cns↓ {b₀ = b₀} {b₁ = b₁} {b₂ = b₂} ρ↓ σ↓) (inl unit) = ■ b₁ ▸ b₂
   Typ↓ (cns↓ ρ↓ θ↓) (inr p) = Typ↓ θ↓ p
   Typ↓ (nd↓ {f↓ = f↓} σ↓ τ↓ θ↓ δ↓ ε↓) (inl unit) = f↓ ∥ σ↓ ▸ τ↓
   Typ↓ (nd↓ σ↓ τ↓ θ↓ δ↓ ε↓) (inr (p , q)) = Typ↓ (ε↓ p) q
@@ -197,7 +197,7 @@ module OpetopicTypeOver where
       → μ↓ (μ↓ σ↓ δ↓) ε↓ ↦ μ↓ σ↓ (λ p → μ↓ (δ↓ p) (λ q →  ε↓ (μₒ-pos t δₒ p q)))
     {-# REWRITE μ↓-assoc #-}
 
-  η↓ (■ b₀ ▸ b₁) τ↓ = cns↓ τ↓ (nil↓ b₁) 
+  η↓ (■ b₀ ▸ b₁) τ↓ = cns↓ τ↓ (nil↓ b₀) 
   η↓ (f↓ ∥ σ↓ ▸ τ↓) θ↓ = 
     let η↓-dec p = η↓ (Typ↓ σ↓ p) (Inh↓ σ↓ p)
         lf↓-dec p = lf↓ (Typ↓ σ↓ p) (Inh↓ σ↓ p)
