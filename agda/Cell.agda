@@ -70,18 +70,3 @@ module Cell where
     (λ p → Tree-⊕ f (δ (o₀ ⊝p p)))
     (λ p → Tree-⊕ f (ε (o₀ ⊝p p)))
 
-  --
-  --  Cells-over-cells are commutative triangles
-  --
-
-  -- postulate
-  
-  --   Cell-triangle : {A : Set} 
-  --     → {n : ℕ} {f : Frm A n} (σ : Tree A f)
-  --     → (τ₀ : Cell A f) (θ₀ : Cell A (f ∣ σ ▸ τ₀))
-  --     → (τ₁ : Cell A f) (θ₁ : Cell A (f ∣ σ ▸ τ₁))
-  --     → (ϕ : Cell (Cell A f) (● ∣ ob [ τ₀ ]↑ ▸ [ τ₁ ]↑))
-  --     → (ψ : Cell A (f ∣ σ ▸ τ₁ ∣ nd f (η f τ₀) τ₁ (Cell-concat ϕ) (λ p → σ) (λ p → η (f ∣ σ ▸ τ₀) θ₀) ▸ θ₁)) 
-  --     → Cell↓ (Cell A f) (λ τ → Cell A (f ∣ σ ▸ τ))
-  --             {f = ● ∣ ob [ τ₀ ]↑ ▸ [ τ₁ ]↑} (■ ∥ ob↓ ⟦ _ ∣ θ₀ ⟧↑ ▸ ⟦ _ ∣ θ₁ ⟧↑) ϕ
-
