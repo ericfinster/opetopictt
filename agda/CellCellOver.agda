@@ -10,48 +10,78 @@ module CellCellOver where
 
   -- Cells in a Cell↓ are cells over degeneracies.
 
-  -- So, we need to degenerate τ according to the shape of fc.  Then
-  -- we will recursively extend f↓ using the inducion hypothesis.
-  -- Finally, the "top-level" degeneracy of τ will be the cell that we
-  -- are supposed to live over.
+  Frm-degen : {A : Set} {B : A → Set}
+    → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m}
+    → {f : Frm A o} (ζ : Cell A f)
+    → {f↓ : Frm↓ A B f}
+    → (fc : Frm (Cell↓ A B f↓ ζ) oc)
+    → Frm↓ A B (Frm-⊕ f (Frm-refl ζ oc))
 
-  -- In order for this to work, we need to be able to degenerate an
-  -- arbitrary cell.  I *believe* this is already possibly using the
-  -- relation that cells in cells are extended cells.
+  Tree-degen : {A : Set} {B : A → Set}
+    → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m} {t : 𝕋 oc}
+    → {f : Frm A o} (ζ : Cell A f)
+    → {f↓ : Frm↓ A B f}
+    → {fc : Frm (Cell↓ A B f↓ ζ) oc}
+    → (σ : Tree (Cell↓ A B f↓ ζ) fc t)
+    → Tree↓ A B (Frm-degen ζ fc) (Tree-⊕ f (Tree-refl ζ t))
 
-  -- So let's try to do this.
+  postulate
 
-  degen-frm : {A : Set}
-    → {n m : ℕ} {o : 𝕆 n}
-    → {f : Frm A o} (τ : Cell A f)
-    → (od : 𝕆 m)
-    → Frm A (o ⊕ od)
+    Cell-Cell↓ : {A : Set} {B : A → Set}
+      → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m}
+      → {f : Frm A o} (ζ : Cell A f)
+      → {f↓ : Frm↓ A B f}
+      → (fc : Frm (Cell↓ A B f↓ ζ) oc)
+      → Cell (Cell↓ A B f↓ ζ) fc ↦ Cell↓ A B (Frm-degen ζ fc) (Cell-refl ζ oc)
+    {-# REWRITE Cell-Cell↓ #-}
+
+    Tree-degen-typ : {A : Set} {B : A → Set}
+      → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m} {t : 𝕋 oc}
+      → {f : Frm A o} (ζ : Cell A f)
+      → {f↓ : Frm↓ A B f}
+      → {fc : Frm (Cell↓ A B f↓ ζ) oc}
+      → (σ : Tree (Cell↓ A B f↓ ζ) fc t) (p : Pos (o ⊕t t))
+      → Typ↓ (Tree-degen ζ σ) p ↦ Frm-degen ζ (Typ σ (o ⊝p p))
+    {-# REWRITE Tree-degen-typ #-}
     
-  degen-cell : {A : Set}
-    → {n m : ℕ} {o : 𝕆 n} 
-    → {f : Frm A o} (τ : Cell A f)
-    → (od : 𝕆 m) → Cell A (degen-frm τ od)
+    Tree-degen-inh : {A : Set} {B : A → Set}
+      → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m} {t : 𝕋 oc}
+      → {f : Frm A o} (ζ : Cell A f)
+      → {f↓ : Frm↓ A B f}
+      → {fc : Frm (Cell↓ A B f↓ ζ) oc}
+      → (σ : Tree (Cell↓ A B f↓ ζ) fc t) (p : Pos (o ⊕t t))
+      → Inh↓ (Tree-degen ζ σ) p ↦ Inh σ (o ⊝p p)
+    {-# REWRITE Tree-degen-inh #-}
 
-  degen-tr : {A : Set}
-    → {n m : ℕ} {o : 𝕆 n} 
-    → {f : Frm A o} (τ : Cell A f)
-    → (od : 𝕆 m) (td : 𝕋 (o ⊕ od))
-    → Tree A (degen-frm τ od) td
+    Tree-degen-η : {A : Set} {B : A → Set}
+      → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m} 
+      → {f : Frm A o} (ζ : Cell A f)
+      → {f↓ : Frm↓ A B f}
+      → {fc : Frm (Cell↓ A B f↓ ζ) oc}
+      → (τ : Cell (Cell↓ A B f↓ ζ) fc)
+      → Tree-degen ζ (η fc τ) ↦ η↓ (Frm-degen ζ fc) τ
+    {-# REWRITE Tree-degen-η #-}
 
-  degen-frm {f = f} τ ○ = f ∥ η f τ ▹ τ
-  degen-frm {A = A} {o = o} τ (od ∣ t) = degen-frm τ od ∥
-    degen-tr τ od (o ⊕t t) ▹ degen-cell {A = A} τ od
-  
-  degen-cell τ ○ = Cell-refl τ ○
-  degen-cell τ (od ∣ t) = {!!}
-  
-  degen-tr = {!!}
+    Tree-degen-μ : {A : Set} {B : A → Set}
+      → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m} {t : 𝕋 oc}
+      → {δₒ : (p : Pos t) → 𝕋 (Typₒ t p)}
+      → {f : Frm A o} (ζ : Cell A f)
+      → {f↓ : Frm↓ A B f}
+      → {fc : Frm (Cell↓ A B f↓ ζ) oc}
+      → (σ : Tree (Cell↓ A B f↓ ζ) fc t)
+      → (δ : (p : Pos t) → Tree (Cell↓ A B f↓ ζ) (Typ σ p) (δₒ p))
+      → Tree-degen ζ (μ σ δ) ↦ μ↓ (Tree-degen ζ σ) (λ p → Tree-degen ζ (δ (o ⊝p p)))
+    {-# REWRITE Tree-degen-μ #-}
 
-  -- postulate
+  Frm-degen ζ {f↓ = f↓} (□ a₀ ▹ a₁) = f↓ ∥ η↓ f↓ a₀ ▸ a₁
+  Frm-degen ζ (fc ∥ σ ▹ τ) = Frm-degen ζ fc ∥ Tree-degen ζ σ ▸ τ
 
-  --   Cell-Cell↓ : {A : Set} {B : A → Set}
-  --     → {n m : ℕ} {o : 𝕆 n} {oc : 𝕆 m}
-  --     → {f : Frm A o} (τ : Cell A f)
-  --     → {f↓ : Frm↓ A B f}
-  --     → (fc : Frm (Cell↓ A B f↓ τ) oc)
-  --     → Cell (Cell↓ A B f↓ τ) fc ↦ Cell↓ A B {!!} {!!}
+  Tree-degen ζ {f↓ = f↓} (nil a) = lf↓ f↓ a
+  Tree-degen ζ {f↓ = f↓} (cns {a₀ = a₀} {a₁ = a₁} {a₂ = a₂} ρ σ) =
+    nd↓ (η↓ f↓ a₁) a₂ ρ (λ _ → η↓ f↓ a₀) (λ _ → Tree-degen ζ σ) 
+  Tree-degen ζ (lf f τ) = lf↓ (Frm-degen ζ f) τ
+  Tree-degen {o = o} ζ (nd σ τ θ δ ε) =
+    nd↓ (Tree-degen ζ σ) τ θ
+        (λ p → Tree-degen ζ (δ (o ⊝p p)))
+        (λ p → Tree-degen ζ (ε (o ⊝p p)))
+
