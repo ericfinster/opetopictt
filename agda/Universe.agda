@@ -21,6 +21,32 @@ module Universe where
     → (τ : Cell 𝕌 f)
     → Set
 
+  Tree-el-typ : {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+    → {f : Frm 𝕌 o} (f↓ : Frm-el f)
+    → {σ : Tree 𝕌 f t} (σ↓ : Tree-el f↓ σ)
+    → (p : Pos t)
+    → Frm-el (Typ σ p)
+
+  Tree-el-inh : {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+    → {f : Frm 𝕌 o} (f↓ : Frm-el f)
+    → {σ : Tree 𝕌 f t} (σ↓ : Tree-el f↓ σ)
+    → (p : Pos t)
+    → Cell-el (Tree-el-typ f↓ σ↓ p) (Inh σ p)
+
+  Tree-el-η : {n : ℕ} {o : 𝕆 n} 
+    → {f : Frm 𝕌 o} (f↓ : Frm-el f)
+    → (τ : Cell 𝕌 f)
+    → Tree-el f↓ (η f τ)
+    → Cell-el f↓ τ
+
+  Tree-el-μ : {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+    → {δₒ : (p : Pos t) → 𝕋 (Typₒ t p)}
+    → {f : Frm 𝕌 o} (f↓ : Frm-el f)
+    → (σ : Tree 𝕌 f t) (σ↓ : Tree-el f↓ σ)
+    → (δ : (p : Pos t) → Tree 𝕌 (Typ σ p) (δₒ p))
+    → (ρ : Tree-el f↓ (μ σ δ))
+    → (p : Pos t) → Tree-el (Tree-el-typ f↓ σ↓ p) (δ p)
+
   postulate
 
     Arr-𝕌 : {A B : 𝕌} →
@@ -37,13 +63,22 @@ module Universe where
   
   Tree-el (a₀ , a₁) (nil A) = Cell A (□ a₀ ▹ a₁) 
   Tree-el (a , c) (cns {a₀ = A} {a₁ = B} {a₂ = C} ρ σ) = Σ B (λ b → ρ b c × Tree-el (a , b) σ)
-  Tree-el (f↓ , σ↓ , τ↓) (lf f τ) = {!!}
-  -- 
-  Tree-el (f↓ , σ↓ , τ↓) (nd σ τ θ δ ε) = {!!}
-
+  Tree-el (f↓ , σ↓ , τ↓) (lf f τ) = Cell (Cell-el f↓ τ) (□ Tree-el-η f↓ τ σ↓ ▹ τ↓)
+  Tree-el {t = ndₒ o t δₒ εₒ} (f↓ , ρ↓ , τ↓) (nd σ τ θ δ ε) =
+    Σ (Tree-el f↓ σ) (λ σ↓ →
+    Σ (θ f↓ σ↓ τ↓) (λ θ↓ →
+    (p : Pos t) → Tree-el (Tree-el-typ f↓ σ↓ p , Tree-el-μ f↓ σ σ↓ δ ρ↓ p  , Tree-el-inh f↓ σ↓ p) (ε p)))
+  
   Cell-el {f = □ A ▹ B} (a , b) E = E a b
   Cell-el {f = f ∥ σ ▹ τ} (f↓ , σ↓ , τ↓) E = E f↓ σ↓ τ↓
 
+  Tree-el-typ = {!!}
+  Tree-el-inh = {!!}
+
+  Tree-el-η {f = □ A ▹ B} (a , b) τ (a₀ , t , p) = {!!}
+  Tree-el-η {f = f ∥ σ₁ ▹ τ₁} f↓ τ σ = {!!}
+  
+  Tree-el-μ = {!!}
 
   -- Ap into the universe
 
