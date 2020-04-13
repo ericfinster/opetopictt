@@ -12,10 +12,14 @@ module Base where
 
   {-# BUILTIN REWRITE _↦_ #-}
 
-  Π : (A : Set) (B : A → Set) → Set
+  Π : ∀ {i j} (A : Set i) (B : A → Set j) → Set (lmax i j)
   Π A B = (a : A) → B a
 
   infixr 60 _,_ _×_ _⊔_
+
+  _∘_ : ∀ {i j k} {A : Set i} {B : A → Set j} {C : (x : A) → B x → Set k}
+    (g : {x : A} → Π (B x) (C x)) (f : Π A B) → Π A (λ x → C x (f x))
+  g ∘ f = λ x → g (f x)
 
   record Σ {i j} (A : Set i) (B : A → Set j) : Set (lmax i j) where
     constructor _,_
