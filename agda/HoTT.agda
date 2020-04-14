@@ -28,6 +28,8 @@ module HoTT where
   is-equiv : {A B : Set} (f : A → B) → Set
   is-equiv {B = B} f = (b : B) → is-contr (hfiber f b)
 
+  infixl 40 _≃_
+  
   record _≃_ (A B : Set) : Set₁ where
     field
 

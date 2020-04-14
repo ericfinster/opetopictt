@@ -3,7 +3,7 @@
 open import Base
 open import Opetopes
 open import OpetopicType
-open import OpetopicTypeOver
+open import OpetopicUniverse
 
 module Sigma where
 
@@ -50,7 +50,7 @@ module Sigma where
       → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
       → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
       → (p : Pos t)
-      → Typ↓ (Tree-snd σ) p ↦ Frm-snd (Typ σ p)
+      → Typ-el (Tree-snd σ) p ↦ Frm-snd (Typ σ p)
     {-# REWRITE Tree-snd-typ #-}
       
     Tree-fst-inh : {A : Set} {B : A → Set}
@@ -64,7 +64,7 @@ module Sigma where
       → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
       → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
       → (p : Pos t)
-      → Inh↓ (Tree-snd σ) p ↦ snd (Inh σ p)
+      → Inh-el (Tree-snd σ) p ↦ snd (Inh σ p)
     {-# REWRITE Tree-snd-inh #-}
 
     Tree-fst-η : {A : Set} {B : A → Set}
@@ -76,7 +76,7 @@ module Sigma where
     Tree-snd-η : {A : Set} {B : A → Set}
       → {n : ℕ} {o : 𝕆 n} 
       → {f : Frm (Σ A B) o} (τ : Cell (Σ A B) f)
-      → Tree-snd (η f τ) ↦ η↓ (Frm-snd f) (snd τ)
+      → Tree-snd (η f τ) ↦ η-el (Frm-snd f) (snd τ)
     {-# REWRITE Tree-snd-η #-}
     
     Tree-fst-μ : {A : Set} {B : A → Set}
@@ -92,7 +92,7 @@ module Sigma where
       → {δₒ : (p : Pos t) → 𝕋 (Typₒ t p)}
       → {f : Frm (Σ A B) o} (σ : Tree (Σ A B) f t)
       → (δ : (p : Pos t) → Tree (Σ A B) (Typ σ p) (δₒ p))
-      → Tree-snd (μ σ δ) ↦ μ↓ (Tree-snd σ) (λ p → Tree-snd (δ p))
+      → Tree-snd (μ σ δ) ↦ μ-el (Tree-snd σ) (λ p → Tree-snd (δ p))
     {-# REWRITE Tree-snd-μ #-}
 
   Frm-fst (□ a₀ ▹ a₁) = □ fst a₀ ▹ fst a₁
@@ -106,9 +106,9 @@ module Sigma where
   Tree-fst (lf f τ) = lf (Frm-fst f) (fst τ)
   Tree-fst (nd σ τ θ δ ε) = nd (Tree-fst σ) (fst τ) (fst θ)
     (λ p → Tree-fst (δ p)) (λ p → Tree-fst (ε p))
-  
-  Tree-snd (nil a) = nil↓ (snd a)
-  Tree-snd (cns ρ σ) = cns↓ (snd ρ) (Tree-snd σ)
-  Tree-snd (lf f τ) = lf↓ (Frm-snd f) (snd τ)
-  Tree-snd (nd σ τ θ δ ε) = nd↓ (Tree-snd σ) (snd τ) (snd θ)
+
+  Tree-snd (nil a) = nil-el (snd a)
+  Tree-snd (cns ρ σ) = cns-el (snd ρ) (Tree-snd σ)
+  Tree-snd (lf f τ) = lf-el (Frm-snd f) (snd τ)
+  Tree-snd (nd σ τ θ δ ε) = nd-el (Tree-snd σ) (snd τ) (snd θ)
     (λ p → Tree-snd (δ p)) (λ p → Tree-snd (ε p))
