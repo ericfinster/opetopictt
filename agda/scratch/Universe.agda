@@ -150,8 +150,11 @@ module Universe where
   --   → Cell-el f↓ τ
   Tree-el-η {f = □ A ▹ B} (a₀ , b) τ (a₁ , τ↓ , p) = coe (Cell-𝕌-ap (λ a → rel τ a b) p) τ↓
   Tree-el-η {f = f ∥ σ ▹ τ} (f↓ , σ↓ , τ↓) E (σ↓' , θ↓ , ε↓) = {!!}
-  -- Appears I need to prove that σ↓ == σ↓'.  But how?
-
+  -- It must follow from ε↓.  Yeah.  But this looks somewhat
+  -- complicated to prove.  In particular, it seems you will need some
+  -- "reconstruction" theorems about trees, which you might need
+  -- anyway ....
+  
   Tree-el-μ = {!!}
 
   --
@@ -191,9 +194,12 @@ module Universe where
       → Cell-𝕌-ap (λ γ → (a : A γ) → B γ a) γ ↦ Π-cell A B f γ
     {-# REWRITE Π-ap #-}
 
-  rel (Π-cell A B (□ γ₀ ▹ γ₁) θ) φ₀ φ₁ = {!!}
-  coh (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
-  coe (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
+  rel (Π-cell A B (□ γ₀ ▹ γ₁) θ) φ₀ φ₁ =
+    let B' = λ pr → B (fst pr) (snd pr)
+    in (a₀ : A γ₀) (a₁ : A γ₁) (ap : Cell↓ _ A (a₀ , a₁) θ)
+       → Cell↓ (Σ _ A) B' {f = □ (γ₀ , a₀) ▹ (γ₁ , a₁)} (φ₀ a₀ , φ₁ a₁) {!!}
+  coh (Π-cell A B (□ γ₀ ▹ γ₁) θ) φ₀ a₁ = {!φ₀ (coe (Cell-𝕌-ap A θ) a₁)!}
+  coe (Π-cell A B (□ γ₀ ▹ γ₁) θ) ϕ₁ a₀ = {!!}
   coh-rel (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
   coe-rel (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
   coh-unique (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
