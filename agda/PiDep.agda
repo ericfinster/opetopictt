@@ -1,173 +1,57 @@
-{-# OPTIONS --without-K --rewriting #-}
+{-# OPTIONS --without-K --rewriting --type-in-type #-}
 
 open import Base
+open import Opetopes
 open import OpetopicType
-open import OpetopicTypeOver
+open import OpetopicUniverse
 open import Sigma
+open import HoTT
 
 module PiDep where
 
   -- Dependent Π
-  
-  Π↑ : {Γ : Set} (A : Γ → Set) (B : Σ Γ A → Set) → Γ → Set
-  Π↑ A B γ = Π (A γ) (λ a → B (γ , a))
 
-  Frm-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-    → {n : ℕ} {γ₀ : Frm Γ n}
-    → (π₀ : Frm↓ Γ (Π↑ A B) γ₀)
-    → (a₀ : Frm↓ Γ A γ₀)
-    → Frm↓ (Σ Γ A) B (Frm-pr γ₀ a₀)
-
-  Tree-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-    → {n : ℕ} {γ₀ : Frm Γ n} (γ : Tree Γ γ₀)
-    → {π₀ : Frm↓ Γ (Π↑ A B) γ₀} (π : Tree↓ Γ (Π↑ A B) π₀ γ)
-    → (a₀ : Frm↓ Γ A γ₀) (a : Tree↓ Γ A a₀ γ)
-    → Tree↓ (Σ Γ A) B (Frm-ap↓ π₀ a₀) (Tree-pr γ a)
+  curry : {Γ : Set} {A : Γ → Set}
+    → (B : (γ : Γ) (a : A γ) → Set)
+    → Σ Γ A → Set
+  curry B (γ , a) = B γ a
   
+  Π-cell : {Γ : Set} (A : Γ → Set) (B : (γ : Γ) (a : A γ) → Set)
+      → {n : ℕ} {o : 𝕆 n}
+      → (f : Frm Γ o) (τ : Cell Γ f)
+      → Cell 𝕌 (Frm-𝕌-ap (λ γ → (a : A γ) → B γ a) f)
+
   postulate
 
-    Cell-λ↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → {n : ℕ} {γ₀ : Frm Γ n} {γ : Cell Γ γ₀}
-      → {π₀ : Frm↓ Γ (Π↑ A B) γ₀}
-      → (b : (a₀ : Frm↓ Γ A γ₀) (a : Cell↓ Γ A a₀ γ)
-             → Cell↓ (Σ Γ A) B (Frm-ap↓ π₀ a₀) (Cell-pr γ a))
-      → Cell↓ Γ (Π↑ A B) π₀ γ
+    Π-ap : {Γ : Set} {A : Γ → Set} (B : (γ : Γ) (a : A γ) → Set)
+      → {n : ℕ} {o : 𝕆 n} {f : Frm Γ o} (γ : Cell Γ f)
+      → Cell-𝕌-ap (λ γ → (a : A γ) → B γ a) γ ↦ Π-cell A B f γ
+    {-# REWRITE Π-ap #-}
 
-    Cell-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → {n : ℕ} {γ₀ : Frm Γ n} {γ : Cell Γ γ₀}
-      → {π₀ : Frm↓ Γ (Π↑ A B) γ₀} (π : Cell↓ Γ (Π↑ A B) π₀ γ)
-      → {a₀ : Frm↓ Γ A γ₀} (a : Cell↓ Γ A a₀ γ)
-      → Cell↓ (Σ Γ A) B (Frm-ap↓ π₀ a₀) (Cell-pr γ a) 
+  rel (Π-cell {Γ} A B (□ γ₀ ▹ γ₁) θ) φ₀ φ₁ = 
+      (a₀ : A γ₀) (a₁ : A γ₁)
+    → (θ↓ : Cell↓ Γ A (■ a₀ ▸ a₁) θ)
+    → Cell↓ (Σ Γ A) (curry B) (■ φ₀ a₀ ▸ φ₁ a₁) (θ , θ↓)
+       
+  coh (Π-cell {Γ} A B (□ γ₀ ▹ γ₁) θ) φ₀ a₁ =
+    let θ↓ = Cell-𝕌-ap A θ
+        a₀ = coe θ↓ a₁
+        b₀ = φ₀ a₀ 
+    in coh (Cell-𝕌-ap (curry B) (θ , coe-rel θ↓ a₁)) b₀
 
-    Frm-ap-Typ↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → {n : ℕ} {f : Frm Γ n} {τ : Cell Γ f} {σ : Tree Γ f}
-      → (f↓ : Frm↓ Γ (Π↑ A B) f) (f↓₁ : Frm↓ Γ A f)
-      → (σ↓ : Tree↓ Γ (Π↑ A B) f↓ σ) (σ↓₁ : Tree↓ Γ A f↓₁ σ)
-      → (p : Pos σ)
-      → Frm-ap↓ (Typ↓ σ↓ p) (Typ↓ σ↓₁ p) ↦ Typ↓ (Tree-ap↓ σ σ↓ f↓₁ σ↓₁) p 
-    {-# REWRITE Frm-ap-Typ↓ #-}
-
-    Tree-ap-η↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → {n : ℕ} {f : Frm Γ n} {τ : Cell Γ f} {σ : Tree Γ f}
-      → (f↓ : Frm↓ Γ (Π↑ A B) f) (f↓₁ : Frm↓ Γ A f)
-      → (τ↓ : Cell↓ Γ (Π↑ A B) f↓ τ) (τ↓₁ : Cell↓ Γ A f↓₁ τ)
-      →  Tree-ap↓ (η f τ) (η↓ f↓ τ↓) f↓₁ (η↓ f↓₁ τ↓₁)  ↦ η↓ (Frm-ap↓ f↓ f↓₁) (Cell-ap↓ τ↓ τ↓₁)
-    {-# REWRITE Tree-ap-η↓ #-}
-
-    Tree-ap-μ↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → {n : ℕ} {f : Frm Γ n} {τ : Cell Γ f} {σ : Tree Γ f}
-      → {δ : (p : Pos σ) → Tree Γ (Typ σ p)}
-      → (f↓ : Frm↓ Γ (Π↑ A B) f) (f↓₁ : Frm↓ Γ A f)
-      → (σ↓ : Tree↓ Γ (Π↑ A B) f↓ σ) (σ↓₁ : Tree↓ Γ A f↓₁ σ)
-      → (δ↓ : (p : Pos σ) → Tree↓ Γ (Π↑ A B) (Typ↓ σ↓ p) (δ p))
-      → (δ↓₁ : (p : Pos σ) → Tree↓ Γ A (Typ↓ σ↓₁ p) (δ p))
-      → (τ↓ : Cell↓ Γ (Π↑ A B) f↓ τ) (τ↓₁ : Cell↓ Γ A f↓₁ τ)
-      →  Tree-ap↓ (μ σ δ) (μ↓ σ↓ δ↓) f↓₁ (μ↓ σ↓₁ δ↓₁)  ↦ μ↓ (Tree-ap↓ _ σ↓ _ σ↓₁) λ p → Tree-ap↓ _ (δ↓ p) _ (δ↓₁ p)
-    {-# REWRITE Tree-ap-μ↓ #-}
-
-    Cell-λ↓-ap↓  : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → {n : ℕ} {f : Frm Γ n} {τ : Cell Γ f}
-      → (f↓ : Frm↓ Γ (Π↑ A B) f)
-      → (τ↓ : Cell↓ Γ (Π↑ A B) f↓ τ)
-      → Cell-λ↓ (λ f₁ τ₁ → Cell-ap↓ τ↓ τ₁) ↦ τ↓
-    {-# REWRITE Cell-λ↓-ap↓  #-}
+  coe (Π-cell A B (□ γ₀ ▹ γ₁) θ) φ₁ a₀ =
+    let θ↓ = Cell-𝕌-ap A θ
+        a₁ = coh θ↓ a₀
+        b₁ = φ₁ a₁
+    in coe (Cell-𝕌-ap (curry B) (θ , coh-rel θ↓ a₀)) b₁
   
-    Cell-ap-Inh↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → {n : ℕ} {f : Frm Γ n} {τ : Cell Γ f} {σ : Tree Γ f}
-      → (f↓ : Frm↓ Γ (Π↑ A B) f) (f↓₁ : Frm↓ Γ A f)
-      → (σ↓ : Tree↓ Γ (Π↑ A B) f↓ σ) (σ↓₁ : Tree↓ Γ A f↓₁ σ)
-      → (p : Pos σ)
-      → Cell-ap↓ (Inh↓ σ↓ p) (Inh↓ σ↓₁ p) ↦ Inh↓ (Tree-ap↓ σ σ↓ f↓₁ σ↓₁) p
-    {-# REWRITE Cell-ap-Inh↓ #-}
-
-     
-  Frm-ap↓ ■ ■ = ■
-  Frm-ap↓ (π₀ ∥ σ↓ ▸ τ↓) (a₀ ∥ σ↓₁ ▸ τ↓₁) =
-    let f = Frm-ap↓ π₀ a₀
-        σ = Tree-ap↓ _ σ↓ a₀ σ↓₁
-        g f τ = Cell-ap↓ τ↓ τ
-        τ = Cell-ap↓ (Cell-λ↓ g) τ↓₁
-    in f ∥ σ ▸ τ
-
-  Tree-ap↓ .(ob _) (ob↓ τ↓) .■ (ob↓ τ↓₁) = ob↓ (Cell-ap↓ τ↓ τ↓₁)
-  Tree-ap↓ .(lf _ _) (lf↓ f↓ τ↓) .(f↓₁ ∥ η↓ f↓₁ τ↓₁ ▸ τ↓₁) (lf↓ f↓₁ τ↓₁) = lf↓ (Frm-ap↓ f↓ f↓₁) (Cell-ap↓ τ↓ τ↓₁)
-  Tree-ap↓ (nd _ _ _ _ _ _) (nd↓ π τ↓ θ↓ δ↓ ε↓) .(_ ∥ μ↓ a δ↓₁ ▸ τ↓₁) (nd↓ a τ↓₁ θ↓₁ δ↓₁ ε↓₁) =
-    let ϕ p = Tree-ap↓ _ (δ↓ p) _ (δ↓₁ p)
-        ψ p = Tree-ap↓ _ (ε↓ p) _ (ε↓₁ p)
-    in nd↓ (Tree-ap↓ _ π _ a) (Cell-ap↓ τ↓ τ↓₁) (Cell-ap↓ θ↓ θ↓₁) ϕ ψ
-
-  -- Low dimensional rewrites
-  postulate
-
-    Cell-ap↓-● : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-      → (γ : Cell Γ ●) (π : Cell↓ Γ (Π↑ A B) ■ γ) (a : Cell↓ Γ A ■ γ)
-      → Cell-ap↓ {γ₀ = ●} {π₀ = ■} π a ↦ ⟦ B ∣ ⟦ Π↑ A B ∣ π ⟧↓ ⟦ A ∣ a ⟧↓ ⟧↑
-    {-# REWRITE Cell-ap↓-● #-}
-
-  --
-  --  Compositions for Pi
-  --
-
-  has-comps : {A : Set} (B : A → Set) → Set
-  has-comps {A} B =
-      {n : ℕ} {f : Frm A n}
-    → {σ : Tree A f} {τ : Cell A f} (θ : Cell A (f ∣ σ ▸ τ))
-    → {f↓ : Frm↓ A B f} (σ↓ : Tree↓ A B f↓ σ)
-    → Cell↓ A B f↓ τ
-
-  has-fills : {A : Set} (B : A → Set) (hc : has-comps B) → Set
-  has-fills {A} B hc =
-      {n : ℕ} {f : Frm A n}
-    → (σ : Tree A f) (τ : Cell A f) (θ : Cell A (f ∣ σ ▸ τ))
-    → (f↓ : Frm↓ A B f) (σ↓ : Tree↓ A B f↓ σ)
-    → Cell↓ A B (f↓ ∥ σ↓ ▸ hc θ σ↓) θ 
-
-  has-compositions : {A : Set} (B : A → Set) → Set
-  has-compositions B = Σ (has-comps B) (has-fills B)
+  coh-rel (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
   
-  module _ (Γ : Set) (A : Γ → Set) (B : Σ Γ A → Set) 
-    (AKan : has-compositions A)
-    (BKan : has-compositions B) where
-
-    first-step : (γ : Γ) (σ : (a : A γ) → B (γ , a)) (a : A γ)
-      → Cell↓ (Σ Γ A) B {f = ● ∣ ob [ γ , a ]↑ ▸ [ γ , a ]↑} (■ ∥ ob↓ {!!} ▸ {!!}) {!!} 
-    first-step = {!!}
-
-    -- Tree-ap↓ : {Γ : Set} {A : Γ → Set} {B : Σ Γ A → Set}
-    --   → {n : ℕ} {γ₀ : Frm Γ n} (γ : Tree Γ γ₀)
-    --   → {π₀ : Frm↓ Γ (Π↑ A B) γ₀} (π : Tree↓ Γ (Π↑ A B) π₀ γ)
-    --   → (a₀ : Frm↓ Γ A γ₀) (a : Tree↓ Γ A a₀ γ)
-    --   → Tree↓ (Σ Γ A) B (Frm-ap↓ π₀ a₀) (Tree-pr γ a)
-
-
-    -- Okay, I want to try this in a very special
-    -- case: identity composites.
-
-    has-ids : (γ : Γ) (γ-loop : Cell Γ (● ∣ ob [ γ ]↑ ▸ [ γ ]↑))
-      → (γ-null : Cell Γ (● ∣ ob [ γ ]↑ ▸ [ γ ]↑ ∣ lf ● [ γ ]↑ ▸ γ-loop))
-      → (σ : (a : A γ) → B (γ , a))
-      → Cell↓ Γ (Π↑ A B) (■ ∥ ob↓ ⟦ Π↑ A B ∣ σ ⟧↑ ▸ ⟦ Π↑ A B ∣ σ ⟧↑) γ-loop
-    has-ids γ γ-loop γ-null σ = Cell-λ↓ (λ { (■ ∥ ob↓ a₀ ▸ a₁) p →
-      let a₀↓ = ⟦ A ∣ a₀ ⟧↓
-          a₁↓ = ⟦ A ∣ a₁ ⟧↓
-      in {!!} })
-
-    -- Indeed.  So it's a bit like I expected.  We do indeed get
-    -- two elements in the same fiber together with a path between
-    -- them.  But how do we finish?
-
-    -- Need, I think, to get our J-principle or something into
-    -- the game, right?  So the first step is something like, this
-    -- works when we have a null-homotopy in the fiber, and we
-    -- can reduce to that case.
-
-    -- Okay, I've been thinking more about opetopic J.  Here's what
-    -- seems to be the case: given the triangle rule, if you have
-    -- for a fixed tree σ, a Kan fibration over the space of pairs
-    -- consisting of a target and a filler, then you can eliminate
-    -- into that fibration.  This is just because Kan conditions in
-    -- the base will give you the triangle, which becomes a path
-    -- in the space of pairs.  And then that becomes a guy you can
-    -- transport by.
-    
+  coe-rel (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
+  
+  coh-unique (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
+  
+  coe-unique (Π-cell A B (□ γ₀ ▹ γ₁) θ) = {!!}
+  
+  Π-cell A B (f ∥ σ ▹ τ) θ = {!!}
 

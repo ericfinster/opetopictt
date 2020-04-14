@@ -237,3 +237,82 @@ module OpetopicUniverse where
       → (E : (f↓₁ : Frm-el f) → Tree-el f↓₁ σ ≃ Cell-el f↓₁ τ)
       → Cell-el (f↓ ∥ σ↓ ▸ τ↓) E ↦ rel (E f↓) σ↓ τ↓
     {-# REWRITE Cell-𝕌↓ #-}
+
+  --
+  -- Primitive ap into the universe
+  --
+  
+  Frm-𝕌-ap : {A : Set} (B : A → Set)
+      → {n : ℕ} {o : 𝕆 n}
+      → Frm A o → Frm 𝕌 o
+
+  Tree-𝕌-ap : {A : Set} (B : A → Set)
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {f : Frm A o} (σ : Tree A f t)
+      → Tree 𝕌 (Frm-𝕌-ap B f) t
+      
+  postulate
+
+    Cell-𝕌-ap : {A : Set} (B : A → Set)
+      → {n : ℕ} {o : 𝕆 n} {f : Frm A o}
+      → Cell A f → Cell 𝕌 (Frm-𝕌-ap B f)
+
+    Tree-𝕌-ap-typ : {A : Set} (B : A → Set)
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → (f : Frm A o) (σ : Tree A f t)
+      → (p : Pos t)
+      → Typ (Tree-𝕌-ap B σ) p ↦ Frm-𝕌-ap B (Typ σ p)
+    {-# REWRITE Tree-𝕌-ap-typ #-}
+
+    Tree-𝕌-ap-inh : {A : Set} (B : A → Set)
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → (f : Frm A o) (σ : Tree A f t)
+      → (p : Pos t)
+      → Inh (Tree-𝕌-ap B σ) p ↦ Cell-𝕌-ap B (Inh σ p)
+    {-# REWRITE Tree-𝕌-ap-inh #-}
+
+    Tree-𝕌-ap-η : {A : Set} (B : A → Set)
+      → {n : ℕ} {o : 𝕆 n} 
+      → (f : Frm A o) (τ : Cell A f)
+      → Tree-𝕌-ap B (η f τ) ↦ η (Frm-𝕌-ap B f) (Cell-𝕌-ap B τ)
+    {-# REWRITE Tree-𝕌-ap-η #-}
+
+    Tree-𝕌-ap-μ : {A : Set} (B : A → Set)
+      → {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+      → {δₒ : (p : Pos t) → 𝕋 (Typₒ t p)}
+      → {f : Frm A o} (σ : Tree A f t)
+      → (δ : (p : Pos t) → Tree A (Typ σ p) (δₒ p))
+      → Tree-𝕌-ap B (μ σ δ) ↦ μ (Tree-𝕌-ap B σ) (λ p → Tree-𝕌-ap B (δ p))
+    {-# REWRITE Tree-𝕌-ap-μ #-}
+
+  Frm-𝕌-ap B (□ a₀ ▹ a₁) = □ B a₀ ▹ B a₁
+  Frm-𝕌-ap B (f ∥ σ ▹ τ) = Frm-𝕌-ap B f ∥ Tree-𝕌-ap B σ ▹ Cell-𝕌-ap B τ
+  
+  Tree-𝕌-ap B (nil a) = nil (B a)
+  Tree-𝕌-ap B (cns ρ σ) = cns (Cell-𝕌-ap B ρ) (Tree-𝕌-ap B σ)
+  Tree-𝕌-ap B (lf f τ) = lf (Frm-𝕌-ap B f) (Cell-𝕌-ap B τ)
+  Tree-𝕌-ap B (nd σ τ θ δ ε) =
+    nd (Tree-𝕌-ap B σ) (Cell-𝕌-ap B τ) (Cell-𝕌-ap B θ)
+       (λ p → Tree-𝕌-ap B (δ p))
+       (λ p → Tree-𝕌-ap B (ε p))
+
+  --
+  --  Cells over using primitive ap
+  --
+  
+  Frm↓ : (A : Set) (B : A → Set)
+    → {n : ℕ} {o : 𝕆 n}
+    → (f : Frm A o) → Set
+  Frm↓ A B f = Frm-el (Frm-𝕌-ap B f)
+  
+  Tree↓ : (A : Set) (B : A → Set) 
+      {n : ℕ} {o : 𝕆 n} {t : 𝕋 o}
+    → {f : Frm A o} (f↓ : Frm↓ A B f)
+    → (σ : Tree A f t) → Set
+  Tree↓ A B f↓ σ = Tree-el f↓ (Tree-𝕌-ap B σ) 
+
+  Cell↓ : (A : Set) (B : A → Set)
+    → {n : ℕ} {o : 𝕆 n} {f : Frm A o}
+    → (f↓ : Frm↓ A B f) (τ : Cell A f)
+    → Set
+  Cell↓ A B f↓ τ = Cell-el f↓ (Cell-𝕌-ap B τ)
