@@ -18,6 +18,8 @@ module HoTT where
   is-equiv : {A B : Set} (f : A → B) → Set
   is-equiv {B = B} f = (b : B) → is-contr (hfiber f b)
 
+  infixl 40 _≃_
+  
   record _≃_ (A B : Set) : Set₁ where
     field
 
@@ -34,4 +36,4 @@ module HoTT where
       coe-unique : (a : A) (b : B)
         → rel a b → a == coe b
 
-
+  open _≃_ public 
