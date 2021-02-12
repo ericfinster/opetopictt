@@ -272,3 +272,68 @@ type ctx = {
   types : (name * value) suite;
   bds : bd suite;
 }
+
+let bind gma nm ty =
+  let l = gma.lvl in 
+  { rho = Ext (gma.rho, varV l);
+    lvl = l+1;
+    types = Ext (gma.types,(nm,ty));
+    bds = Ext (gma.bds,Bound) }
+
+let define gma nm tm ty =
+  { rho = Ext (gma.rho,tm);
+    lvl = gma.lvl+1;
+    types = Ext (gma.types,(nm,ty));
+    bds = Ext (gma.bds,Defined) }
+
+exception Typing_error of string
+
+let rec check gma expr typ =
+  match (expr, mforce typ) with
+  
+  | (LamE (nm,e) , PiV (_,a,b)) ->
+    check (bind gma nm a) e (b $$ varV (gma.lvl))
+
+  | (HoleE , _) -> fresh_meta (gma.bds)
+
+  | (e, expected) ->
+    let (e',inferred) = infer gma e in
+    try unify (gma.lvl) expected inferred ; e'
+    with Unify_error _ -> raise (Typing_error ("unification failed"))
+
+and infer gma expr =
+  match expr with
+
+  | VarE nm -> (VarT gma.lvl, assoc nm gma.types )
+
+  | LamE (nm,e) ->
+    let a = eval (gma.rho) (fresh_meta gma.bds) in
+    let (e', t) = infer (bind gma nm a) e in
+    (LamT (nm,e') , PiV (nm,a,Closure (gma.rho,quote (gma.lvl + 1) t)))
+
+  | AppE (u,v) ->
+    let (u',ut) = infer gma u in
+    let (a,b) = match mforce ut with
+      | PiV (_,a,b) -> (a,b)
+      | _ ->
+        let a = eval (gma.rho) (fresh_meta gma.bds) in
+        let b = Closure (gma.rho , fresh_meta (bind gma "x" a).bds) in
+        unify gma.lvl ut (PiV ("x",a,b)); 
+        (a,b)
+    in let v' = check gma v a in 
+    (AppT (u', v') , b $$ eval gma.rho u')
+
+  | PiE (nm,a,b) ->
+    let a' = check gma a TypV in
+    let b' = check (bind gma nm (eval gma.rho a')) b TypV in
+    (PiT (nm,a',b') , TypV)
+
+  | TypE -> (TypT , TypV)
+
+  | HoleE ->
+    let a = eval (gma.rho) (fresh_meta gma.bds) in
+    let t = fresh_meta gma.bds in
+    (t , a)
+
+
+
