@@ -105,4 +105,17 @@ and appV t u =
   | RigidV (i,sp) -> RigidV (i,Ext(sp,u))
   | LamV (_,cl) -> cl $$ u 
   | _ -> raise (Eval_error "malformed app")
-    
+
+let rec appSpV v sp =
+  match sp with
+  | Emp -> v
+  | Ext (sp',u) -> appV (appSpV v sp') u
+
+let rec mforce v =
+  match v with
+  | FlexV (m,sp) ->
+    (match lookup_meta m with
+     | Unsolved -> FlexV (m,sp)
+     | Solved v -> mforce (appSpV v sp))
+  | _ -> v
+       
