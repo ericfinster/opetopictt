@@ -198,6 +198,27 @@ let invert cod sp =
   let (dom,ren) = go sp in
   { dom = dom ; cod = cod ; ren = ren }
 
+let rename m pren v =
+
+  let rec goSp pr v = function
+    | Emp -> v
+    | Ext (sp,u) -> AppT (goSp pr v sp, go pr u)
+
+  and go pr v = match mforce v with
+    | FlexV (m',sp) ->
+      if (m <> m') then
+        goSp pr (MetaT m') sp
+      else raise (Unify_error "failed occurs check")
+    | RigidV (i,sp) ->
+      (match Map.find pr.ren i with
+       | Some l -> goSp pr (VarT (lvl_to_idx pr.dom l)) sp 
+       | None -> raise (Unify_error "escaped variable"))
+    | LamV (nm,a) -> LamT (nm, go (lift pr) (a $$ RigidV (pr.cod,Emp)))
+    | PiV (nm,a,b) -> PiT (nm, go pr a, go (lift pr) (b $$ RigidV (pr.cod,Emp)))
+    | TypV -> TypT
+
+  in go pren v
+
 
 (*****************************************************************************)
 (*                                  Contexts                                 *)
