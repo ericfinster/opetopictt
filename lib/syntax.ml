@@ -140,12 +140,14 @@ let rec mforce v =
 
 let lvl_to_idx k l = k - l - 1
 
+let varV k = RigidV (k,Emp)
+    
 let rec quote k v =
   match v with
   | FlexV (m,sp) -> quote_sp k (MetaT m) sp
   | RigidV (l,sp) -> quote_sp k (VarT (lvl_to_idx k l)) sp
-  | LamV (nm,cl) -> LamT (nm, quote (k+1) (cl $$ RigidV (k,Emp)))
-  | PiV (nm,u,cl) -> PiT (nm, quote k u, quote (k+1) (cl $$ RigidV (k,Emp)))
+  | LamV (nm,cl) -> LamT (nm, quote (k+1) (cl $$ varV k))
+  | PiV (nm,u,cl) -> PiT (nm, quote k u, quote (k+1) (cl $$ varV k))
   | TypV -> TypT
 
 and quote_sp k t sp =
@@ -194,7 +196,7 @@ let invert cod sp =
          (match Map.add ren ~key:l ~data:dom  with
           | `Ok ren' -> (dom + 1,ren')
           | `Duplicate -> raise (Unify_error "non-linear pattern"))
-       | _ -> raise (Unify_error "meta-var applied to non-variable")) in 
+       | _ -> raise (Unify_error "meta-var applied to non-bound-variable")) in 
   let (dom,ren) = go sp in
   { dom = dom ; cod = cod ; ren = ren }
 
@@ -213,12 +215,52 @@ let rename m pren v =
       (match Map.find pr.ren i with
        | Some l -> goSp pr (VarT (lvl_to_idx pr.dom l)) sp 
        | None -> raise (Unify_error "escaped variable"))
-    | LamV (nm,a) -> LamT (nm, go (lift pr) (a $$ RigidV (pr.cod,Emp)))
-    | PiV (nm,a,b) -> PiT (nm, go pr a, go (lift pr) (b $$ RigidV (pr.cod,Emp)))
+    | LamV (nm,a) -> LamT (nm, go (lift pr) (a $$ varV pr.cod))
+    | PiV (nm,a,b) -> PiT (nm, go pr a, go (lift pr) (b $$ varV pr.cod))
     | TypV -> TypT
 
   in go pren v
 
+let lams l t =
+  let rec go k t =
+    if (k = l) then t else
+      let nm = Printf.sprintf "x%d" (k+1) in
+      LamT (nm, go (k+1) t)
+  in go 0 t
+
+let solve k m sp v =
+  let pr = invert k sp in
+  let v' = rename m pr v in
+  let sol = eval Emp (lams pr.dom v') in
+  let mctx = ! metacontext in
+  metacontext := Map.update mctx m ~f:(fun _ -> Solved sol)
+
+let rec unify l t u =
+  match (mforce t , mforce u) with
+  | (LamV (_,a) , LamV (_,a')) -> unify (l+1) (a $$ varV l) (a' $$ varV l)
+  | (t' , LamV(_,a')) -> unify (l+1) (appV t' (varV l)) (a' $$ varV l)
+  | (LamV (_,a) , t') -> unify (l+1) (a $$ varV l) (appV t' (varV l))
+  | (TypV , TypV) -> ()
+  | (PiV (_,a,b) , PiV (_,a',b')) ->
+    unify l a a';
+    unify (l+1) (b $$ varV l) (b' $$ varV l)
+  | (RigidV (i,sp) , RigidV (i',sp')) ->
+    if (i = i') then unifySp l sp sp' else
+      raise (Unify_error "rigid mismatch")
+  | (FlexV (m,sp) , FlexV (m',sp')) ->
+    if (m = m') then unifySp l sp sp' else
+      raise (Unify_error "flex mismatch")
+  | (t' , FlexV (m,sp)) -> solve l m sp t'
+  | (FlexV (m,sp) , t') -> solve l m sp t'
+  | _ -> raise (Unify_error "could not unify")
+
+and unifySp l sp sp' =
+  match (sp,sp') with
+  | (Emp,Emp) -> ()
+  | (Ext (s,u),Ext(s',u')) ->
+    unifySp l s s';
+    unify l u u'
+  | _ -> raise (Unify_error "spine mismatch")
 
 (*****************************************************************************)
 (*                                  Contexts                                 *)
