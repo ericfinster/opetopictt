@@ -1,0 +1,5 @@
+#
+#  demo.ett - some samples of erictt
+#
+
+let id (A : U) (a : A) : A = a 

@@ -1,5 +1,0 @@
-(library
- (name erictt)
- (public_name erictt)
- (synopsis "Core routines and typechecker for erictt")
- (libraries base))
