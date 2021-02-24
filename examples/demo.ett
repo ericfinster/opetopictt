@@ -2,4 +2,5 @@
 #  demo.ett - some samples of erictt
 #
 
-let id (A : U) (a : A) : A = a 
+let id (A : _) (a : A) : A = a 
+
