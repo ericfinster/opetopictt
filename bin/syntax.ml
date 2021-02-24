@@ -405,10 +405,12 @@ and infer gma expr =
    * dump_ctx gma;  *)
   match expr with
 
-  | VarE nm ->
-    let (idx,typ) = assoc_with_idx nm gma.types in
-    (* pr "Inferred variable of index %d to have type: %a@," idx pp_term (quote gma.lvl typ) ; *)
-    (VarT idx, typ)
+  | VarE nm -> (
+      try let (idx,typ) = assoc_with_idx nm gma.types in
+        (* pr "Inferred variable of index %d to have type: %a@," idx pp_term (quote gma.lvl typ) ; *)
+        (VarT idx, typ)
+      with Lookup_error -> raise (Typing_error (str "Unknown identifier %s" nm))
+    )
 
   | LamE (nm,e) ->
     let a = eval (gma.rho) (fresh_meta gma.bds) in

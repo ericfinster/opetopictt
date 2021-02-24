@@ -5,7 +5,7 @@
 (*****************************************************************************)
 
 open Mtl
-       
+  
 type 'a suite =
   | Emp
   | Ext of 'a suite * 'a 
@@ -57,21 +57,23 @@ let zip_with_idx s =
       let (s'', i) = zip_with_idx_pr s' in
       (Ext (s'',(i,x)), i+1)
   in fst (zip_with_idx_pr s)
-    
+
+exception Lookup_error
+  
 let rec first s =
   match s with
-  | Emp -> raise Not_found
+  | Emp -> raise Lookup_error
   | Ext (Emp,x) -> x
   | Ext (s',_) -> first s'
 
 let last s =
   match s with
-  | Emp -> raise Not_found
+  | Emp -> raise Lookup_error
   | Ext (_,x) -> x
 
 let rec assoc k s =
   match s with
-  | Emp -> raise Not_found
+  | Emp -> raise Lookup_error
   | Ext (s',(k',v)) ->
     if (k = k') then v
     else assoc k s'
@@ -79,7 +81,7 @@ let rec assoc k s =
 let assoc_with_idx k s =
   let rec go i k s =
     match s with
-    | Emp -> raise Not_found
+    | Emp -> raise Lookup_error
     | Ext (s',(k',v)) ->
       if (k = k') then (i,v)
       else go (i+1) k s'
@@ -98,7 +100,7 @@ let from_list l =
 (* Extract de Brujin index from a suite *)
 let rec db_get i s =
   match s with
-  | Emp -> raise Not_found
+  | Emp -> raise Lookup_error
   | Ext (s',x) ->
     if (i <= 0) then x
     else db_get (i-1) s'
@@ -113,7 +115,7 @@ let rec grab k s =
   if (k<=0) then (s,[]) else
   let (s',r) = grab (k-1) s in
   match s' with
-  | Emp -> raise Not_found
+  | Emp -> raise Lookup_error
   | Ext (s'',x) -> (s'',x::r)
 
 let split_at k s =
