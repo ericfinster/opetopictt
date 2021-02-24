@@ -38,6 +38,12 @@ var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
     { (id,ty) }
 
+pi_head:
+  | v = var_decl
+    { v }
+  | e = expr2
+    { ("",e) }
+
 expr: 
   | e = expr1
     { e }
@@ -47,12 +53,14 @@ expr1:
     { e }
   | LAMBDA id = IDENT DOT e = expr1
     { LamE (id, e) }
-  | LPAR id = IDENT COLON ty = expr1 RPAR ARROW tm = expr1
-    { PiE (id,ty,tm) } 
+  /* | LPAR id = IDENT COLON dom = expr1 RPAR ARROW cod = expr1 */
+  /*   { PiE (id,dom,cod) } */
+  | hd = pi_head ARROW cod = expr1
+    { PiE (fst hd,snd hd,cod) }
 
 expr2:
-  | t = expr3
-    { t }
+  | e = expr3
+    { e }
   | u = expr2 v = expr3
     { AppE (u,v) }
 

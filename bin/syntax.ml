@@ -379,10 +379,12 @@ exception Typing_error of string
 let rec check gma expr typ =
   (* let typ_tm = quote gma.lvl typ in  *)
   pr "Checking %a has type %a@," pp_expr expr pp_value typ ;
+  dump_ctx gma;
   match (expr, mforce typ) with
   
   | (LamE (nm,e) , PiV (_,a,b)) ->
-    check (bind gma nm a) e (b $$ varV (gma.lvl))
+    let bdy = check (bind gma nm a) e (b $$ varV (gma.lvl)) in
+    LamT (nm,bdy)
 
   | (HoleE , _) -> fresh_meta (gma.bds)
 
@@ -437,15 +439,22 @@ let rec with_tele gma tl m =
         let ty' = check gma' ty TypV in
         m (bind gma' id (eval gma'.rho ty')))
 
+let rec abstract_tele tl ty tm =
+  match tl with
+  | Emp -> (ty,tm)
+  | Ext (tl',(nm,expr)) ->
+    abstract_tele tl' (PiE (nm,expr,ty)) (LamE (nm,tm))
+    
 let rec check_defs gma defs =
   match defs with
   | [] -> gma
   | (Def (id,tl,ty,tm))::ds ->
-    let gma' = check_defs gma ds in
-    pr "Checking definition: %s@," id;    
-    with_tele gma' tl (fun gma'' ->
-        let ty' = check gma'' ty TypV in
-        let tyV = eval gma''.rho ty' in 
-        let tm' = check gma'' tm tyV in
-        pr "Checking complete for %s@," id; 
-        define gma'' id (eval gma''.rho tm') tyV)
+    pr "----------------@,";
+    pr "Checking definition: %s@," id;
+    let (abs_ty,abs_tm) = abstract_tele tl ty tm in
+    let ty_tm = check gma abs_ty TypV in
+    let ty_val = eval gma.rho ty_tm in
+    let tm_tm = check gma abs_tm ty_val in
+    let tm_val = eval gma.rho tm_tm in 
+    pr "Checking complete for %s@," id;
+    check_defs (define gma id tm_val ty_val) ds
