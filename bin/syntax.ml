@@ -39,6 +39,11 @@ let is_app e =
   | AppE (_, _, _) -> true
   | _ -> false
 
+let is_pi e =
+  match e with
+  | PiE (_,_,_,_) -> true
+  | _ -> false
+    
 let rec pp_expr ppf expr =
   match expr with
   | VarE nm -> string ppf nm
@@ -54,6 +59,12 @@ let rec pp_expr ppf expr =
   | PiE (nm,Impl,dom,cod) ->
     pf ppf "{%s : %a} -> %a" nm
       pp_expr dom pp_expr cod
+  | PiE (nm,Expl,a,b) when Poly.(=) nm "" ->
+    let pp_a = if (is_pi a) then
+        parens pp_expr
+      else pp_expr in 
+    pf ppf "%a -> %a" 
+      pp_a a pp_expr b
   | PiE (nm,Expl,dom,cod) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_expr dom pp_expr cod
@@ -88,14 +99,19 @@ let is_app_tm tm =
   match tm with
   | AppT (_,_,_) -> true
   | _ -> false
+
+let is_pi_tm tm =
+  match tm with
+  | PiT (_,_,_,_) -> true
+  | _ -> false
     
 let rec pp_term ppf tm =
   match tm with
   | VarT i -> int ppf i
   | LamT (nm,Impl,t) ->
-    pf ppf "\\{%s}.%a" nm pp_term t
+    pf ppf "\\{%s}. %a" nm pp_term t
   | LamT (nm,Expl,t) ->
-    pf ppf "\\%s.%a" nm pp_term t
+    pf ppf "\\%s. %a" nm pp_term t
   | AppT (u,v,Impl) ->
     pf ppf "%a {%a}" pp_term u pp_term v
   | AppT (u,v,Expl) ->
@@ -106,6 +122,12 @@ let rec pp_term ppf tm =
   | PiT (nm,Impl,a,p) ->
     pf ppf "{%s : %a} -> %a" nm
       pp_term a pp_term p
+  | PiT (nm,Expl,a,p) when Poly.(=) nm "" ->
+    let pp_a = if (is_pi_tm a) then
+        parens pp_term
+      else pp_term in 
+    pf ppf "%a -> %a" 
+      pp_a a pp_term p
   | PiT (nm,Expl,a,p) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_term a pp_term p
@@ -413,11 +435,24 @@ let rec insert' gma (tm,ty) =
     insert' gma (AppT (tm,m,Impl) , b $$ mv)
   | _ -> (tm, ty)
 
-
 let insert gma (tm, ty) =
   match tm with
   | LamT (_,Impl,_) -> (tm, ty)
   | _ -> insert' gma (tm, ty)
+
+let rec term_to_expr nms tm = 
+  match tm with
+  | VarT i ->
+    let nm = db_get i nms in VarE nm
+  | LamT (nm,ict,bdy) ->
+    LamE (nm, ict, term_to_expr (Ext (nms,nm)) bdy)
+  | AppT (u,v,ict) ->
+    AppE (term_to_expr nms u, term_to_expr nms v, ict)
+  | PiT (nm,ict,a,b) ->
+    PiE (nm, ict, term_to_expr nms a, term_to_expr (Ext (nms,nm)) b)
+  | TypT -> TypE
+  | MetaT _ -> HoleE
+  | InsMetaT (_, _) -> HoleE
 
 exception Typing_error of string
 
@@ -516,8 +551,8 @@ let rec check_defs gma defs =
     let tm_tm = check gma abs_tm ty_val in
     let tm_val = eval gma.rho tm_tm in 
     pr "Checking complete for %s@," id;
-    let tm_nf = quote (gma.lvl) tm_val in
-    let ty_nf = quote (gma.lvl) ty_val in
-    pr "Type: %a@," pp_term ty_nf;
-    pr "Term: %a@," pp_term tm_nf;
+    let tm_nf = term_to_expr Emp (quote (gma.lvl) tm_val) in
+    let ty_nf = term_to_expr Emp (quote (gma.lvl) ty_val) in
+    pr "Type: %a@," pp_expr ty_nf;
+    pr "Term: %a@," pp_expr tm_nf;
     check_defs (define gma id tm_val ty_val) ds
