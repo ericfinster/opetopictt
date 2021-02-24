@@ -24,6 +24,8 @@ rule token = parse
   | "->"         { ARROW }
   | "("          { LPAR }
   | ")"          { RPAR }
+  | "{"          { LBR }
+  | "}"          { RBR }
   | ":"          { COLON }
   | "="          { EQUAL }
   | "."          { DOT }

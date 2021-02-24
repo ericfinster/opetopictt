@@ -8,7 +8,7 @@
 %token LET
 %token TYPE 
 %token LAMBDA COLON EQUAL DOT
-%token LPAR RPAR
+%token LPAR RPAR LBR RBR
 %token ARROW HOLE
 %token <string> IDENT 
 %token EOF
@@ -36,13 +36,15 @@ tele:
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
-    { (id,ty) }
+    { (id,Expl,ty) }
+  | LBR id = IDENT COLON ty = expr RBR
+    { (id,Impl,ty) }
 
 pi_head:
   | v = var_decl
     { v }
   | e = expr2
-    { ("",e) }
+    { ("",Expl,e) }
 
 expr: 
   | e = expr1
@@ -52,17 +54,17 @@ expr1:
   | e = expr2
     { e }
   | LAMBDA id = IDENT DOT e = expr1
-    { LamE (id, e) }
-  /* | LPAR id = IDENT COLON dom = expr1 RPAR ARROW cod = expr1 */
-  /*   { PiE (id,dom,cod) } */
+    { LamE (id,Expl,e) }
+  | LAMBDA LBR id = IDENT RBR DOT e = expr1
+    { LamE (id,Impl,e) }
   | hd = pi_head ARROW cod = expr1
-    { PiE (fst hd,snd hd,cod) }
+    { let (nm,ict,dom) = hd in PiE (nm,ict,dom,cod) }
 
 expr2:
   | e = expr3
     { e }
   | u = expr2 v = expr3
-    { AppE (u,v) }
+    { AppE (u,v,Expl) }
 
 expr3:
   | TYPE

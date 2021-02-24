@@ -122,6 +122,13 @@ let split_at k s =
   let d = length s in
   grab (d-k) s 
 
+let rev s =
+  let rec go s acc =
+    match s with
+    | Emp -> acc
+    | Ext (s',x) -> go s' (Ext (acc,x))
+  in go s Emp
+    
 (*****************************************************************************)
 (*                                   Zipper                                  *)
 (*****************************************************************************)

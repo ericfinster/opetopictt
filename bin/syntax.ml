@@ -11,36 +11,50 @@ open Suite
 (*                                 Raw Syntax                                *)
 (*****************************************************************************)
 
+type icit =
+  | Impl
+  | Expl
+
 type name = string
   
 type expr =
   | VarE of name
-  | LamE of name * expr
-  | AppE of expr * expr
-  | PiE of name * expr * expr
+  | LamE of name * icit * expr
+  | AppE of expr * expr * icit
+  | PiE of name * icit * expr * expr
   | TypE
   | HoleE
 
-type tele = (name * expr) suite
+type tele = (name * icit * expr) suite
     
 type defn =
   | Def of name * tele * expr * expr
 
+(*****************************************************************************)
+(*                         Pretty Printing Raw Syntax                        *)
+(*****************************************************************************)
+           
 let is_app e =
   match e with
-  | AppE (_, _) -> true
+  | AppE (_, _, _) -> true
   | _ -> false
 
 let rec pp_expr ppf expr =
   match expr with
   | VarE nm -> string ppf nm
-  | LamE (nm,bdy) -> pf ppf "\\%s. %a" nm pp_expr bdy
-  | AppE (u, v) ->
+  | LamE (nm,Impl,bdy) -> pf ppf "\\{%s}. %a" nm pp_expr bdy
+  | LamE (nm,Expl,bdy) -> pf ppf "\\%s. %a" nm pp_expr bdy
+  | AppE (u, v, Impl) ->
+    pf ppf "%a {%a}" pp_expr u pp_expr v
+  | AppE (u, v, Expl) ->
     let pp_v = if (is_app v) then
         parens pp_expr
       else pp_expr in 
     pf ppf "%a %a" pp_expr u pp_v v
-  | PiE (nm,dom,cod) ->
+  | PiE (nm,Impl,dom,cod) ->
+    pf ppf "{%s : %a} -> %a" nm
+      pp_expr dom pp_expr cod
+  | PiE (nm,Expl,dom,cod) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_expr dom pp_expr cod
   | TypE -> string ppf "U"
@@ -59,9 +73,9 @@ type bd =
 
 type term =
   | VarT of idx
-  | LamT of name * term
-  | AppT of term * term
-  | PiT of name * term * term
+  | LamT of name * icit * term
+  | AppT of term * term * icit
+  | PiT of name * icit * term * term
   | TypT
   | MetaT of mvar
   | InsMetaT of mvar * bd suite
@@ -72,22 +86,27 @@ type term =
 
 let is_app_tm tm =
   match tm with
-  | AppT (_,_) -> true
+  | AppT (_,_,_) -> true
   | _ -> false
     
 let rec pp_term ppf tm =
   match tm with
   | VarT i -> int ppf i
-  | LamT (nm,t) ->
+  | LamT (nm,Impl,t) ->
+    pf ppf "\\{%s}.%a" nm pp_term t
+  | LamT (nm,Expl,t) ->
     pf ppf "\\%s.%a" nm pp_term t
-  | AppT (u,AppT (v,w)) ->
-    pf ppf "%a (%a)" pp_term u  pp_term (AppT (v,w))
-  | AppT (u,v) ->
+  | AppT (u,v,Impl) ->
+    pf ppf "%a {%a}" pp_term u pp_term v
+  | AppT (u,v,Expl) ->
     let pp_v = if (is_app_tm v) then
         parens pp_term
       else pp_term in 
     pf ppf "%a %a" pp_term u pp_v v
-  | PiT (nm,a,p) ->
+  | PiT (nm,Impl,a,p) ->
+    pf ppf "{%s : %a} -> %a" nm
+      pp_term a pp_term p
+  | PiT (nm,Expl,a,p) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_term a pp_term p
   | TypT -> pf ppf "U"
@@ -108,23 +127,23 @@ type lvl = int
 type value =
   | FlexV of mvar * spine
   | RigidV of lvl * spine
-  | LamV of name * closure
-  | PiV of name * value * closure 
+  | LamV of name * icit * closure
+  | PiV of name * icit * value * closure 
   | TypV 
 
 and env = value suite
-and spine = value suite
+and spine = (value * icit) suite
 
 and closure =
   | Closure of env * term
 
-let rec pp_value ppf v =
-  match v with
-  | FlexV (i,sp) -> pf ppf "?%d%a" i (pp_suite pp_value) sp
-  | RigidV (l,sp) -> pf ppf "%d%a" l (pp_suite pp_value) sp
-  | LamV (nm,_) -> pf ppf "\\%s.<>" nm
-  | PiV (nm,v,_) -> pf ppf "(%s : %a) -> <>" nm pp_value v
-  | TypV -> pf ppf "U"
+(* let rec pp_value ppf v =
+ *   match v with
+ *   | FlexV (i,sp) -> pf ppf "?%d%a" i (pp_suite pp_value) sp
+ *   | RigidV (l,sp) -> pf ppf "%d%a" l (pp_suite pp_value) sp
+ *   | LamV (nm,_) -> pf ppf "\\%s.<>" nm
+ *   | PiV (nm,v,_) -> pf ppf "(%s : %a) -> <>" nm pp_value v
+ *   | TypV -> pf ppf "U" *)
 
 (*****************************************************************************)
 (*                           Metavariable Context                            *)
@@ -158,9 +177,9 @@ exception Eval_error of string
 let rec eval rho tm =
   match tm with
   | VarT i -> db_get i rho
-  | LamT (nm,u) -> LamV (nm, Closure (rho,u))
-  | AppT (u,v) -> appV (eval rho u) (eval rho v)
-  | PiT (nm,u,v) -> PiV (nm, eval rho u, Closure (rho,v))
+  | LamT (nm,ict,u) -> LamV (nm, ict, Closure (rho,u))
+  | AppT (u,v,ict) -> appV (eval rho u) (eval rho v) ict
+  | PiT (nm,ict,u,v) -> PiV (nm, ict, eval rho u, Closure (rho,v))
   | TypT -> TypV
   | MetaT m -> metaV m
   | InsMetaT (m,bds) -> appBdsV rho (metaV m) bds
@@ -174,24 +193,24 @@ and ($$) c v =
   match c with
   | Closure (rho,tm) -> eval (Ext (rho,v)) tm 
 
-and appV t u =
+and appV t u ict =
   match t with
-  | FlexV (m,sp) -> FlexV (m,Ext(sp,u))
-  | RigidV (i,sp) -> RigidV (i,Ext(sp,u))
-  | LamV (_,cl) -> cl $$ u 
+  | FlexV (m,sp) -> FlexV (m,Ext(sp,(u,ict)))
+  | RigidV (i,sp) -> RigidV (i,Ext(sp,(u,ict)))
+  | LamV (_,_,cl) -> cl $$ u 
   | _ -> raise (Eval_error "malformed app")
 
 and appBdsV rho v bds =
   match (rho , bds) with
   | (Emp,Emp) -> v
-  | (Ext (rho',u),Ext (bds',Bound)) -> appV (appBdsV rho' v bds') u 
+  | (Ext (rho',u),Ext (bds',Bound)) -> appV (appBdsV rho' v bds') u Expl
   | (Ext (rho',_),Ext (bds',Defined)) -> appBdsV rho' v bds'
   | _ -> raise (Eval_error "malfomed bounding mask")
 
 let rec appSpV v sp =
   match sp with
   | Emp -> v
-  | Ext (sp',u) -> appV (appSpV v sp') u
+  | Ext (sp',(u,ict)) -> appV (appSpV v sp') u ict
     
 let rec mforce v =
   match v with
@@ -213,15 +232,15 @@ let rec quote k v =
   match v with
   | FlexV (m,sp) -> quote_sp k (MetaT m) sp
   | RigidV (l,sp) -> quote_sp k (VarT (lvl_to_idx k l)) sp
-  | LamV (nm,cl) -> LamT (nm, quote (k+1) (cl $$ varV k))
-  | PiV (nm,u,cl) -> PiT (nm, quote k u, quote (k+1) (cl $$ varV k))
+  | LamV (nm,ict,cl) -> LamT (nm, ict, quote (k+1) (cl $$ varV k))
+  | PiV (nm,ict,u,cl) -> PiT (nm, ict, quote k u, quote (k+1) (cl $$ varV k))
   | TypV -> TypT
 
 and quote_sp k t sp =
   match sp with
   | Emp -> t
-  | Ext (sp',u) ->
-    AppT (quote_sp k t sp',quote k u)
+  | Ext (sp',(u,ict)) ->
+    AppT (quote_sp k t sp',quote k u,ict)
 
 let nf rho tm =
   quote (length rho) (eval rho tm) 
@@ -256,7 +275,7 @@ exception Unify_error of string
 let invert cod sp =
   let rec go = function
     | Emp -> (0, Map.empty (module Int))
-    | Ext (sp',u) ->
+    | Ext (sp',(u,_)) ->
       let (dom, ren) = go sp' in
       (match mforce u with
        | RigidV (l,Emp) ->
@@ -271,7 +290,7 @@ let rename m pren v =
 
   let rec goSp pr v = function
     | Emp -> v
-    | Ext (sp,u) -> AppT (goSp pr v sp, go pr u)
+    | Ext (sp,(u,ict)) -> AppT (goSp pr v sp, go pr u, ict)
 
   and go pr v = match mforce v with
     | FlexV (m',sp) ->
@@ -282,41 +301,45 @@ let rename m pren v =
       (match Map.find pr.ren i with
        | Some l -> goSp pr (VarT (lvl_to_idx pr.dom l)) sp 
        | None -> raise (Unify_error "escaped variable"))
-    | LamV (nm,a) -> LamT (nm, go (lift pr) (a $$ varV pr.cod))
-    | PiV (nm,a,b) -> PiT (nm, go pr a, go (lift pr) (b $$ varV pr.cod))
+    | LamV (nm,ict,a) -> LamT (nm, ict, go (lift pr) (a $$ varV pr.cod))
+    | PiV (nm,ict,a,b) -> PiT (nm, ict, go pr a, go (lift pr) (b $$ varV pr.cod))
     | TypV -> TypT
 
   in go pren v
 
-let lams l t =
-  let rec go k t =
-    if (k = l) then t else
+let lams icts t =
+  let rec go k icts t =
+    match icts with
+    | Emp -> t
+    | Ext (is,i) -> 
       let nm = Printf.sprintf "x%d" (k+1) in
-      LamT (nm, go (k+1) t)
-  in go 0 t
+      LamT (nm, i, go (k+1) is t) 
+  in go 0 icts t
 
 let solve k m sp v =
   let pr = invert k sp in
-  let v' = rename m pr v in
-  let sol = eval Emp (lams pr.dom v') in
+  let rhs = rename m pr v in
+  let sol = eval Emp (lams (rev (map snd sp)) rhs) in
   let mctx = ! metacontext in
   metacontext := Map.update mctx m ~f:(fun _ -> Solved sol)
 
 let rec unify l t u =
   match (mforce t , mforce u) with
-  | (LamV (_,a) , LamV (_,a')) -> unify (l+1) (a $$ varV l) (a' $$ varV l)
-  | (t' , LamV(_,a')) -> unify (l+1) (appV t' (varV l)) (a' $$ varV l)
-  | (LamV (_,a) , t') -> unify (l+1) (a $$ varV l) (appV t' (varV l))
+  | (LamV (_,_,a) , LamV (_,_,a')) -> unify (l+1) (a $$ varV l) (a' $$ varV l)
+  | (t' , LamV(_,i,a')) -> unify (l+1) (appV t' (varV l) i) (a' $$ varV l)
+  | (LamV (_,i,a) , t') -> unify (l+1) (a $$ varV l) (appV t' (varV l) i)
   | (TypV , TypV) -> ()
-  | (PiV (_,a,b) , PiV (_,a',b')) ->
-    unify l a a';
+  | (PiV (_,ict,a,b) , PiV (_,ict',a',b')) when Poly.(=) ict ict' ->
+    unify l a a' ;
     unify (l+1) (b $$ varV l) (b' $$ varV l)
-  | (RigidV (i,sp) , RigidV (i',sp')) ->
-    if (i = i') then unifySp l sp sp' else
-      raise (Unify_error (str "Rigid mismatch: %d =/= %d" (lvl_to_idx l i) (lvl_to_idx l i')))
-  | (FlexV (m,sp) , FlexV (m',sp')) ->
-    if (m = m') then unifySp l sp sp' else
-      raise (Unify_error (str "Flex mismatch: %d =/= %d" m m'))
+  | (PiV (_,_,_,_) , PiV (_,_,_,_)) ->
+    raise (Unify_error "wrong icity")
+  | (RigidV (i,sp) , RigidV (i',sp')) when i = i' -> unifySp l sp sp'
+  | (RigidV (i,_) , RigidV (i',_)) ->
+    raise (Unify_error (str "Rigid mismatch: %d =/= %d" (lvl_to_idx l i) (lvl_to_idx l i')))
+  | (FlexV (m,sp) , FlexV (m',sp')) when m = m' -> unifySp l sp sp' 
+  | (FlexV (m,_) , FlexV (m',_)) -> 
+    raise (Unify_error (str "Flex mismatch: %d =/= %d" m m'))
   | (t' , FlexV (m,sp)) -> solve l m sp t'
   | (FlexV (m,sp) , t') -> solve l m sp t'
   | _ -> raise (Unify_error "could not unify")
@@ -324,7 +347,7 @@ let rec unify l t u =
 and unifySp l sp sp' =
   match (sp,sp') with
   | (Emp,Emp) -> ()
-  | (Ext (s,u),Ext(s',u')) ->
+  | (Ext (s,(u,_)),Ext(s',(u',_))) ->
     unifySp l s s';
     unify l u u'
   | _ -> raise (Unify_error "spine mismatch")
@@ -340,13 +363,13 @@ type ctx = {
   bds : bd suite;
 }
     
-let pp_ctx =
-  record [
-    field "rho"   (fun g -> g.rho)   (pp_suite pp_value) ;
-    field "lvl"   (fun g -> g.lvl)   (int) ;
-    field "types" (fun g -> g.types) (pp_suite (pair string pp_value));
-    field "bds"   (fun g -> g.bds)   (pp_suite pp_bd)
-  ]
+(* let pp_ctx =
+ *   record [
+ *     field "rho"   (fun g -> g.rho)   (pp_suite pp_value) ;
+ *     field "lvl"   (fun g -> g.lvl)   (int) ;
+ *     field "types" (fun g -> g.types) (pp_suite (pair string pp_value));
+ *     field "bds"   (fun g -> g.bds)   (pp_suite pp_bd)
+ *   ] *)
 
 let rec quote_tele typs =
   match typs with
@@ -382,6 +405,20 @@ let define gma nm tm ty =
     types = Ext (gma.types,(nm,ty));
     bds = Ext (gma.bds,Defined) }
 
+let rec insert' gma (tm,ty) =
+  match mforce ty with
+  | PiV (_,Impl,_,b) ->
+    let m = fresh_meta (gma.bds) in
+    let mv = eval gma.rho m in
+    insert' gma (AppT (tm,m,Impl) , b $$ mv)
+  | _ -> (tm, ty)
+
+
+let insert gma (tm, ty) =
+  match tm with
+  | LamT (_,Impl,_) -> (tm, ty)
+  | _ -> insert' gma (tm, ty)
+
 exception Typing_error of string
 
 let rec check gma expr typ =
@@ -390,14 +427,19 @@ let rec check gma expr typ =
    * dump_ctx gma; *)
   match (expr, mforce typ) with
   
-  | (LamE (nm,e) , PiV (_,a,b)) ->
-    let bdy = check (bind gma nm a) e (b $$ varV (gma.lvl)) in
-    LamT (nm,bdy)
+  | (LamE (nm,i,e) , PiV (_,i',a,b)) when Poly.(=) i i' ->
+    let bdy = check (bind gma nm a) e (b $$ varV gma.lvl) in
+    LamT (nm,i,bdy)
+
+
+  | (t , PiV (nm,Impl,a,b)) ->
+    let bdy = check (bind gma nm a) t (b $$ varV gma.lvl) in
+    LamT (nm,Impl,bdy)
 
   | (HoleE , _) -> fresh_meta (gma.bds)
 
   | (e, expected) ->
-    let (e',inferred) = infer gma e in
+    let (e',inferred) = insert gma (infer gma e) in
     unify (gma.lvl) expected inferred ; e'
 
 and infer gma expr =
@@ -412,27 +454,34 @@ and infer gma expr =
       with Lookup_error -> raise (Typing_error (str "Unknown identifier %s" nm))
     )
 
-  | LamE (nm,e) ->
+  | LamE (nm,ict,e) ->
     let a = eval (gma.rho) (fresh_meta gma.bds) in
-    let (e', t) = infer (bind gma nm a) e in
-    (LamT (nm,e') , PiV (nm,a,Closure (gma.rho,quote (gma.lvl + 1) t)))
+    let (e', t) = insert gma (infer (bind gma nm a) e) in
+    (LamT (nm,ict,e') , PiV (nm,ict,a,Closure (gma.rho,quote (gma.lvl + 1) t)))
 
-  | AppE (u,v) ->
-    let (u',ut) = infer gma u in
+  | AppE (u,v,ict) ->
+    let (u',ut) = match ict with
+      | Impl -> infer gma u
+      | Expl -> insert' gma (infer gma u)
+    in
+    
     let (a,b) = match mforce ut with
-      | PiV (_,a,b) -> (a,b)
+      | PiV (_,ict',a,b) ->
+        if (Poly.(<>) ict ict') then
+          raise (Typing_error "Implicit mismatch")
+        else (a,b)
       | _ ->
         let a = eval (gma.rho) (fresh_meta gma.bds) in
         let b = Closure (gma.rho , fresh_meta (bind gma "x" a).bds) in
-        unify gma.lvl ut (PiV ("x",a,b)); 
+        unify gma.lvl ut (PiV ("x",ict,a,b)); 
         (a,b)
     in let v' = check gma v a in 
-    (AppT (u', v') , b $$ eval gma.rho v')
+    (AppT (u', v', ict) , b $$ eval gma.rho v')
 
-  | PiE (nm,a,b) ->
+  | PiE (nm,ict,a,b) ->
     let a' = check gma a TypV in
     let b' = check (bind gma nm (eval gma.rho a')) b TypV in
-    (PiT (nm,a',b') , TypV)
+    (PiT (nm,ict,a',b') , TypV)
 
   | TypE -> (TypT , TypV)
 
@@ -452,8 +501,8 @@ let rec with_tele gma tl m =
 let rec abstract_tele tl ty tm =
   match tl with
   | Emp -> (ty,tm)
-  | Ext (tl',(nm,expr)) ->
-    abstract_tele tl' (PiE (nm,expr,ty)) (LamE (nm,tm))
+  | Ext (tl',(nm,ict,expr)) ->
+    abstract_tele tl' (PiE (nm,ict,expr,ty)) (LamE (nm,ict,tm))
     
 let rec check_defs gma defs =
   match defs with
@@ -467,4 +516,8 @@ let rec check_defs gma defs =
     let tm_tm = check gma abs_tm ty_val in
     let tm_val = eval gma.rho tm_tm in 
     pr "Checking complete for %s@," id;
+    let tm_nf = quote (gma.lvl) tm_val in
+    let ty_nf = quote (gma.lvl) ty_val in
+    pr "Type: %a@," pp_term ty_nf;
+    pr "Term: %a@," pp_term tm_nf;
     check_defs (define gma id tm_val ty_val) ds

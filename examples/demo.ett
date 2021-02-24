@@ -4,36 +4,38 @@
 
 let id (A : U) (a : A) : A = a
 
-let List : U -> U
-  = \A. (L : U) -> (A -> L -> L) -> L -> L
+let id2 {A : U} : A -> A = \a. a
 
-let nil : (A : _) -> List A
-  = \A. \L. \cons. \nil. nil
+# let List : U -> U
+#   = \A. (L : U) -> (A -> L -> L) -> L -> L
 
-let cons : (A : _) -> A -> List A -> List A
-  = \A. \x. \xs. \L. \cons. \nil. cons x (xs _ cons nil)
+# let nil : (A : _) -> List A
+#   = \A. \L. \cons. \nil. nil
 
-let Bool : U
-  = (B : _) -> B -> B -> B
+# let cons : (A : _) -> A -> List A -> List A
+#   = \A. \x. \xs. \L. \cons. \nil. cons x (xs _ cons nil)
 
-let true : Bool
-  = \B. \t. \f. t
+# let Bool : U
+#   = (B : _) -> B -> B -> B
 
-let false : Bool
-  = \B. \t. \f. f
+# let true : Bool
+#   = \B. \t. \f. t
 
-let not : Bool -> Bool
-  = \b. \B. \t. \f. b B f t
+# let false : Bool
+#   = \B. \t. \f. f
 
-let Eq : (A : _) -> A -> A -> U
-  = \A. \x. \y. (P : A -> U) -> P x -> P y
+# let not : Bool -> Bool
+#   = \b. \B. \t. \f. b B f t
 
-let refl : (A : _) -> (x : A) -> Eq A x x
-  = \A. \x. \P. \px. px
+# let Eq : (A : _) -> A -> A -> U
+#   = \A. \x. \y. (P : A -> U) -> P x -> P y
 
-let list1 : List Bool
-  = cons _ (id _ true) (nil _)
+# let refl : (A : _) -> (x : A) -> Eq A x x
+#   = \A. \x. \P. \px. px
 
-let list2 : List Bool
-  = cons _ true (cons _ false (nil _))
+# let list1 : List Bool
+#   = cons _ (id _ true) (nil _)
+
+# let list2 : List Bool
+#   = cons _ true (cons _ false (nil _))
 
