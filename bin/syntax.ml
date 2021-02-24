@@ -70,6 +70,11 @@ type term =
 (*                      Pretty printing internal syntax                      *)
 (*****************************************************************************)
 
+let is_app_tm tm =
+  match tm with
+  | AppT (_,_) -> true
+  | _ -> false
+    
 let rec pp_term ppf tm =
   match tm with
   | VarT i -> int ppf i
@@ -78,7 +83,10 @@ let rec pp_term ppf tm =
   | AppT (u,AppT (v,w)) ->
     pf ppf "%a (%a)" pp_term u  pp_term (AppT (v,w))
   | AppT (u,v) ->
-    pf ppf "%a %a" pp_term u pp_term v
+    let pp_v = if (is_app_tm v) then
+        parens pp_term
+      else pp_term in 
+    pf ppf "%a %a" pp_term u pp_v v
   | PiT (nm,a,p) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_term a pp_term p
@@ -114,8 +122,8 @@ let rec pp_value ppf v =
   match v with
   | FlexV (i,sp) -> pf ppf "?%d%a" i (pp_suite pp_value) sp
   | RigidV (l,sp) -> pf ppf "%d%a" l (pp_suite pp_value) sp
-  | LamV (nm,_) -> pf ppf "\\%s.?" nm
-  | PiV (nm,v,_) -> pf ppf "(%s : %a) -> ?" nm pp_value v
+  | LamV (nm,_) -> pf ppf "\\%s.<>" nm
+  | PiV (nm,v,_) -> pf ppf "(%s : %a) -> <>" nm pp_value v
   | TypV -> pf ppf "U"
 
 (*****************************************************************************)
@@ -305,7 +313,7 @@ let rec unify l t u =
     unify (l+1) (b $$ varV l) (b' $$ varV l)
   | (RigidV (i,sp) , RigidV (i',sp')) ->
     if (i = i') then unifySp l sp sp' else
-      raise (Unify_error (str "Rigid mismatch: %d =/= %d" i i'))
+      raise (Unify_error (str "Rigid mismatch: %d =/= %d" (lvl_to_idx l i) (lvl_to_idx l i')))
   | (FlexV (m,sp) , FlexV (m',sp')) ->
     if (m = m') then unifySp l sp sp' else
       raise (Unify_error (str "Flex mismatch: %d =/= %d" m m'))
@@ -347,12 +355,12 @@ let rec quote_tele typs =
     let (res_typs, l) = quote_tele typs' in
     let typ_tm = quote l typ in
     (Ext (res_typs,(nm, typ_tm)),l+1)
-
+    
 let dump_ctx gma =
-  (* let (tele,_) = quote_tele gma.types in *)
+  let (tl,_) = quote_tele gma.types in 
+  (* let tl = map (fun (nm,typ) -> (nm , quote gma.lvl typ)) gma.types in  *)
   pr "Context: @[<hov>%a@]@,"
-    (pp_suite (parens (pair ~sep:(any " : ") string pp_value)))
-    gma.types
+    (pp_suite (parens (pair ~sep:(any " : ") string pp_term))) tl
 
 let empty_ctx = {
   rho = Emp;
@@ -377,9 +385,9 @@ let define gma nm tm ty =
 exception Typing_error of string
 
 let rec check gma expr typ =
-  (* let typ_tm = quote gma.lvl typ in  *)
-  pr "Checking %a has type %a@," pp_expr expr pp_value typ ;
-  dump_ctx gma;
+  (* let typ_tm = quote gma.lvl typ in 
+   * pr "@,Checking %a has type %a@," pp_expr expr pp_term typ_tm ;
+   * dump_ctx gma; *)
   match (expr, mforce typ) with
   
   | (LamE (nm,e) , PiV (_,a,b)) ->
@@ -393,13 +401,13 @@ let rec check gma expr typ =
     unify (gma.lvl) expected inferred ; e'
 
 and infer gma expr =
-  pr "Inferring type of %a@," pp_expr expr ;
-  dump_ctx gma; 
+  (* pr "@,Inferring type of %a@," pp_expr expr ;
+   * dump_ctx gma;  *)
   match expr with
 
   | VarE nm ->
     let (idx,typ) = assoc_with_idx nm gma.types in
-    pr "Inferred variable of index %d to have type: %a@," idx pp_value typ ;
+    (* pr "Inferred variable of index %d to have type: %a@," idx pp_term (quote gma.lvl typ) ; *)
     (VarT idx, typ)
 
   | LamE (nm,e) ->
@@ -417,7 +425,7 @@ and infer gma expr =
         unify gma.lvl ut (PiV ("x",a,b)); 
         (a,b)
     in let v' = check gma v a in 
-    (AppT (u', v') , b $$ eval gma.rho u')
+    (AppT (u', v') , b $$ eval gma.rho v')
 
   | PiE (nm,a,b) ->
     let a' = check gma a TypV in

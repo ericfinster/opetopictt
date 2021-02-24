@@ -100,7 +100,7 @@ let () =
     print_newline ()
   with
   | Typing_error msg ->
-    printf "----------------@,Typing error: %s@," msg
+    printf "Typing error: %s@," msg
   | Unify_error msg ->
-    printf "----------------@,Unification error: %s@," msg
+    printf "Unification error: %s@," msg
 
