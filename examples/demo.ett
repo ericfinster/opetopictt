@@ -6,6 +6,14 @@ let id (A : U) (a : A) : A = a
 
 let id2 {A : U} : A -> A = \a. a
 
+let const {A : U} {B : U} : A -> B -> A
+  = \a.\b.a
+
+let argTest1 : U -> U = const {U} {U} U
+
+# -- implicit arg types can be omitted
+# let const : {A B} -> A -> B -> A = \x y. x;
+
 # let List : U -> U
 #   = \A. (L : U) -> (A -> L -> L) -> L -> L
 
