@@ -201,7 +201,7 @@ let lookup_meta m =
 exception Eval_error of string
 
 let rec eval top loc tm =
-  (* pr "Evaluating: %a@," pp_term tm; *)
+  pr "Evaluating: %a@," pp_term tm;
   match tm with
   | VarT i ->
     (try db_get i loc
@@ -521,7 +521,7 @@ let rec check gma expr typ =
     let bdy = check (bind gma nm a) t (b $$ varV gma.lvl) in
     LamT (nm,Impl,bdy)
 
-  | (HoleE , _) -> fresh_meta 
+  | (HoleE , _) -> pr "fresh meta@,"; fresh_meta 
 
   | (e, expected) ->
     (* pr "switching mode@,";
