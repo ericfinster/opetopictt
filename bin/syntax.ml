@@ -171,6 +171,39 @@ and spine = (value * icit) suite
 and closure =
   | Closure of top_env * loc_env * term
 
+let rec pp_value ppf v =
+  match v with
+  | FlexV (m,sp) ->
+    pf ppf "?%d %a" m pp_spine sp
+  | RigidV (i,sp) ->
+    pf ppf "%d %a" i pp_spine sp
+  | TopV (nm,sp,_) ->
+    pf ppf "%s %a" nm pp_spine sp
+  | LamV (nm,Expl,Closure (_,_,bdy)) ->
+    pf ppf "\\%s.<%a>" nm pp_term bdy
+  | LamV (nm,Impl,Closure (_,_,bdy)) ->
+    pf ppf "\\{%s}.<%a>" nm pp_term bdy
+  | PiV (nm,Expl,a,Closure (_,_,bdy)) ->
+    pf ppf "(%s : %a) -> <%a>" nm
+      pp_value a pp_term bdy
+  | PiV (nm,Impl,a,Closure (_,_,bdy)) -> 
+    pf ppf "{%s : %a} -> <%a>" nm
+      pp_value a pp_term bdy
+  | TypV -> pf ppf "U"
+
+and pp_spine ppf sp =
+  let pp_v ppf (v,ict) =
+    match ict with
+    | Expl -> pp_value ppf v
+    | Impl -> pf ppf "{%a}" pp_value v
+  in pp_suite pp_v ppf sp
+
+let pp_top_env =
+  hovbox (pp_suite (parens (pair ~sep:(any " : ") string pp_value)))
+
+let pp_loc_env =
+  hovbox (pp_suite ~sep:comma pp_value)
+    
 (*****************************************************************************)
 (*                           Metavariable Context                            *)
 (*****************************************************************************)
@@ -201,7 +234,7 @@ let lookup_meta m =
 exception Eval_error of string
 
 let rec eval top loc tm =
-  pr "Evaluating: %a@," pp_term tm;
+  (* pr "Evaluating: %a@," pp_term tm; *)
   match tm with
   | VarT i ->
     (try db_get i loc
@@ -217,7 +250,9 @@ let rec eval top loc tm =
   | PiT (nm,ict,u,v) -> PiV (nm, ict, eval top loc u, Closure (top,loc,v))
   | TypT -> TypV
   | MetaT m -> metaV m
-  | InsMetaT m -> appLocV loc (metaV m) 
+  | InsMetaT m ->
+    (* pr "Expanding meta %d with local context: %a@," m pp_loc_env loc;  *)
+    appLocV loc (metaV m)
 
 and metaV m =
   match lookup_meta m with
@@ -350,10 +385,11 @@ let lams icts t =
   in go 0 icts t
 
 let solve top k m sp v =
-  let pr = invert k sp in
-  let rhs = rename m pr v in
+  let prn = invert k sp in
+  let rhs = rename m prn v in
   let sol = eval top Emp (lams (rev (map snd sp)) rhs) in
   let mctx = ! metacontext in
+  pr "Meta solution : ?%d = %a@," m pp_value sol;
   metacontext := Map.update mctx m ~f:(fun _ -> Solved sol)
 
 type strategy =
@@ -474,17 +510,18 @@ let dump_ctx ufld gma =
 (*                                Typechecking                               *)
 (*****************************************************************************)
 
-let fresh_meta =
+let fresh_meta _ =
   let mctx = ! metacontext in
   let m = ! next_meta in
   next_meta := m + 1;
+  pr "next meta set to: %d@," (! next_meta);
   metacontext := Map.set mctx ~key:m ~data:Unsolved;
   InsMetaT m
 
 let rec insert' gma (tm,ty) =
   match force_meta ty with
   | PiV (_,Impl,_,b) ->
-    let m = fresh_meta in
+    let m = fresh_meta () in
     let mv = eval gma.top gma.loc m in
     insert' gma (AppT (tm,m,Impl) , b $$ mv)
   | _ -> (tm, ty)
@@ -502,10 +539,9 @@ let rec untop typ =
 exception Typing_error of string
 
 let rec check gma expr typ =
-  (* let typ' = force_meta typ in  *)
-  let typ_tm = quote gma.lvl typ false in
-  pr "@,Checking %a has type %a@," pp_expr expr pp_term typ_tm ;
-  dump_ctx true gma;
+  (* let typ_tm = quote gma.lvl typ false in
+   * pr "Checking %a has type %a@," pp_expr expr pp_term typ_tm ;
+   * dump_ctx true gma; *)
   match (expr, force_meta typ) with
   
   | (e , TopV (_,_,tv)) ->
@@ -521,7 +557,8 @@ let rec check gma expr typ =
     let bdy = check (bind gma nm a) t (b $$ varV gma.lvl) in
     LamT (nm,Impl,bdy)
 
-  | (HoleE , _) -> pr "fresh meta@,"; fresh_meta 
+  | (HoleE , _) -> pr "fresh meta@,";
+    let mv = fresh_meta () in mv
 
   | (e, expected) ->
     (* pr "switching mode@,";
@@ -531,7 +568,7 @@ let rec check gma expr typ =
     unify OneShot gma.top gma.lvl expected inferred ; e'
 
 and infer gma expr =
-  (* pr "@,Inferring type of %a@," pp_expr expr ;
+  (* pr "Inferring type of %a@," pp_expr expr ;
    * dump_ctx true gma; *)
   match expr with
 
@@ -540,16 +577,16 @@ and infer gma expr =
         let (idx,(b,typ)) = assoc_with_idx nm gma.types in
         match b with
         | Bound ->
-          pr "Inferred variable of index %d to have type: %a@," idx pp_term (quote gma.lvl typ true) ;
+          (* pr "Inferred variable of index %d to have type: %a@," idx pp_term (quote gma.lvl typ true) ; *)
           (VarT idx, typ)
         | Defined ->
-          pr "Inferred definition %s to have type: %a@," nm pp_term (quote gma.lvl typ true) ;
+          (* pr "Inferred definition %s to have type: %a@," nm pp_term (quote gma.lvl typ true) ; *)
           (TopT nm, typ)
       with Lookup_error -> raise (Typing_error (str "Unknown identifier %s" nm))
     )
 
   | LamE (nm,ict,e) ->
-    let a = eval gma.top gma.loc fresh_meta in
+    let a = eval gma.top gma.loc (fresh_meta ()) in
     let (e', t) = insert gma (infer (bind gma nm a) e) in
     (LamT (nm,ict,e') , PiV (nm,ict,a,Closure (gma.top,gma.loc,quote (gma.lvl + 1) t false)))
 
@@ -565,8 +602,8 @@ and infer gma expr =
           raise (Typing_error "Implicit mismatch")
         else (a,b)
       | _ ->
-        let a = eval gma.top gma.loc fresh_meta in
-        let b = Closure (gma.top,gma.loc,fresh_meta) in
+        let a = eval gma.top gma.loc (fresh_meta ()) in
+        let b = Closure (gma.top,gma.loc,fresh_meta ()) in
         unify OneShot gma.top gma.lvl ut (PiV ("x",ict,a,b)); 
         (a,b)
     in let v' = check gma v a in 
@@ -580,8 +617,8 @@ and infer gma expr =
   | TypE -> (TypT , TypV)
 
   | HoleE ->
-    let a = eval gma.top gma.loc fresh_meta in
-    let t = fresh_meta in
+    let a = eval gma.top gma.loc (fresh_meta ()) in
+    let t = fresh_meta () in
     (t , a)
 
 let rec with_tele gma tl m =
