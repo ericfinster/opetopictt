@@ -514,7 +514,7 @@ let fresh_meta _ =
   let mctx = ! metacontext in
   let m = ! next_meta in
   next_meta := m + 1;
-  pr "next meta set to: %d@," (! next_meta);
+  (* pr "next meta set to: %d@," (! next_meta); *)
   metacontext := Map.set mctx ~key:m ~data:Unsolved;
   InsMetaT m
 
@@ -557,7 +557,7 @@ let rec check gma expr typ =
     let bdy = check (bind gma nm a) t (b $$ varV gma.lvl) in
     LamT (nm,Impl,bdy)
 
-  | (HoleE , _) -> pr "fresh meta@,";
+  | (HoleE , _) -> (* pr "fresh meta@,"; *)
     let mv = fresh_meta () in mv
 
   | (e, expected) ->
@@ -647,7 +647,7 @@ let rec check_defs gma defs =
     let tm_tm = check gma abs_tm ty_val in
     let tm_val = eval gma.top gma.loc tm_tm in 
     pr "Checking complete for %s@," id;
-    let tm_nf = term_to_expr Emp (quote (gma.lvl) tm_val false) in
+    let tm_nf = term_to_expr Emp (quote (gma.lvl) tm_val true) in
     let ty_nf = term_to_expr Emp (quote (gma.lvl) ty_val false) in
     pr "Type: %a@," pp_expr ty_nf;
     pr "Term: %a@," pp_expr tm_nf;

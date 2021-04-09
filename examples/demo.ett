@@ -44,3 +44,15 @@ let list1 : List Bool
 let list2 : List Bool
   = cons _ true (cons _ false (nil _))
 
+let Nat : U
+  = (A : U) -> A -> (A -> A) -> A
+
+let zero : Nat
+  = \A. \zero. \succ. zero
+
+let succ : Nat -> Nat
+  = \n. \A. \zero. \succ. succ (n A zero succ)
+
+let one : Nat
+  = succ (zero)
+
