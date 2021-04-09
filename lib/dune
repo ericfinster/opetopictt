@@ -1,0 +1,24 @@
+(menhir
+  (infer false)
+  (flags --table)
+  (modules parser))
+
+;; dangerous! when the parser stabilizes, you should remove this rule
+;; as it is going to overwrite your parser messages ....
+
+(rule
+ (targets parser.messages)
+ (deps parser.mly)
+ (action (with-stdout-to %{targets} (run menhir --list-errors %{deps}))))
+
+(rule
+ (targets parser_messages.ml)
+ (deps parser.messages parser.mly)
+ (action  (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
+
+(library
+ (name erictt)
+ (public_name erictt)
+ (synopsis "Core routines for generic type theory")
+ (libraries base fmt menhirLib sedlex)
+ (preprocess (pps sedlex.ppx)))

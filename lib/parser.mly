@@ -1,22 +1,26 @@
 %{
 
-    open Syntax
+    open Expr 
     open Suite
        
 %} 
 
-%token LET
-%token TYPE 
-%token LAMBDA COLON EQUAL DOT
+%token LET LAMBDA COLON EQUAL DOT
 %token LPAR RPAR LBR RBR
-%token ARROW HOLE
-%token <string> IDENT 
+%token ARROW HOLE 
+%token TYPE 
+%token <string> IDENT
 %token EOF
 
 %start prog
-%type <Syntax.defn list> prog
+%type <Expr.defn list> prog
 
 %%
+
+suite(X):
+  | { Emp }
+  | s = suite(X); x = X
+    { Ext (s,x) }
 
 prog:
   | EOF
@@ -26,19 +30,17 @@ prog:
 
 defn:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
-    { Def (id,tl,ty,tm) }
-
-tele:
-  |
-    { Emp }
-  | t = tele v = var_decl
-    { Ext (t, v) }
+    { TermDef (id,tl,ty,tm) }
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
     { (id,Expl,ty) }
   | LBR id = IDENT COLON ty = expr RBR
     { (id,Impl,ty) }
+
+tele:
+  | tl = suite(var_decl)
+    { tl } 
 
 pi_head:
   | v = var_decl
@@ -63,7 +65,7 @@ expr1:
 expr2:
   | e = expr3
     { e }
-  | u = expr2 LBR v = expr3 RBR
+  | u = expr2 LBR v = expr2 RBR
     { AppE (u,v,Impl) }
   | u = expr2 v = expr3
     { AppE (u,v,Expl) }
