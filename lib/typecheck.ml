@@ -218,12 +218,17 @@ and infer gma expr =
     let* b' = check (bind gma nm (eval gma.top gma.loc a')) b TypV in
     Ok (PiT (nm,ict,a',b') , TypV)
 
+  | OpTypE (a,_) ->
+    let* a' = check gma a TypV in 
+    Ok (TypT, TypV)
+
   | TypE -> Ok (TypT , TypV)
 
   | HoleE ->
     let a = eval gma.top gma.loc (fresh_meta ()) in
     let t = fresh_meta () in
     Ok (t , a)
+
 
 let rec check_defs gma defs =
   let module E = ExprUtil in

@@ -46,6 +46,9 @@ let rec token buf =
   | 0x03bb       -> LAMBDA
   | "_"          -> HOLE
   | "U"          -> TYPE
+  | "lf"         -> LF
+  | "nd"         -> ND
+  | "tt"         -> UNIT
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
 

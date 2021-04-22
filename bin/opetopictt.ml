@@ -6,8 +6,8 @@
 
 open Format
 
-open Erictt.Io
-open Erictt.Typecheck
+open Opetopictt.Io
+open Opetopictt.Typecheck
 
 (*****************************************************************************)
 (*                                  Options                                  *)

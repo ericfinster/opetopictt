@@ -9,7 +9,8 @@ open Base
 open Expr
 open Suite
 open Syntax
-
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
@@ -22,6 +23,7 @@ type term =
   | LamT of name * icit * term
   | AppT of term * term * icit
   | PiT of name * icit * term * term
+  | CellT of term * term cmplx
   | MetaT of mvar
   | InsMetaT of mvar
   | TypT
@@ -41,6 +43,8 @@ let rec db_lift_by l k tm =
   | AppT (u,v,ict) -> AppT (lft u, lft v, ict)
   | PiT (nm,ict,a,b) ->
     PiT (nm,ict,lft a, db_lift_by (l+1) k b)
+  | CellT (a,frm) ->
+    CellT (lft a, map_cmplx frm ~f:lft)
   | MetaT m -> MetaT m
   | InsMetaT m -> InsMetaT m
   | TypT -> TypT
@@ -63,6 +67,9 @@ let rec term_to_expr nms tm =
     AppE (tte nms u, tte nms v, ict)
   | PiT (nm,ict,a,b) ->
     PiE (nm, ict, tte nms a, tte (Ext (nms,nm)) b)
+  | CellT (a,frm) ->
+
+    failwith "" 
   | MetaT _ -> HoleE
   (* Somewhat dubious, since we lose the implicit application ... *)
   | InsMetaT _ -> HoleE

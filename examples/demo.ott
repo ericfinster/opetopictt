@@ -1,5 +1,5 @@
 #
-#  demo.ett - some samples of erictt
+#  demo.ott - some samples of opetopictt
 #
 
 let id (A : U) (a : A) : A = a

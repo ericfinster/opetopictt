@@ -1,5 +1,5 @@
 (executable
- (name erictt)
- (modules erictt)
- (public_name erictt)
- (libraries erictt))
+ (name opetopictt)
+ (modules opetopictt)
+ (public_name opetopictt)
+ (libraries opetopictt))

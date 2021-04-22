@@ -1,0 +1,19 @@
+#
+#  opetopes.ott - testing opetopic syntax ...
+#
+
+let Id (A : U) (a : A) (b : A) : U
+  = [ A | nd ({ b }) (nd (lf ({ a })) (lf ())) ] 
+
+let Null (A : U) (a : A) (p : Id A a a) : U
+  = [ A | lf ({ a }) | nd ({ f }) (lf ()) ]
+
+let Simplex (A : U) (a : A) (b : A) (c : A)
+  (f : Id A a b) (g : Id A b c) (h : Id A a c) : U
+  = [ A | nd ({ c }) (nd (nd ({ b })
+      	     (nd (lf ({ a })) (lf ()))) (lf ()))
+      	| nd ({ h }) (nd (lf ({ g })) (nd (nd (lf ({ f }))
+	     (nd (lf ()) (lf ()))) (lf ()))) ]
+
+
+

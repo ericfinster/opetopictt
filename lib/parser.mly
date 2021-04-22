@@ -6,9 +6,11 @@
 %} 
 
 %token LET LAMBDA COLON EQUAL DOT
-%token LPAR RPAR LBR RBR
+%token LPAR RPAR LBR RBR 
 %token ARROW HOLE 
-%token TYPE 
+%token TYPE
+%token LF ND UNIT
+%token LBRKT RBRKT VBAR
 %token <string> IDENT
 %token EOF
 
@@ -77,6 +79,23 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
+  | LBRKT t = expr VBAR c = suite(tr_expr) RBRKT
+    { CellE (t,c) } 
   | LPAR t = expr RPAR
     { t }
+
+tr_expr:
+  | UNIT
+    { Unit }
+  | LBR e = expr RBR
+    { Expr e }
+  | LF t = tr_expr
+    { Leaf t }
+  | ND s = tr_expr t = tr_expr
+    { Node (s,t) }
+  | LPAR t = tr_expr RPAR
+    { t } 
+
+
+
 

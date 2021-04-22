@@ -1,3 +1,3 @@
 (lang dune 2.0)
-(name erictt)
+(name opetopictt)
 (using menhir 2.0)
