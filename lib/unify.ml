@@ -12,6 +12,8 @@ open Term
 open Eval
 open Meta
 
+open Opetopes.Complex
+       
 type perm = (lvl,lvl,Int.comparator_witness) Map.t
 
 type partial_ren = {
@@ -61,6 +63,22 @@ let rename m pren v =
     | TopV (_,_,tv) -> go pr tv
     | LamV (nm,ict,a) -> LamT (nm, ict, go (lift pr) (a $$ varV pr.cod))
     | PiV (nm,ict,a,b) -> PiT (nm, ict, go pr a, go (lift pr) (b $$ varV pr.cod))
+    | CellV (TlClosure (top,loc,(tl,typ)),frm) ->
+
+      let (ttl,ttyp) = Suite.fold_accum_cont tl (loc,pr)
+          (fun (nm,ict,ty) (loc',pr') ->
+             ((nm,ict, go pr' (eval top loc' ty)),
+              (Ext (loc',varV pr'.cod),(lift pr'))))
+          (fun tl' (loc',pr') -> (tl', go pr' (eval top loc' typ))) in
+
+      let tfrm = map_cmplx frm
+          ~f:(fun (ts, topt) ->
+              (Suite.map_suite ts ~f:(go pr),
+               Base.Option.map topt ~f:(go pr))) in
+
+      CellT ((ttl,ttyp),tfrm)
+
+
     | TypV -> TypT
 
   and goSp pr v sp =

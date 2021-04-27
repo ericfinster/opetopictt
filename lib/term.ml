@@ -9,6 +9,7 @@ open Base
 open Expr
 open Suite
 open Syntax
+
 open Opetopes.Complex
        
 (*****************************************************************************)
@@ -23,7 +24,7 @@ type term =
   | LamT of name * icit * term
   | AppT of term * term * icit
   | PiT of name * icit * term * term
-  | CellT of term * term cmplx
+  | CellT of term judgmt * (term suite * term option) cmplx
   | MetaT of mvar
   | InsMetaT of mvar
   | TypT
@@ -32,24 +33,24 @@ type term =
 (*                              DeBrujin Lifting                             *)
 (*****************************************************************************)
 
-let rec db_lift_by l k tm =
-  let lft = db_lift_by l k in
-  match tm with
-  | VarT i ->
-    if (i >= l) then VarT (k+i) else VarT i
-  | TopT nm -> TopT nm
-  | LamT (nm,ict,tm) ->
-    LamT (nm, ict, db_lift_by (l+1) k tm)
-  | AppT (u,v,ict) -> AppT (lft u, lft v, ict)
-  | PiT (nm,ict,a,b) ->
-    PiT (nm,ict,lft a, db_lift_by (l+1) k b)
-  | CellT (a,frm) ->
-    CellT (lft a, map_cmplx frm ~f:lft)
-  | MetaT m -> MetaT m
-  | InsMetaT m -> InsMetaT m
-  | TypT -> TypT
-
-let db_lift l t = db_lift_by l 1 t
+(* let rec db_lift_by l k tm =
+ *   let lft = db_lift_by l k in
+ *   match tm with
+ *   | VarT i ->
+ *     if (i >= l) then VarT (k+i) else VarT i
+ *   | TopT nm -> TopT nm
+ *   | LamT (nm,ict,tm) ->
+ *     LamT (nm, ict, db_lift_by (l+1) k tm)
+ *   | AppT (u,v,ict) -> AppT (lft u, lft v, ict)
+ *   | PiT (nm,ict,a,b) ->
+ *     PiT (nm,ict,lft a, db_lift_by (l+1) k b)
+ *   | CellT (a,frm) ->
+ *     CellT (lft a, map_cmplx frm ~f:lft)
+ *   | MetaT m -> MetaT m
+ *   | InsMetaT m -> InsMetaT m
+ *   | TypT -> TypT
+ * 
+ * let db_lift l t = db_lift_by l 1 t *)
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -67,9 +68,16 @@ let rec term_to_expr nms tm =
     AppE (tte nms u, tte nms v, ict)
   | PiT (nm,ict,a,b) ->
     PiE (nm, ict, tte nms a, tte (Ext (nms,nm)) b)
-  | CellT (a,frm) ->
-
-    failwith "" 
+  | CellT ((tl,typ),frm) ->
+    let (etl, etyp) = fold_accum_cont tl Emp
+        (fun (nm,ict,ty) nms ->
+           ((nm,ict,term_to_expr nms ty),Ext (nms,nm)))
+        (fun tl' nms -> (tl', term_to_expr nms typ)) in 
+    let efrm = map_cmplx frm
+        ~f:(fun (ts,topt) ->
+            (map_suite ts ~f:(tte nms),
+             Option.map topt ~f:(tte nms))) in 
+    CellE ((etl,etyp), of_cmplx efrm)
   | MetaT _ -> HoleE
   (* Somewhat dubious, since we lose the implicit application ... *)
   | InsMetaT _ -> HoleE
@@ -136,6 +144,7 @@ let rec pp_term ppf tm =
   | PiT (nm,Expl,a,p) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_term a pp_term p
+  | CellT _ -> pf ppf "cell term"
   | MetaT _ -> pf ppf "_"
   (* Again, misses some implicit information ... *)
   | InsMetaT _ -> pf ppf "*_*"
@@ -145,22 +154,22 @@ let rec pp_term ppf tm =
 (*                               Free Variables                              *)
 (*****************************************************************************)
 
-let fvs_empty = Set.empty (module Int)
-let fvs_singleton k = Set.singleton (module Int) k
-
-let rec free_vars k tm =
-  match tm with
-  | VarT i when i >= k -> fvs_singleton i
-  | VarT _ -> fvs_empty
-  | TopT _ -> fvs_empty
-  | LamT (_,_,bdy) -> free_vars (k+1) bdy
-  | AppT (u,v,_) ->
-    Set.union (free_vars k u) (free_vars k v)
-  | PiT (_,_,a,b) ->
-    Set.union (free_vars k a) (free_vars (k+1) b)
-  | TypT -> fvs_empty
-  | MetaT _ -> fvs_empty
-  | InsMetaT _ -> fvs_empty
+(* let fvs_empty = Set.empty (module Int)
+ * let fvs_singleton k = Set.singleton (module Int) k
+ * 
+ * let rec free_vars k tm =
+ *   match tm with
+ *   | VarT i when i >= k -> fvs_singleton i
+ *   | VarT _ -> fvs_empty
+ *   | TopT _ -> fvs_empty
+ *   | LamT (_,_,bdy) -> free_vars (k+1) bdy
+ *   | AppT (u,v,_) ->
+ *     Set.union (free_vars k u) (free_vars k v)
+ *   | PiT (_,_,a,b) ->
+ *     Set.union (free_vars k a) (free_vars (k+1) b)
+ *   | TypT -> fvs_empty
+ *   | MetaT _ -> fvs_empty
+ *   | InsMetaT _ -> fvs_empty *)
 
 (*****************************************************************************)
 (*                         Term Syntax Implmentations                        *)

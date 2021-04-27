@@ -17,3 +17,78 @@ let Simplex (A : U) (a : A) (b : A) (c : A)
 
 
 
+  
+#
+# The question is how to get "path overs"....
+#
+
+Let Po (A : U) (B : A -> U)
+  (a₀ : A) (a₁ : A) (p : Id A a₀ a₁)
+  (b₀ : B a₀) (b₁ : B a₁) : U
+  =  ???
+
+#
+#  Fibrations
+#
+
+[ ∙ ⊢ A | nd ({ ∙ ⊢ b }) (nd (lf ({ ∙ ⊢ a })) (lf ())) | lf ({ ∙ }) ] : U
+[ ∙ ⊢ U | nd ({ ∙ ⊢ B }) (nd (lf ({ ∙ ⊢ A })) (lf ())) | lf ({ ∙ }) ] : U 
+
+[ (a : A) ⊢ B a
+  | nd ({ a₀ ⊢ b₀ }) (nd (lf ({ a₁ ⊢ b₁ })) (lf ()))
+  | lf ({ p ⊢ ∙ }) ] : U 
+
+comp [ (a : A) ⊢ B a
+     | nd ({ a₀ ⊢ b₀ }) (nd (lf ({ a₁ ⊢ ∙ })) (lf ()))
+     | lf ({ p ⊢ ∙ }) ] : B a₁
+
+fill [ (a : A) ⊢ B a
+     | nd ({ a₀ ⊢ b₀ }) (nd (lf ({ a₁ ⊢ ∙ })) (lf ()))
+     | lf ({ p ⊢ ∙ }) ] : 
+
+     [ (a : A) ⊢ B a
+     | nd ({ a₀ ⊢ b₀ }) (nd (lf ({ a₁ ⊢ comp b₀ })) (lf ()))
+     | lf ({ p ⊢ ∙ }) ]
+
+comp [ (a : A) ⊢ B a
+     | nd ({ a₀ ⊢ ∙ }) (nd (lf ({ a₁ ⊢ b₀ })) (lf ()))
+     | lf ({ p ⊢ ∙ }) ] : B a₀
+
+fill [ (a : A) ⊢ B a
+     | nd ({ a₀ ⊢ ∙ }) (nd (lf ({ a₁ ⊢ b₀ })) (lf ()))
+     | lf ({ p ⊢ ∙ }) ] : 
+
+     [ (a : A) ⊢ B a
+     | nd ({ a₀ ⊢ comp b₁ }) (nd (lf ({ a₁ ⊢ b₁ })) (lf ()))
+     | lf ({ p ⊢ ∙ }) ]
+
+# the | - |'s indicate the position of elimination
+comp-unique [ (a : A) ⊢ B a
+	    | nd ({ a₀ ⊢ b₀ }) (nd (lf ({| a₁ ⊢ b₁ |})) (lf ()))
+	    | lf ({ p ⊢ q }) ] : 
+
+	    [ (a : A) ⊢ B a
+	    | nd ({ a₁ ⊢ b₁ }) (nd (lf ({ a₁ ⊢ comp b₀ })) (lf ()))
+	    | lf ({ refl a₁ }) ⊢ ∙ ] 
+
+# still I think slightly wrong as the p's should be positioned
+# differently....
+
+fill-unique [ (a : A) ⊢ B a
+	    | nd ({ a₀ ⊢ b₀ }) (nd (lf ({| a₁ ⊢ b₁ |})) (lf ()))
+	    | lf ({ p ⊢ q }) ] : 
+
+	    [ (a : A) ⊢ B a
+	    | nd ({ a₀ ⊢ b₀ }) (nd (nd ({ a₁ ⊢ b₁ })
+      	         (nd (lf ({ a₁ ⊢ comp b₀ })) (lf ()))) (lf ()))
+	    | nd ({ p ⊢ fill b₀ }) (nd (lf ({ p ⊢ q }))
+	      	 (nd (nd (lf ({ refl a₁ ⊢ comp-unique b₁ }))
+	         (nd (lf ()) (lf ()))) (lf ())))
+            | lf ({ unit-l p ⊢ ∙ }) ]
+
+
+
+
+
+
+

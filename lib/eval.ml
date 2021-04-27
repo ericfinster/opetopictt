@@ -11,6 +11,8 @@ open Value
 open Suite
 open Syntax
 
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                                 Evaluation                                *)
 (*****************************************************************************)
@@ -32,6 +34,12 @@ let rec eval top loc tm =
   | LamT (nm,ict,u) -> LamV (nm, ict, Closure (top,loc,u))
   | AppT (u,v,ict) -> appV (eval top loc u) (eval top loc v) ict
   | PiT (nm,ict,u,v) -> PiV (nm, ict, eval top loc u, Closure (top,loc,v))
+  | CellT (jdg,frm) ->
+    let vfrm = map_cmplx frm
+        ~f:(fun (ts, topt) ->
+            (map_suite ts ~f:(eval top loc),
+             Base.Option.map topt ~f:(eval top loc))) in 
+    CellV (TlClosure (top,loc,jdg), vfrm)
   | TypT -> TypV
   | MetaT m -> metaV m
   | InsMetaT m -> appLocV loc (metaV m)
@@ -85,6 +93,21 @@ and quote ufld k v =
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
   | LamV (nm,ict,cl) -> LamT (nm, ict, quote ufld (k+1) (cl $$ varV k))
   | PiV (nm,ict,u,cl) -> PiT (nm, ict, qc u, quote ufld (k+1) (cl $$ varV k))
+  | CellV (TlClosure (top,loc,(tl,typ)),frm) ->
+
+    let (ttl,ttyp) = fold_accum_cont tl (loc,k)
+        (fun (nm,ict,ty) (loc',k') ->
+           ((nm,ict, quote ufld k' (eval top loc' ty)),
+            (Ext (loc',varV k'),k'+1)))
+        (fun tl' (loc',k') -> (tl', quote ufld k' (eval top loc' typ))) in
+    
+    let tfrm = map_cmplx frm
+        ~f:(fun (ts, topt) ->
+            (map_suite ts ~f:qc,
+             Base.Option.map topt ~f:qc)) in
+    
+    CellT ((ttl,ttyp),tfrm)
+      
   | TypV -> TypT
 
 and quote_sp ufld k t sp =
@@ -112,24 +135,24 @@ let nf top loc tm =
 (*                               Free Variables                              *)
 (*****************************************************************************)
 
-let rec free_vars_val k v =
-  let module S = Base.Set in
-  let sp_vars sp = free_vars_sp k sp in
-  match force_meta v with
-  | FlexV (_,sp) -> sp_vars sp
-  | RigidV (l,sp) -> S.add (sp_vars sp) (lvl_to_idx k l)
-  | TopV (_,sp,_) -> sp_vars sp
-  | LamV (_,_,Closure (_,loc,tm)) -> free_vars (length loc) tm
-  | PiV (_,_,a,Closure (_,loc,b)) ->
-    S.union (free_vars_val k a) (free_vars (length loc) b)
-  | TypV -> fvs_empty
-
-and free_vars_sp k sp =
-  let module S = Base.Set in
-  let fvc x = free_vars_val k x in
-  let fvcs x = free_vars_sp k x in
-  match sp with
-  | EmpSp -> fvs_empty
-  | AppSp (sp',u,_) ->
-    S.union (fvcs sp') (fvc u)
+(* let rec free_vars_val k v =
+ *   let module S = Base.Set in
+ *   let sp_vars sp = free_vars_sp k sp in
+ *   match force_meta v with
+ *   | FlexV (_,sp) -> sp_vars sp
+ *   | RigidV (l,sp) -> S.add (sp_vars sp) (lvl_to_idx k l)
+ *   | TopV (_,sp,_) -> sp_vars sp
+ *   | LamV (_,_,Closure (_,loc,tm)) -> free_vars (length loc) tm
+ *   | PiV (_,_,a,Closure (_,loc,b)) ->
+ *     S.union (free_vars_val k a) (free_vars (length loc) b)
+ *   | TypV -> fvs_empty
+ * 
+ * and free_vars_sp k sp =
+ *   let module S = Base.Set in
+ *   let fvc x = free_vars_val k x in
+ *   let fvcs x = free_vars_sp k x in
+ *   match sp with
+ *   | EmpSp -> fvs_empty
+ *   | AppSp (sp',u,_) ->
+ *     S.union (fvcs sp') (fvc u) *)
 

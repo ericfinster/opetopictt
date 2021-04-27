@@ -26,6 +26,7 @@ type icit =
 type nm_ict = (name * icit)
 type 'a decl = (name * icit * 'a)
 type 'a tele = ('a decl) suite
+type 'a judgmt = 'a tele * 'a 
 
 let pp_ict ppf ict =
   match ict with

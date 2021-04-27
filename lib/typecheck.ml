@@ -16,6 +16,8 @@ open Eval
 open Unify
 open Syntax
 
+(* open Opetopes.Idt *)
+       
 (* Monadic bind for errors in scope *)
 let (let*) m f = Base.Result.bind m ~f
 
@@ -123,8 +125,7 @@ type typing_error = [
   | `NameNotInScope of name
   | `IcityMismatch of icit * icit
   | `TypeMismatch of string
-  | `PastingError of string
-  | `FullnessError of string
+  | `InvalidShape of string
   | `NotImplemented of string
   | `BadCohQuot of string
   | `InvalidCylinder of string
@@ -218,9 +219,9 @@ and infer gma expr =
     let* b' = check (bind gma nm (eval gma.top gma.loc a')) b TypV in
     Ok (PiT (nm,ict,a',b') , TypV)
 
-  | OpTypE (a,_) ->
-    let* a' = check gma a TypV in 
-    Ok (TypT, TypV)
+      (* | CellE ((tl,typ),frm) -> *)
+  | CellE _ -> 
+    failwith "CellE"
 
   | TypE -> Ok (TypT , TypV)
 

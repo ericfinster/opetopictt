@@ -10,8 +10,9 @@ open Syntax
 open Suite
 
 open Opetopes.Idt
+open IdtConv
 open Opetopes.Complex
-       
+
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
@@ -27,13 +28,7 @@ type expr =
   | TypE
 
   (* Opetopic Expressions *)
-  | CellE of expr * tr_expr suite 
-
-and tr_expr =
-  | Unit
-  | Expr of expr
-  | Leaf of tr_expr
-  | Node of tr_expr * tr_expr
+  | CellE of expr judgmt * (expr suite * expr option) tr_expr suite 
 
 (* This probably belongs elsewhere .... *)
 type defn =
@@ -43,68 +38,17 @@ type defn =
 (*                          Parsing Tree Expressions                         *)
 (*****************************************************************************)
 
-let parse_unit (t : tr_expr) : unit =
-  match t with
-  | Unit -> ()
-  | _ -> failwith "not a unit"
-
-let parse_expr (t : tr_expr) : expr =
-  match t with
-  | Expr e -> e
-  | _ -> failwith "not an expression"
-
-let rec parse_tr_expr : 'a 'b. tr_expr
-  -> (tr_expr -> 'b)
-  -> (tr_expr -> 'a)
-  -> ('a,'b) idt = fun t lf nd -> 
-  match t with
-  | Unit -> failwith ""
-  | Expr _ -> failwith ""
-  | Leaf t -> Lf (lf t)
-  | Node (a,sh) ->
-    let parse_shell t =
-      parse_tr_expr t lf nd in 
-    let a' = nd a in
-    let sh' = parse_tr_expr sh parse_unit parse_shell
-    in Nd (a',sh')
-
-let to_expr_nst (t : tr_expr) : expr nst =
-  parse_tr_expr t parse_expr parse_expr
-
-let rec from_idt : 'a 'b. ('a, 'b) idt
-  -> ('b -> tr_expr)
-  -> ('a -> tr_expr)
-  -> tr_expr = fun t lf nd ->
-  match t with
-  | Lf b -> lf b
-  | Nd (a,sh) ->
-    let sh_expr = from_idt sh
-        (fun _ -> Unit)
-        (fun br -> from_idt br lf nd) in 
-    Node (nd a , sh_expr)
-
-let rec from_tr : 'a . 'a tr -> ('a -> tr_expr) -> tr_expr =
-  fun t f -> 
-  match t with
-  | Lf _ -> Leaf Unit
-  | Nd (a,sh) ->
-    Node (f a, from_tr sh (fun br -> from_tr br f))
-    
-let rec from_expr_nst (n : expr nst) : tr_expr =
-  let mk_expr e = Expr e in 
-  from_idt n mk_expr mk_expr
-
-let rec to_cmplx (s : tr_expr suite) : expr cmplx =
+let rec to_cmplx (s : 'a tr_expr suite) : 'a cmplx =
   match s with
-  | Emp -> failwith "empty suite"
-  | Ext (Emp,t) -> Base (to_expr_nst t)
-  | Ext (s',t) ->  Adjoin (to_cmplx s', to_expr_nst t)
+  | Emp -> failwith "empty suite in to_cmplx"
+  | Ext (Emp,n) -> Base (to_nst n)
+  | Ext (s',n) ->  Adjoin (to_cmplx s', to_nst n)
 
-let rec from_cmplx (c : expr cmplx) : tr_expr suite =
+let rec of_cmplx (c : 'a cmplx) : 'a tr_expr suite =
   match c with
-  | Base n -> Ext (Emp, from_expr_nst n)
+  | Base n -> Ext (Emp, of_nst n)
   | Adjoin (frm,n) ->
-    Ext (from_cmplx frm, from_expr_nst n)
+    Ext (of_cmplx frm, of_nst n)
 
 (*****************************************************************************)
 (*                         Pretty Printing Raw Syntax                        *)
