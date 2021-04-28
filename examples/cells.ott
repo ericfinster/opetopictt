@@ -1,0 +1,18 @@
+#
+#  cells.ott - demonstrations of cells
+#
+
+let id (A : U) (a : A) : A = a
+
+let test₀ (A : U) : U = 
+  [ ⊢ A : U | lf { ○ } ]
+
+let test₁ (A : U) (B : A -> U) : U =
+  [ (a : A) ⊢ B a : U | lf { ○ } ]
+
+let arrow_test : U =
+  [ (A : U) (B : A -> U) (a : A) ⊢ B a : U
+  | nd { ● } (nd (lf { ● }) (lf tt)) 
+  | lf { ○ } ] 
+
+

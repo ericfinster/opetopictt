@@ -121,17 +121,32 @@ let insert gma m =
   | LamT (_,Impl,_) -> Ok (tm, ty)
   | _ -> insert' gma (Ok (tm, ty))
 
+(*****************************************************************************)
+(*                               Typing Errors                               *)
+(*****************************************************************************)
+           
 type typing_error = [
   | `NameNotInScope of name
   | `IcityMismatch of icit * icit
   | `TypeMismatch of string
   | `InvalidShape of string
   | `NotImplemented of string
-  | `BadCohQuot of string
-  | `InvalidCylinder of string
   | `InternalError
 ]
 
+let pp_error ppf e =
+  match e with
+  | `NameNotInScope nm -> Fmt.pf ppf "Name not in scope: %s" nm
+  | `IcityMismatch (_, _) -> Fmt.pf ppf "Icity mismatch"
+  | `TypeMismatch msg -> Fmt.pf ppf "%s" msg  
+  | `InvalidShape msg -> Fmt.pf ppf "Invalid shape: %s" msg
+  | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
+  | `InternalError -> Fmt.pf ppf "Internal Error"
+
+(*****************************************************************************)
+(*                             Typechecking Rules                            *)
+(*****************************************************************************)
+                            
 let rec check gma expr typ =
   (* let typ_tm = quote false gma.lvl typ in
    * let typ_expr = term_to_expr (names gma) typ_tm in
@@ -219,16 +234,50 @@ and infer gma expr =
     let* b' = check (bind gma nm (eval gma.top gma.loc a')) b TypV in
     Ok (PiT (nm,ict,a',b') , TypV)
 
-      (* | CellE ((tl,typ),frm) -> *)
-  | CellE _ -> 
-    failwith "CellE"
+  | CellE ((tl,ty,TypE),frm) ->
 
+    let open Opetopes.Idt in
+    let open Opetopes.Complex in 
+    let open IdtConv in 
+
+    let* frm' =
+      begin try
+          let frm' = to_cmplx frm in
+          let _ = validate_opetope frm' in
+          Ok frm'
+        with TreeExprError msg -> Error (`InvalidShape msg)
+           | ShapeError msg -> Error (`InvalidShape msg) 
+      end in
+    
+    let* (ttl,tty) = with_tele gma tl
+        (fun gma' _ ttl  ->
+           let* tty = check gma' ty TypV in
+           Ok (ttl,tty)) in 
+           
+    Ok (CellT ((ttl,tty,TypT),frm') , TypV)
+
+  | CellE _ -> Error `InternalError
+    
   | TypE -> Ok (TypT , TypV)
 
   | HoleE ->
     let a = eval gma.top gma.loc (fresh_meta ()) in
     let t = fresh_meta () in
     Ok (t , a)
+
+
+and with_tele : 'a . ctx -> expr tele
+  -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)
+  -> ('a,typing_error) Result.t = fun gma tl m ->
+  match tl with
+  | Emp -> m gma Emp Emp
+  | Ext (tl',(id,ict,ty)) ->
+    with_tele gma tl' (fun g tv tt ->
+        let* ty_tm = check g ty TypV in
+        let ty_val = eval g.top g.loc ty_tm in
+        m (bind g id ty_val)
+          (Ext (tv,(id,ict,ty_val)))
+          (Ext (tt,(id,ict,ty_tm))))
 
 
 let rec check_defs gma defs =

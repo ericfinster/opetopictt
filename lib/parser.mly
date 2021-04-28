@@ -36,7 +36,7 @@ sep_suite(X,S):
 non_empty_suite(X,S):
   | x = X
     { Ext (Emp,x) }
-  | s = sep_suite(X,S) S x = X
+  | s = non_empty_suite(X,S) S x = X
     { Ext (s,x) }
 
 tr_expr(V):
