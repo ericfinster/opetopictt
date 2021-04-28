@@ -11,8 +11,6 @@ open Value
 open Suite
 open Syntax
 
-open Opetopes.Complex
-       
 (*****************************************************************************)
 (*                                 Evaluation                                *)
 (*****************************************************************************)
@@ -35,11 +33,11 @@ let rec eval top loc tm =
   | AppT (u,v,ict) -> appV (eval top loc u) (eval top loc v) ict
   | PiT (nm,ict,u,v) -> PiV (nm, ict, eval top loc u, Closure (top,loc,v))
   | CellT (jdg,frm) ->
-    let vfrm = map_cmplx frm
-        ~f:(fun (ts, topt) ->
-            (map_suite ts ~f:(eval top loc),
-             Base.Option.map topt ~f:(eval top loc))) in 
-    CellV (TlClosure (top,loc,jdg), vfrm)
+    (* let vfrm = map_cmplx frm
+     *     ~f:(fun (ts, topt) ->
+     *         (map_suite ts ~f:(eval top loc),
+     *          Base.Option.map topt ~f:(eval top loc))) in  *)
+    CellV (TlClosure (top,loc,jdg), frm)
   | TypT -> TypV
   | MetaT m -> metaV m
   | InsMetaT m -> appLocV loc (metaV m)
@@ -93,20 +91,18 @@ and quote ufld k v =
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
   | LamV (nm,ict,cl) -> LamT (nm, ict, quote ufld (k+1) (cl $$ varV k))
   | PiV (nm,ict,u,cl) -> PiT (nm, ict, qc u, quote ufld (k+1) (cl $$ varV k))
-  | CellV (TlClosure (top,loc,(tl,typ)),frm) ->
+  | CellV (TlClosure (top,loc,(tl,tm,ty)),frm) ->
 
-    let (ttl,ttyp) = fold_accum_cont tl (loc,k)
-        (fun (nm,ict,ty) (loc',k') ->
-           ((nm,ict, quote ufld k' (eval top loc' ty)),
+    let (ttl,ttm,tty) = fold_accum_cont tl (loc,k)
+        (fun (nm,ict,typ) (loc',k') ->
+           ((nm,ict, quote ufld k' (eval top loc' typ)),
             (Ext (loc',varV k'),k'+1)))
-        (fun tl' (loc',k') -> (tl', quote ufld k' (eval top loc' typ))) in
+        (fun tl' (loc',k') ->
+           (tl',
+            quote ufld k' (eval top loc' tm),
+            quote ufld k' (eval top loc' ty))) in
     
-    let tfrm = map_cmplx frm
-        ~f:(fun (ts, topt) ->
-            (map_suite ts ~f:qc,
-             Base.Option.map topt ~f:qc)) in
-    
-    CellT ((ttl,ttyp),tfrm)
+    CellT ((ttl,ttm,tty),frm)
       
   | TypV -> TypT
 

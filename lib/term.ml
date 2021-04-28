@@ -24,7 +24,7 @@ type term =
   | LamT of name * icit * term
   | AppT of term * term * icit
   | PiT of name * icit * term * term
-  | CellT of term judgmt * (term suite * term option) cmplx
+  | CellT of term judgmt * occ cmplx
   | MetaT of mvar
   | InsMetaT of mvar
   | TypT
@@ -68,16 +68,12 @@ let rec term_to_expr nms tm =
     AppE (tte nms u, tte nms v, ict)
   | PiT (nm,ict,a,b) ->
     PiE (nm, ict, tte nms a, tte (Ext (nms,nm)) b)
-  | CellT ((tl,typ),frm) ->
-    let (etl, etyp) = fold_accum_cont tl Emp
-        (fun (nm,ict,ty) nms ->
-           ((nm,ict,term_to_expr nms ty),Ext (nms,nm)))
-        (fun tl' nms -> (tl', term_to_expr nms typ)) in 
-    let efrm = map_cmplx frm
-        ~f:(fun (ts,topt) ->
-            (map_suite ts ~f:(tte nms),
-             Option.map topt ~f:(tte nms))) in 
-    CellE ((etl,etyp), of_cmplx efrm)
+  | CellT ((tl,tm,ty),frm) ->
+    let (etl, etm, ety) = fold_accum_cont tl Emp
+        (fun (nm,ict,typ) nms ->
+           ((nm,ict,term_to_expr nms typ),Ext (nms,nm)))
+        (fun etl nms -> (etl, term_to_expr nms tm, term_to_expr nms ty)) in 
+    CellE ((etl,etm,ety), of_cmplx frm)
   | MetaT _ -> HoleE
   (* Somewhat dubious, since we lose the implicit application ... *)
   | InsMetaT _ -> HoleE

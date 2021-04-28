@@ -23,7 +23,7 @@ type value =
   | TopV of name * spine * value
   | LamV of name * icit * closure
   | PiV of name * icit * value * closure
-  | CellV of tele_closure * (value suite * value option) cmplx
+  | CellV of tele_closure * occ cmplx
   | TypV
 
 and spine =

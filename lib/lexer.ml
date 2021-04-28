@@ -42,10 +42,11 @@ let rec token buf =
   | ":"          -> COLON
   | "="          -> EQUAL
   | "."          -> DOT
-  | ","          -> COMMA
   | "\\"         -> LAMBDA
   | 0x03bb       -> LAMBDA
   | 0x22a2       -> YIELDS
+  | 0x25cf       -> FULL
+  | 0x25cb       -> NONFULL 
   | "_"          -> HOLE
   | "U"          -> TYPE
   | "lf"         -> LF

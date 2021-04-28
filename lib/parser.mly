@@ -13,7 +13,8 @@
 %token ARROW HOLE 
 %token TYPE
 %token LF ND UNIT
-%token LBRKT RBRKT VBAR YIELDS COMMA
+%token LBRKT RBRKT VBAR YIELDS
+%token FULL NONFULL
 %token <string> IDENT
 %token EOF
 
@@ -60,13 +61,9 @@ defn:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
     { TermDef (id,tl,ty,tm) }
 
-expl_var_decl:
+var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
     { (id,Expl,ty) }
-
-var_decl:
-  | e = expl_var_decl
-    { e }
   | LBR id = IDENT COLON ty = expr RBR
     { (id,Impl,ty) }
 
@@ -75,18 +72,20 @@ tele:
     { tl } 
 
 jdgmt:
-  | tl = suite(expl_var_decl) YIELDS e = expr
-    { (tl,e) }
-
-term_over:
-  | base = sep_suite(expr,COMMA) YIELDS e = option(expr)
-    { (base,e) } 
+  | tl = tele YIELDS tm = expr COLON ty = expr
+    { (tl,tm,ty) }
 
 pi_head:
   | v = var_decl
     { v }
   | e = expr2
     { ("",Expl,e) }
+
+occ:
+  | FULL
+    { Full }
+  | NONFULL
+    { NonFull }
 
 expr: 
   | e = expr1
@@ -117,7 +116,7 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
-  | LBRKT j = jdgmt VBAR c = non_empty_suite(tr_expr(term_over),VBAR) RBRKT
+  | LBRKT j = jdgmt VBAR c = non_empty_suite(tr_expr(occ),VBAR) RBRKT
     { CellE (j,c) } 
   | LPAR t = expr RPAR
     { t }

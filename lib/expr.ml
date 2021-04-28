@@ -28,7 +28,7 @@ type expr =
   | TypE
 
   (* Opetopic Expressions *)
-  | CellE of expr judgmt * (expr suite * expr option) tr_expr suite 
+  | CellE of expr judgmt * occ tr_expr suite 
 
 (* This probably belongs elsewhere .... *)
 type defn =
