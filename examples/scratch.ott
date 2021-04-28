@@ -1,0 +1,49 @@
+#
+#  An example expansion 
+#
+
+(a : A) (b : B a) ⊢ C a b
+
+[
+ ~> Nd (2, Nd (Nd (1, Nd (Lf 0, Lf ())), Lf ()))
+ |> Nd (5, Nd (Lf 4, Nd (Nd (Lf 3, Nd (Lf (), Lf ())), Lf ())))
+ |> Lf 6;
+ ~> Nd (2, Nd (Lf 0, Lf ()))
+ |> Lf 5;
+ ~> Nd (2, Nd (Lf 1, Lf ()))
+ |> Lf 4;
+ ~> Nd (1, Nd (Lf 0, Lf ()))
+ |> Lf 3;
+ ~> Lf 2;
+ ~> Lf 1;
+ ~> Lf 0
+]
+
+# Now we are going to proceed by the sub telescopes
+
+1. ∙ ⊢ A
+
+(a₀ : A) (a₁ : A) (a₂ : A)
+(a₃ : [ ∙ ⊢ A | arrow ] a₀ a₁)
+(a₄ : [ ∙ ⊢ A | arrow ] a₁ a₂)
+(a₅ : [ ∙ ⊢ A | arrow ] a₀ a₂)
+(a₆ : [ ∙ ⊢ A | simplex ] a₀ a₁ a₂ a₃ a₄ a₅)
+
+2. (a : A) ⊢ B a
+
+(b₀ : B a₀) (b₁ : B a₁) (b₂ : B a₂)
+(b₃ : [ (a : A) ⊢ B a | arrow ] a₀ a₁ a₃ b₀ b₁)
+(b₄ : [ (a : A) ⊢ B a | arrow ] a₁ a₂ a₄ b₁ b₂)
+(b₅ : [ (a : A) ⊢ B a | arrow ] a₀ a₂ a₅ b₀ b₂)
+(b₆ : [ (a : A) ⊢ B a | simplex ] a₀ a₁ a₂ a₃ a₄ a₅ a₆ b₀ b₁ b₂ b₃ b₄ b₅)
+
+3. (a : A) (b : B a) ⊢ C a b
+
+(c₀ : C a₀ b₀) (c₁ : C a₁ b₁) (c₂ : C a₂ b₂)
+(c₃ : [ (a : A) (b : B a) ⊢ C a b | arrow ] a₀ a₁ a₃ b₀ b₁ b₃ c₀ c₁)
+(c₄ : [ (a : A) (b : B a) ⊢ C a b | arrow ] a₁ a₂ a₄ b₁ b₂ b₄ c₁ c₂)
+(c₅ : [ (a : A) (b : B a) ⊢ C a b | arrow ] a₀ a₂ a₅ b₀ b₂ b₅ c₀ c₂)
+(c₆ : [ (a : A) (b : B a) ⊢ C a b | simplex ]
+  a₀ a₁ a₂ a₃ a₄ a₅ a₆
+  b₀ b₁ b₂ b₃ b₄ b₅ b₆
+  c₀ c₁ c₂ c₃ c₄ c₅)

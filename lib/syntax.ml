@@ -56,7 +56,19 @@ let pp_tele pp_el ppf tl =
     | Expl -> Fmt.pf ppf "(%s : %a)" nm pp_el t
     | Impl -> Fmt.pf ppf "{%s : %a}" nm pp_el t
   in pp_suite pp_trpl ppf tl
+
+(*****************************************************************************)
+(*                             Logging functions                             *)
+(*****************************************************************************)
+
+let log_msg ?idt:(i=0) (s : string) =
+  let indt = String.make i ' ' in 
+  Fmt.pr "@[<v>%s@,@]" (indt ^ s)
     
+let log_val ?idt:(i=0) (s : string) (a : 'a) (pp : 'a Fmt.t) =
+  let indt = String.make i ' ' in 
+  Fmt.pr "@[<v>%s: @[%a@]@,@]" (indt ^ s) pp a
+
 (*****************************************************************************)
 (*                               Generic Syntax                              *)
 (*****************************************************************************)

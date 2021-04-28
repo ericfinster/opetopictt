@@ -15,4 +15,3 @@ let arrow_test : U =
   | nd { ● } (nd (lf { ● }) (lf tt)) 
   | lf { ○ } ] 
 
-

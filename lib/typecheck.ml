@@ -95,9 +95,9 @@ let dump_ctx ufld gma =
     (pp_suite (parens (pair ~sep:(any " : ") string pp_term))) tl
 
 (*****************************************************************************)
-(*                                Typechecking                               *)
+(*                          Meta Variable Utilities                          *)
 (*****************************************************************************)
-
+    
 let fresh_meta _ =
   let mctx = ! metacontext in
   let m = ! next_meta in
@@ -143,6 +143,27 @@ let pp_error ppf e =
   | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
+(*****************************************************************************)
+(*                              Opetopic Typing                              *)
+(*****************************************************************************)
+
+open Opetopes.Idt
+open Opetopes.Complex
+
+let rec tele_prefixes (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
+    match tl with
+    | Emp -> Ext (Emp, (Emp, ty))
+    | Ext (tl',(_,_,lty)) ->
+      let pfxs = tele_prefixes tl' lty in
+      let new_pr = (tl , ty) in
+      Ext (pfxs, new_pr)
+
+(* let opetopic_tele (tl : term tele) (ty : term) (frm : occ cmplx) : term tele =
+ * 
+ *   let _ = faces frm in
+ * 
+ *   tl *)
+  
 (*****************************************************************************)
 (*                             Typechecking Rules                            *)
 (*****************************************************************************)
@@ -236,10 +257,12 @@ and infer gma expr =
 
   | CellE ((tl,ty,TypE),frm) ->
 
-    let open Opetopes.Idt in
-    let open Opetopes.Complex in 
     let open IdtConv in 
 
+    let pfxs = tele_prefixes tl ty in
+    log_val "pfxs" pfxs (vbox (pp_suite ~sep:Fmt.cut
+                           (Fmt.pair ~sep:(any " |- ") (hbox (pp_tele pp_expr)) pp_expr)));
+    
     let* frm' =
       begin try
           let frm' = to_cmplx frm in
