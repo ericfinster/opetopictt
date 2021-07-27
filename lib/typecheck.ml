@@ -98,8 +98,9 @@ let dump_ctx ufld gma =
 type typing_error = [
   | `NameNotInScope of name
   | `TypeMismatch of string
-  | `InvalidShape of string
   | `NotImplemented of string
+  | `ExpectedFunction of expr
+  | `InferenceFailed of expr 
   | `InternalError
 ]
 
@@ -108,15 +109,23 @@ let pp_error ppf e =
   | `NameNotInScope nm -> Fmt.pf ppf "Name not in scope: %s" nm
   | `IcityMismatch (_, _) -> Fmt.pf ppf "Icity mismatch"
   | `TypeMismatch msg -> Fmt.pf ppf "%s" msg  
-  | `InvalidShape msg -> Fmt.pf ppf "Invalid shape: %s" msg
   | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
+  | `ExpectedFunction e -> Fmt.pf ppf "The expresion %a was expected to be a function type" pp_expr e
+  | `InferenceFailed e -> Fmt.pf ppf "Could not infer the type of %a" pp_expr e
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
 
 (*****************************************************************************)
 (*                             Typechecking Rules                            *)
 (*****************************************************************************)
-                            
+
+let rec extract_pi (g: ctx) (v: value) =
+  match v with
+  | PiV (_,a,b) -> Ok (a, b)
+  | TopV (_,_,v') -> extract_pi g v'
+  | _ -> let e = term_to_expr (names g) (quote false g.lvl v) in 
+    Error (`ExpectedFunction e) 
+
 let rec check gma expr typ =
   (* let typ_tm = quote false gma.lvl typ in
    * let typ_expr = term_to_expr (names gma) typ_tm in
@@ -131,21 +140,23 @@ let rec check gma expr typ =
     let* bdy = check (bind gma nm a) e (b $$ varV gma.lvl) in
     Ok (LamT (nm,bdy))
 
-  (* Going to need to work on this part ... *)
   | (e, expected) ->
     let* (e',inferred) = infer gma e in
-    if (Poly.(=) expected inferred) then
-      Ok e'
-    else
-      let nms = names gma in
-         let inferred_nf = term_to_expr nms (quote false gma.lvl inferred) in
-         let expected_nf = term_to_expr nms (quote true gma.lvl expected) in
-      let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
-                                str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_expr inferred_nf;
-                                str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
-                                 pp_expr expected_nf ]
+    let nms = names gma in
+    let inferred_nf = term_to_expr nms (quote true gma.lvl inferred) in
+    let expected_nf = term_to_expr nms (quote true gma.lvl expected) in
+
+    if (Poly.(<>) expected_nf inferred_nf)
+       
+    then let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
+                                   str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_expr inferred_nf;
+                                   str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
+                                     pp_expr expected_nf ]
 
       in Error (`TypeMismatch msg)
+        
+    else Ok e'
+
 
 
 and infer gma expr =
@@ -164,13 +175,9 @@ and infer gma expr =
 
   | AppE (u,v) -> 
     let* (u',ut) = infer gma u in
-    begin match ut with
-      | PiV (_,a,b) ->
-        let* v' = check gma v a in
-        Ok (AppT (u', v') , b $$ eval gma.top gma.loc v')
-      (* not a function type ...*)
-      | _ -> Error `InternalError
-    end
+    let* (a,b) = extract_pi gma ut in
+    let* v' = check gma v a in
+    Ok (AppT (u', v') , b $$ eval gma.top gma.loc v')
 
   | PiE (nm,a,b) ->
     let* a' = check gma a TypV in
@@ -180,7 +187,7 @@ and infer gma expr =
   | TypE -> Ok (TypT , TypV)
 
   (* inferrence failed *)
-  | _ -> Error `InternalError
+  | _ -> Error (`InferenceFailed expr)
 
 and with_tele : 'a . ctx -> expr tele
   -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)

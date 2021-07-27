@@ -4,19 +4,19 @@
 
 let id (A : U) (a : A) : A = a
 
-let Eq : (A : U) -> A -> A -> U
-  = λ A. λ x. λ y. (P : A -> U) -> P x -> P y
+let Eq : (A : U) → A → A → U
+  = λ A. λ x. λ y. (P : A → U) → P x → P y
 
-let refl : (A : U) -> (x : A) -> Eq A x x
+let refl : (A : U) → (x : A) → Eq A x x
   = λ A. λ x. λ P. λ px. px
 
 let Nat : U
-  = (A : U) -> A -> (A -> A) -> A
+  = (A : U) → A → (A → A) → A
 
 let zero : Nat
   = \A. \zero. \succ. zero
 
-let succ : Nat -> Nat
+let succ : Nat → Nat
   = \n. \A. \zero. \succ. succ (n A zero succ)
 
 let one : Nat

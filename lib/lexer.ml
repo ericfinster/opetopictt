@@ -35,6 +35,7 @@ let rec token buf =
 
   | "let"        -> LET
   | "->"         -> ARROW
+  | 0x2192       -> ARROW 
   | "("          -> LPAR
   | ")"          -> RPAR
   | ":"          -> COLON
