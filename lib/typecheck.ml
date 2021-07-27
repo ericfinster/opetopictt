@@ -153,17 +153,39 @@ open Opetopes.Complex
 let rec tele_prefixes (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
     match tl with
     | Emp -> Ext (Emp, (Emp, ty))
-    | Ext (tl',(_,_,lty)) ->
-      let pfxs = tele_prefixes tl' lty in
+    | Ext (tl',(_,_,ty')) ->
+      let pfxs = tele_prefixes tl' ty' in
       let new_pr = (tl , ty) in
       Ext (pfxs, new_pr)
 
-(* let opetopic_tele (tl : term tele) (ty : term) (frm : occ cmplx) : term tele =
- * 
- *   let _ = faces frm in
- * 
- *   tl *)
-  
+module OpetopicUtils (S : Syntax) = struct
+
+  open S
+  open SyntaxUtil(S)
+
+  let opetopic_tele (tl : s tele) (ty : s) (frm : occ cmplx) : s tele =
+
+    let _ = faces (numerate frm) in
+    let _ = ty in
+
+    let tl_args tl = Suite.map_with_idx tl
+        ~f:(fun (_,ict,_) i -> (ict, VarT i)) in 
+
+    let do_tl op_tl tl ty =
+      let do_face f =
+        let typ =
+          if (is_base f) then
+            let open TermUtil in
+            let args = Suite.map_suite tl
+                ~f:(fun (nm,ict,_) -> (ict, VarT (level_of op_tl nm))) in 
+            app_args (abstract_tele tl ty) args
+          else CellT ((tl,ty,TypT), map_cmplx f ~f:(fun _ -> Full))
+        in f
+      in ()
+    in tl
+
+end
+
 (*****************************************************************************)
 (*                             Typechecking Rules                            *)
 (*****************************************************************************)

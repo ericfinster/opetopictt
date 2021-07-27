@@ -104,5 +104,13 @@ module SyntaxUtil(Syn : Syntax) = struct
       (fun (nm,ict,ty) (ty',tm') ->
         (pi nm ict ty ty', lam nm ict tm'))
 
+  let rec level_of tl nm =
+    match tl with
+    | Emp -> raise Lookup_error
+    | Ext (tl',(nm',_,_)) ->
+      if (String.(=) nm nm') then
+        Suite.length tl'
+      else level_of tl' nm 
+  
 end
 

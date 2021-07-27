@@ -62,6 +62,14 @@ let map_with_lvl s ~f =
       (Ext (r,f l x),l+1)
   in fst (go s)
 
+let map_with_idx s ~f =
+  let rec go s i =
+    match s with
+    | Emp -> Emp
+    | Ext (s',x) ->
+      Ext (go s' (i+1), f x i)
+  in go s 0 
+
 let rec filter s f =
   match s with
   | Emp -> Emp
