@@ -20,5 +20,5 @@
  (name opetopictt)
  (public_name opetopictt)
  (synopsis "Core routines for generic type theory")
- (libraries base fmt menhirLib sedlex opetopes)
+ (libraries base fmt menhirLib sedlex)
  (preprocess (pps sedlex.ppx)))
