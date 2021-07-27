@@ -4,45 +4,11 @@
 
 let id (A : U) (a : A) : A = a
 
-let id2 {A : U} : A -> A = \a. a
+let Eq : (A : U) -> A -> A -> U
+  = λ A. λ x. λ y. (P : A -> U) -> P x -> P y
 
-let const {A : U} {B : U} : A -> B -> A
-  = \a.\b.a
-
-let argTest1 : U -> U = const {U} {U} U
-
-let List : U -> U
-  = \A. (L : U) -> (A -> L -> L) -> L -> L
-
-let nil : (A : _) -> List A
-  = \A. \L. \cons. \nil. nil
-
-let cons : (A : U) -> A -> List A -> List A
-  = \A. \x. \xs. \L. \cons. \nil. cons x (xs _ cons nil)
-
-let Bool : U
-  = (B : _) -> B -> B -> B
-
-let true : Bool
-  = \B. \t. \f. t
-
-let false : Bool
-  = \B. \t. \f. f
-
-let not : Bool -> Bool
-  = \b. \B. \t. \f. b B f t
-
-let Eq : (A : _) -> A -> A -> U
-  = \A. \x. \y. (P : A -> U) -> P x -> P y
-
-let refl : (A : _) -> (x : A) -> Eq A x x
-  = \A. \x. \P. \px. px
-
-let list1 : List Bool
-  = cons _ (id _ true) (nil _)
-
-let list2 : List Bool
-  = cons _ true (cons _ false (nil _))
+let refl : (A : U) -> (x : A) -> Eq A x x
+  = λ A. λ x. λ P. λ px. px
 
 let Nat : U
   = (A : U) -> A -> (A -> A) -> A
