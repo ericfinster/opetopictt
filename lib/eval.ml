@@ -28,26 +28,45 @@ let rec eval top loc tm =
       with Lookup_error ->
         raise (Eval_error (str "Unknown id during eval: %s" nm))
     ))
-  | LamT (nm,u) -> LamV (nm, Closure (top,loc,u))
+  | LamT (nm,u) -> LamV (nm, fun vl -> eval top (Ext (loc,vl)) u)
   | AppT (u,v) -> appV (eval top loc u) (eval top loc v) 
-  | PiT (nm,u,v) -> PiV (nm, eval top loc u, Closure (top,loc,v))
+  | PiT (nm,u,v) -> PiV (nm, eval top loc u, fun vl -> eval top (Ext (loc,vl)) v)
+  | PosT -> PosV
+  | ElT t -> ElV (eval top loc t) 
   | TypT -> TypV
-
-and ($$) c v =
-  match c with
-  | Closure (top,loc,tm) -> eval top (Ext (loc,v)) tm
 
 and appV t u =
   match t with
   | RigidV (i,sp) -> RigidV (i,AppSp(sp,u))
   | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u),appV tv u)
-  | LamV (_,cl) -> cl $$ u
+  | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
 and runSpV v sp =
   match sp with
   | EmpSp -> v
   | AppSp (sp',u) -> appV (runSpV v sp') u 
+
+
+(*****************************************************************************)
+(*                        Type Directed eta Expansion                        *)
+(*****************************************************************************)
+
+(* It seems we'll lose the names doing this.  And so on ... *)
+(* Indeed, I would guess that the variables now get kind of unhinged
+   from the original settings.  Have to think about this. *)
+                       
+let rec up (t: value) (v: value) : value =
+  match t with
+  | PiV (nm,a,b) -> LamV (nm, fun vl -> up (b vl) (appV v (down a vl)))
+  | _ -> v 
+
+and down (t: value) (v: value) : value =
+  match t with 
+  | PiV (nm,a,b) ->
+    LamV (nm, fun vl ->
+        let vl' = up a vl in down (b vl') (appV v vl'))
+  | _ -> v
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
@@ -60,8 +79,10 @@ and quote ufld k v =
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
-  | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl $$ varV k))
-  | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl $$ varV k))
+  | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
+  | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
+  | PosV -> PosT
+  | ElV v -> ElT (qc v)
   | TypV -> TypT
 
 and quote_sp ufld k t sp =

@@ -7,8 +7,8 @@
 
 %token LET LAMBDA COLON EQUAL DOT
 %token LPAR RPAR 
-%token ARROW 
-%token TYPE
+%token TYPE ARROW 
+%token POS EL ARROWPOS TIMESPOS
 %token <string> IDENT
 %token EOF
 
@@ -68,6 +68,10 @@ expr1:
     { LamE (id,e) }
   | hd = pi_head ARROW cod = expr1
     { let (nm,dom) = hd in PiE (nm,dom,cod) }
+  | hd = pi_head ARROWPOS cod = expr1
+    { let (nm,dom) = hd in PosPiE (nm,dom,cod) }
+  | hd = pi_head TIMESPOS cod = expr1
+    { let (nm,dom) = hd in PosSigE (nm,dom,cod) }
 
 expr2:
   | e = expr3
@@ -78,6 +82,10 @@ expr2:
 expr3:
   | TYPE
     { TypE }
+  | POS
+    { PosE }
+  | EL e = expr3
+    { ElE e }
   | id = IDENT
     { VarE id }
   | LPAR t = expr RPAR

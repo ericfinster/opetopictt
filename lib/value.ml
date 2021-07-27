@@ -5,7 +5,6 @@
 (*****************************************************************************)
 
 open Fmt
-open Term
 open Suite
 open Syntax
        
@@ -16,10 +15,12 @@ open Syntax
 type value =
 
   (* Primitives *)
-  | RigidV of lvl * spine   (* A term stuck because head is bound variable *)
+  | RigidV of lvl * spine  
   | TopV of name * spine * value
-  | LamV of name * closure
-  | PiV of name * value * closure
+  | LamV of name * (value -> value) 
+  | PiV of name * value * (value -> value) 
+  | PosV
+  | ElV of value 
   | TypV
 
 and spine =
@@ -28,8 +29,6 @@ and spine =
 
 and top_env = (name * value) suite
 and loc_env = value suite
-and closure =
-  | Closure of top_env * loc_env * term
 
 let varV k = RigidV (k,EmpSp)
 
@@ -43,11 +42,13 @@ let rec pp_value ppf v =
   | RigidV (i,sp) -> pf ppf "%d %a" i pp_spine sp
   | TopV (nm,sp,_) ->
     pf ppf "%s %a" nm pp_spine sp
-  | LamV (nm,Closure (_,_,bdy)) ->
-    pf ppf "\\%s.<%a>" nm pp_term bdy
-  | PiV (nm,a,Closure (_,_,bdy)) ->
-    pf ppf "(%s : %a) -> <%a>" nm
-      pp_value a pp_term bdy
+  | LamV (nm,_) ->
+    pf ppf "\\%s.<closure>" nm 
+  | PiV (nm,a,_) ->
+    pf ppf "(%s : %a) -> <closure>"
+      nm pp_value a 
+  | PosV -> pf ppf "Pos"
+  | ElV v -> pf ppf "El %a" pp_value v 
   | TypV -> pf ppf "U"
 
 and pp_spine ppf sp =

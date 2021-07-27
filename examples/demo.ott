@@ -14,11 +14,12 @@ let Nat : U
   = (A : U) → A → (A → A) → A
 
 let zero : Nat
-  = \A. \zero. \succ. zero
+  = λ A. λ zero. λ succ. zero
 
 let succ : Nat → Nat
-  = \n. \A. \zero. \succ. succ (n A zero succ)
+  = λ n. λ A. λ zero. λ succ. succ (n A zero succ)
 
 let one : Nat
   = succ (zero)
+
 

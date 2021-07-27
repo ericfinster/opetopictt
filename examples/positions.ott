@@ -1,0 +1,15 @@
+#
+#  positions.ott - testing the position universe
+#
+
+let pos : U
+  = Pos 
+
+let el (P : Pos) : U
+  = El P 
+
+let π (P : Pos) (X : El P → U) : U
+  = (p : P) →ₚ X p 
+
+let σ (P : Pos) (X : El P → Pos) : Pos
+  = (p : P) ×ₚ X p 

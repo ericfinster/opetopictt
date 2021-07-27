@@ -22,6 +22,10 @@ type term =
   | LamT of name * term
   | AppT of term * term 
   | PiT of name * term * term
+           
+  | PosT
+  | ElT of term
+      
   | TypT
 
 (*****************************************************************************)
@@ -40,6 +44,8 @@ let rec term_to_expr nms tm =
     AppE (tte nms u, tte nms v)
   | PiT (nm,a,b) ->
     PiE (nm, tte nms a, tte (Ext (nms,nm)) b)
+  | PosT -> PosE
+  | ElT t -> ElE (tte nms t)
   | TypT -> TypE
 
 (*****************************************************************************)
@@ -95,5 +101,9 @@ let rec pp_term ppf tm =
   | PiT (nm,a,p) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_term a pp_term p
+      
+  | PosT -> pf ppf "Pos"
+  | ElT t -> pf ppf "El %a" pp_term t 
+
   | TypT -> pf ppf "U"
 

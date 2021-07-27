@@ -18,6 +18,10 @@ let subscripts = [%sedlex.regexp? 0x2080 .. 0x208E | 0x2090 .. 0x209C ]
 let letter = [%sedlex.regexp? 'a'..'z'|'A'..'Z'|greek_lower|greek_upper]
 let ident = [%sedlex.regexp? letter, Star (letter | subscripts | '_' | '-' | digit)]
 
+let arrow = [%sedlex.regexp? 0x2192 ] 
+let arrowpos = [%sedlex.regexp? 0x2192 , 0x209A ] 
+let timespos = [%sedlex.regexp? 0xD7 , 0x209A ] 
+
 exception Lexing_error of ((int * int) option * string)
 
 let get_lexing_position lexbuf =
@@ -35,7 +39,9 @@ let rec token buf =
 
   | "let"        -> LET
   | "->"         -> ARROW
-  | 0x2192       -> ARROW 
+  | arrow        -> ARROW
+  | arrowpos     -> ARROWPOS
+  | timespos     -> TIMESPOS 
   | "("          -> LPAR
   | ")"          -> RPAR
   | ":"          -> COLON
@@ -43,6 +49,8 @@ let rec token buf =
   | "."          -> DOT
   | "\\"         -> LAMBDA
   | 0x03bb       -> LAMBDA
+  | "Pos"        -> POS
+  | "El"         -> EL 
   | "U"          -> TYPE
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)

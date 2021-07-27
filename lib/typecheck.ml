@@ -14,7 +14,6 @@ open Value
 open Eval
 open Syntax
 
-       
 (* Monadic bind for errors in scope *)
 let (let*) m f = Base.Result.bind m ~f
 
@@ -111,7 +110,7 @@ let pp_error ppf e =
   | `TypeMismatch msg -> Fmt.pf ppf "%s" msg  
   | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
   | `ExpectedFunction e -> Fmt.pf ppf "The expresion %a was expected to be a function type" pp_expr e
-  | `InferenceFailed e -> Fmt.pf ppf "Could not infer the type of %a" pp_expr e
+  | `InferenceFailed e -> Fmt.pf ppf "Could not infer the type of @[%a@]" pp_expr e
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
 
@@ -137,7 +136,7 @@ let rec check gma expr typ =
     check gma e tv
 
   | (LamE (nm,e) , PiV (_,a,b))  ->
-    let* bdy = check (bind gma nm a) e (b $$ varV gma.lvl) in
+    let* bdy = check (bind gma nm a) e (b (varV gma.lvl)) in
     Ok (LamT (nm,bdy))
 
   | (e, expected) ->
@@ -158,7 +157,6 @@ let rec check gma expr typ =
     else Ok e'
 
 
-
 and infer gma expr =
   (* pr "@[<v>Inferring type of: @[%a@]@,@]"
    *   pp_expr_with_impl expr ; *)
@@ -177,7 +175,7 @@ and infer gma expr =
     let* (u',ut) = infer gma u in
     let* (a,b) = extract_pi gma ut in
     let* v' = check gma v a in
-    Ok (AppT (u', v') , b $$ eval gma.top gma.loc v')
+    Ok (AppT (u', v') , b (eval gma.top gma.loc v'))
 
   | PiE (nm,a,b) ->
     let* a' = check gma a TypV in
@@ -185,6 +183,10 @@ and infer gma expr =
     Ok (PiT (nm,a',b') , TypV)
 
   | TypE -> Ok (TypT , TypV)
+  | PosE -> Ok (PosT , TypV) 
+  | ElE p ->
+    let* p' = check gma p PosV in
+    Ok (ElT p' , TypV) 
 
   (* inferrence failed *)
   | _ -> Error (`InferenceFailed expr)
@@ -201,7 +203,6 @@ and with_tele : 'a . ctx -> expr tele
         m (bind g id ty_val)
           (Ext (tv,(id,ty_val)))
           (Ext (tt,(id,ty_tm))))
-
 
 let rec abstract_tele_with_type (tl : expr tele) (ty : expr) (tm : expr) =
   match tl with

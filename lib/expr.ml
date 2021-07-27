@@ -19,6 +19,12 @@ type expr =
   | LamE of name * expr
   | AppE of expr * expr 
   | PiE of name * expr * expr
+           
+  | PosE
+  | ElE of expr
+  | PosPiE of name * expr * expr 
+  | PosSigE of name * expr * expr 
+
   | TypE
 
 (* This probably belongs elsewhere .... *)
@@ -52,19 +58,25 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
         parens ppe
       else ppe in
     pf ppf "%a@, %a" ppe u pp_v v
-  | PiE (nm,a,b) when Poly.(=) nm "" ->
+  | PiE (nm,a,b) when String.(=) nm "" ->
     let pp_a = if (is_pi a) then
         parens ppe
       else ppe in
-    pf ppf "%a -> %a"
+    pf ppf "%a \u{2192} %a"
       pp_a a ppe b
   | PiE (nm,dom,cod) ->
     if (is_pi cod) then
       pf ppf "(%s : %a)@, %a" nm
         ppe dom ppe cod
     else
-      pf ppf "(%s : %a)@, -> %a" nm
+      pf ppf "(%s : %a)@, \u{2192} %a" nm
         ppe dom ppe cod
+  | PosE -> string ppf "Pos"
+  | ElE p -> pf ppf "El %a" ppe p
+  | PosPiE (nm,a,b) ->
+    pf ppf "(%s : %a)@, \u{2192}\u{209A} %a" nm ppe a ppe b 
+  | PosSigE (nm,a,b) ->
+    pf ppf "(%s : %a)@, \u{D7}\u{209A} %a" nm ppe a ppe b 
   | TypE -> string ppf "U"
     
 (*****************************************************************************)
