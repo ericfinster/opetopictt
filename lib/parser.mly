@@ -9,6 +9,8 @@
 %token LPAR RPAR 
 %token TYPE ARROW 
 %token POS EL ARROWPOS TIMESPOS
+%token COMMA SUM UNITPOS EMPTYPOS
+%token TTPOS INLPOS INRPOS LAMBDAPOS
 %token <string> IDENT
 %token EOF
 
@@ -60,12 +62,18 @@ pi_head:
 expr: 
   | e = expr1
     { e }
+  | e = expr1 COMMA f = expr
+    { PosPairE (e,f) }
+  | e = expr2 SUM f = expr
+    { PosSumE (e,f) } 
 
 expr1:
   | e = expr2
     { e }
   | LAMBDA id = IDENT DOT e = expr1
     { LamE (id,e) }
+  | LAMBDAPOS id = IDENT DOT e = expr1
+    { PosLamE (id,e) } 
   | hd = pi_head ARROW cod = expr1
     { let (nm,dom) = hd in PiE (nm,dom,cod) }
   | hd = pi_head ARROWPOS cod = expr1
@@ -84,8 +92,18 @@ expr3:
     { TypE }
   | POS
     { PosE }
+  | UNITPOS
+    { PosUnitE }
+  | EMPTYPOS
+    { PosEmptyE }
+  | TTPOS
+    { PosTtE } 
   | EL e = expr3
     { ElE e }
+  | INLPOS e = expr3
+    { PosInlE e }
+  | INRPOS e = expr3
+    { PosInrE e }
   | id = IDENT
     { VarE id }
   | LPAR t = expr RPAR
