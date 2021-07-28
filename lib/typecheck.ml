@@ -125,6 +125,13 @@ let rec extract_pi (g: ctx) (v: value) =
   | _ -> let e = term_to_expr (names g) (quote false g.lvl v) in 
     Error (`ExpectedFunction e) 
 
+let rec extract_pos_pi (g: ctx) (v: value) =
+  match v with
+  | PosPiV (_,a,b) -> Ok (a, b)
+  | TopV (_,_,v') -> extract_pos_pi g v'
+  | _ -> let e = term_to_expr (names g) (quote false g.lvl v) in 
+    Error (`ExpectedFunction e) 
+
 let rec check gma expr typ =
   (* let typ_tm = quote false gma.lvl typ in
    * let typ_expr = term_to_expr (names gma) typ_tm in
@@ -159,6 +166,24 @@ let rec check gma expr typ =
     let* t = check (bind gma nm (ElV a)) e (b (varV gma.lvl)) in 
     Ok (PosLamT (nm, t))
 
+  | (PosBotElimE , PosPiV (_,PosEmptyV,_)) ->
+    Ok PosBotElimT
+
+  | (PosTopElimE u , PosPiV (_,PosUnitV,b)) ->
+    let* u' = check gma u (b PosTtV) in
+    Ok (PosTopElimT u')
+      
+  (* TODO: handle abstraction names *)
+  | (PosSumElimE (u, v) , PosPiV (nm, PosSumV (ut,vt), b)) ->
+    let* u' = check gma u (PosPiV (nm, ut , fun p -> b (PosInlV p))) in 
+    let* v' = check gma v (PosPiV (nm, vt , fun p -> b (PosInlV p))) in 
+    Ok (PosSumElimT (u',v'))
+      
+  (* TODO: handle abstraction names *)
+  | (PosSigElimE u , PosPiV (nm, PosSigV (snm, a , b), x)) ->
+    let* u' = check gma u (PosPiV (nm, a , fun p -> PosPiV (snm, b p , fun q -> x (PosPairV (p,q))))) in
+    Ok (PosSigElimT u') 
+  
   | (e, expected) ->
     let* (e',inferred) = infer gma e in
     let nms = names gma in
@@ -225,6 +250,11 @@ and infer gma expr =
     let* b' = check (bind gma nm (ElV (eval gma.top gma.loc a'))) b TypV in
     Ok (PosPiT (nm,a',b'), TypV)
 
+  | PosAppE (u, v) ->
+    let* (u',ut) = infer gma u in
+    let* (a, b) = extract_pos_pi gma ut in
+    let* v' = check gma v (ElV a) in
+    Ok (PosAppT (u',v') , b (eval gma.top gma.loc v'))
 
   (* inferrence failed *)
   | _ -> Error (`InferenceFailed expr)

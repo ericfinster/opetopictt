@@ -29,12 +29,10 @@ let inlpos = [%sedlex.regexp? "inl" , 0x209A ]
 let inrpos = [%sedlex.regexp? "inr" , 0x209A ]
 let lambdapos = [%sedlex.regexp? 0x3BB , 0x209A ]
 
-  
-(* %token POS EL ARROWPOS TIMESPOS
- * %token COMMA SUM UNITPOS EMPTYPOS
- * %token TTPOS INLPOS INRPOS LAMBDAPOS *)
-
-
+let topelim = [%sedlex.regexp? 0x22A4 , "-elim" ]
+let botelim = [%sedlex.regexp? 0x22A5 , "-elim" ]
+let sumelim = [%sedlex.regexp? 0x2294 , "-elim" ]
+let sigelim = [%sedlex.regexp? 0xD7 , "-elim" ]
 
 exception Lexing_error of ((int * int) option * string)
 
@@ -56,6 +54,7 @@ let rec token buf =
   | arrow        -> ARROW
   | arrowpos     -> ARROWPOS
   | timespos     -> TIMESPOS
+  | "@"          -> APPPOS
 
   | unitpos      -> UNITPOS
   | emptypos     -> EMPTYPOS
@@ -64,6 +63,11 @@ let rec token buf =
   | inlpos       -> INLPOS
   | inrpos       -> INRPOS
   | lambdapos    -> LAMBDAPOS 
+
+  | topelim      -> TOPELIM
+  | botelim      -> BOTELIM
+  | sumelim      -> SUMELIM 
+  | sigelim      -> SIGELIM
 
   | "("          -> LPAR
   | ")"          -> RPAR

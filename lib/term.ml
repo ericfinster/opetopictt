@@ -47,6 +47,45 @@ type term =
       
 
 (*****************************************************************************)
+(*                               Term equality                               *)
+(*****************************************************************************)
+
+let rec term_eq u v =
+  match (u, v) with
+  | (VarT i , VarT i') -> Int.equal i i'
+  | (TopT nm , TopT nm') -> String.equal nm nm'
+                            
+  | (LamT (_,u') , LamT (_, v')) -> term_eq u' v'
+  | (AppT (a,b) , AppT (a',b')) -> term_eq a a' && term_eq b b'
+  | (PiT (_,a,b) , PiT (_,a',b')) -> term_eq a a' && term_eq b b'
+  | (TypT , TypT) -> true 
+  
+  | (PosT , PosT) -> true
+  | (ElT p , ElT p') -> term_eq p p'
+                          
+  | (PosUnitT , PosUnitT) -> true
+  | (PosEmptyT , PosEmptyT) -> true
+  | (PosSumT (p,q) , PosSumT (p',q')) -> term_eq p p' && term_eq q q'
+  | (PosSigT (_,p,q) , PosSigT (_,p',q')) -> term_eq p p' && term_eq q q'
+  
+  | (PosTtT , PosTtT) -> true
+  | (PosInlT p , PosInlT p') -> term_eq p p'
+  | (PosInrT p , PosInrT p') -> term_eq p p'
+  | (PosPairT (p,q), PosPairT (p',q')) -> term_eq p p' && term_eq q q'
+                
+  | (PosPiT (_,p,q) , PosPiT (_,p',q')) -> term_eq p p' && term_eq q q'
+  | (PosLamT (_,p) , PosLamT (_,p')) -> term_eq p p'
+  | (PosAppT (p,q), PosAppT (p',q')) -> term_eq p p' && term_eq q q'
+  
+  | (PosBotElimT , PosBotElimT) -> true
+  | (PosTopElimT p , PosTopElimT p') -> term_eq p p'
+  | (PosSumElimT (p,q) , PosSumElimT (p',q')) -> term_eq p p' && term_eq q q'
+  | (PosSigElimT p , PosSigElimT p') -> term_eq p p'
+
+  | _ -> false 
+
+  
+(*****************************************************************************)
 (*                            Terms to Expressions                           *)
 (*****************************************************************************)
 

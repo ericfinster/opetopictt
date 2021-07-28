@@ -50,10 +50,10 @@ let app (P : Pos) (X : El P → U) (σ : (p : P) →ₚ X p) (p : El P) : X p
 
 # elim rules 
 
-let bot-elim (X : El ⊥ₚ → U) : (b : ⊥ₚ) →ₚ X
+let bot-elim (X : El ⊥ₚ → U) : (b : ⊥ₚ) →ₚ X b
   = ⊥-elim 
 
-let top-elim (X : El ⊤ₚ → U) (x : X ttₚ) : (u : ⊤ₚ) →ₚ X
+let top-elim (X : El ⊤ₚ → U) (x : X ttₚ) : (u : ⊤ₚ) →ₚ X u
   = ⊤-elim x
     
 let sum-elim (P : Pos) (Q : Pos)
@@ -63,8 +63,8 @@ let sum-elim (P : Pos) (Q : Pos)
   : (pq : P ⊔ₚ Q) →ₚ X pq
   = ⊔-elim l r 
 
-let sig-elim (P : Pos) (Q : El P → Pos)
-    (X : El (Σₚ P Q) → U)
-    (ϕ : (p : P) →ₚ (q : Q p) →ₚ X (p , q))
-  : (pq : Σₚ P Q) → X pq
-  = Σ-elim ϕ 
+# let sig-elim (P : Pos) (Q : El P → Pos)
+#     (X : El (Σₚ P Q) → U)
+#     (ϕ : (p : P) →ₚ (q : Q p) →ₚ X (p , q))
+#   : (pq : Σₚ P Q) → X pq
+#   = Σ-elim ϕ 
