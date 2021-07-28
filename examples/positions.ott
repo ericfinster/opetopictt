@@ -63,8 +63,8 @@ let sum-elim (P : Pos) (Q : Pos)
   : (pq : P ⊔ₚ Q) →ₚ X pq
   = ⊔-elim l r 
 
-# let sig-elim (P : Pos) (Q : El P → Pos)
-#     (X : El (Σₚ P Q) → U)
-#     (ϕ : (p : P) →ₚ (q : Q p) →ₚ X (p , q))
-#   : (pq : Σₚ P Q) → X pq
-#   = Σ-elim ϕ 
+let sig-elim (P : Pos) (Q : El P → Pos)
+    (X : El ((p : P) ×ₚ Q p) → U)
+    (σ : (p : P) →ₚ (q : Q p) →ₚ X (p , q))
+  : (pq : (p : P) ×ₚ Q p) →ₚ X pq
+  = ×-elim σ

@@ -135,7 +135,7 @@ let rec extract_pos_pi (g: ctx) (v: value) =
 let rec check gma expr typ =
   (* let typ_tm = quote false gma.lvl typ in
    * let typ_expr = term_to_expr (names gma) typ_tm in
-   * pr "Checking @[%a@] has type @[%a@]@," pp_expr_with_impl expr pp_expr_with_impl typ_expr ; *)
+   * pr "Checking @[%a@] has type @[%a@]@," pp_expr expr pp_expr typ_expr ; *)
 
   match (expr, typ) with
 
@@ -157,9 +157,9 @@ let rec check gma expr typ =
     let* v' = check gma v (ElV vt) in
     Ok (PosInlT v') 
 
-  | (PosPairE (u,v) , ElV (PosSigV (nm,a,b))) ->
+  | (PosPairE (u,v) , ElV (PosSigV (_,a,b))) ->
     let* u' = check gma u (ElV a) in
-    let* v' = check (bind gma nm (ElV a)) v (ElV (b (varV gma.lvl))) in
+    let* v' = check gma v (ElV (b (eval gma.top gma.loc u'))) in
     Ok (PosPairT (u',v')) 
 
   | (PosLamE (nm,e) , PosPiV (_,a,b)) ->
@@ -176,7 +176,7 @@ let rec check gma expr typ =
   (* TODO: handle abstraction names *)
   | (PosSumElimE (u, v) , PosPiV (nm, PosSumV (ut,vt), b)) ->
     let* u' = check gma u (PosPiV (nm, ut , fun p -> b (PosInlV p))) in 
-    let* v' = check gma v (PosPiV (nm, vt , fun p -> b (PosInlV p))) in 
+    let* v' = check gma v (PosPiV (nm, vt , fun p -> b (PosInrV p))) in 
     Ok (PosSumElimT (u',v'))
       
   (* TODO: handle abstraction names *)
@@ -186,16 +186,20 @@ let rec check gma expr typ =
   
   | (e, expected) ->
     let* (e',inferred) = infer gma e in
-    let nms = names gma in
-    let inferred_nf = term_to_expr nms (quote true gma.lvl inferred) in
-    let expected_nf = term_to_expr nms (quote true gma.lvl expected) in
 
-    if (Poly.(<>) expected_nf inferred_nf)
+    let inferred_nf = quote true gma.lvl inferred in
+    let expected_nf = quote true gma.lvl expected in
+    
+    (* let nms = names gma in *)
+    (* let inferred_nf_expr = term_to_expr nms inferred_nf in
+     * let expected_nf_expr = term_to_expr nms expected_nf in *)
+
+    if (not (term_eq expected_nf inferred_nf))
        
     then let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
-                                   str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_expr inferred_nf;
+                                   str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_term inferred_nf;
                                    str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
-                                     pp_expr expected_nf ]
+                                     pp_term expected_nf ]
 
       in Error (`TypeMismatch msg)
         
