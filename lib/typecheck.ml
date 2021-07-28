@@ -191,6 +191,20 @@ and infer gma expr =
 
   | PosEmptyE -> Ok (PosEmptyT, PosV)
   | PosUnitE -> Ok (PosUnitT, PosV)
+  | PosSumE (u,v) ->
+    let* u' = check gma u PosV in
+    let* v' = check gma v PosV in
+    Ok (PosSumT (u',v'), PosV)
+  | PosSigE (nm,a,b) ->
+    let* a' = check gma a PosV in
+    let* b' = check (bind gma nm (ElV (eval gma.top gma.loc a'))) b PosV in
+    Ok (PosSigT (nm,a',b'), PosV)
+
+  | PosPiE (nm,a,b) ->
+    let* a' = check gma a PosV in
+    let* b' = check (bind gma nm (ElV (eval gma.top gma.loc a'))) b TypV in
+    Ok (PosPiT (nm,a',b'), TypV)
+
 
   (* inferrence failed *)
   | _ -> Error (`InferenceFailed expr)

@@ -14,14 +14,14 @@ let top : Pos
 let bot : Pos
   = ⊥ₚ
 
-# let sum (P : Pos) (Q : Pos) : Pos
-#   = P ⊔ₚ Q 
+let sum (P : Pos) (Q : Pos) : Pos
+  = P ⊔ₚ Q 
 
-# let sig (P : Pos) (X : El P → Pos) : Pos
-#   = (p : P) ×ₚ X p 
+let sig (P : Pos) (X : El P → Pos) : Pos
+  = (p : P) ×ₚ X p 
 
 # let tt : El ⊤ₚ
 #   = ttₚ 
 
-# let pi (P : Pos) (X : El P → U) : U
-#   = (p : P) →ₚ X p 
+let pi (P : Pos) (X : El P → U) : U
+  = (p : P) →ₚ X p 
