@@ -21,6 +21,20 @@ let ident = [%sedlex.regexp? letter, Star (letter | subscripts | '_' | '-' | dig
 let arrow = [%sedlex.regexp? 0x2192 ] 
 let arrowpos = [%sedlex.regexp? 0x2192 , 0x209A ] 
 let timespos = [%sedlex.regexp? 0xD7 , 0x209A ] 
+let unitpos = [%sedlex.regexp? 0x22A4 , 0x209A ]
+let emptypos = [%sedlex.regexp? 0x22A5 , 0x209A ]
+let sumpos = [%sedlex.regexp? 0x2294 , 0x209A ]
+let ttpos = [%sedlex.regexp? "tt" , 0x209A ]
+let inlpos = [%sedlex.regexp? "inl" , 0x209A ]
+let inrpos = [%sedlex.regexp? "inr" , 0x209A ]
+let lambdapos = [%sedlex.regexp? 0x3BB , 0x209A ]
+
+  
+(* %token POS EL ARROWPOS TIMESPOS
+ * %token COMMA SUM UNITPOS EMPTYPOS
+ * %token TTPOS INLPOS INRPOS LAMBDAPOS *)
+
+
 
 exception Lexing_error of ((int * int) option * string)
 
@@ -41,10 +55,20 @@ let rec token buf =
   | "->"         -> ARROW
   | arrow        -> ARROW
   | arrowpos     -> ARROWPOS
-  | timespos     -> TIMESPOS 
+  | timespos     -> TIMESPOS
+
+  | unitpos      -> UNITPOS
+  | emptypos     -> EMPTYPOS
+  | sumpos       -> SUM
+  | ttpos        -> TTPOS
+  | inlpos       -> INLPOS
+  | inrpos       -> INRPOS
+  | lambdapos    -> LAMBDAPOS 
+
   | "("          -> LPAR
   | ")"          -> RPAR
   | ":"          -> COLON
+  | ","          -> COMMA
   | "="          -> EQUAL
   | "."          -> DOT
   | "\\"         -> LAMBDA

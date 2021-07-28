@@ -183,10 +183,14 @@ and infer gma expr =
     Ok (PiT (nm,a',b') , TypV)
 
   | TypE -> Ok (TypT , TypV)
-  | PosE -> Ok (PosT , TypV) 
+              
+  | PosE -> Ok (PosT , TypV)
   | ElE p ->
     let* p' = check gma p PosV in
-    Ok (ElT p' , TypV) 
+    Ok (ElT p' , TypV)
+
+  | PosEmptyE -> Ok (PosEmptyT, PosV)
+  | PosUnitE -> Ok (PosUnitT, PosV)
 
   (* inferrence failed *)
   | _ -> Error (`InferenceFailed expr)

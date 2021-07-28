@@ -8,20 +8,20 @@ let pos : U
 let el (P : Pos) : U
   = El P 
 
-let pi (P : Pos) (X : El P → U) : U
-  = (p : P) →ₚ X p 
-
 let top : Pos
   = ⊤ₚ
 
 let bot : Pos
   = ⊥ₚ
 
-let sum (P : Pos) (Q : Pos) : Pos
-  = P ⊔ₚ Q 
+# let sum (P : Pos) (Q : Pos) : Pos
+#   = P ⊔ₚ Q 
 
-let sig (P : Pos) (X : El P → Pos) : Pos
-  = (p : P) ×ₚ X p 
+# let sig (P : Pos) (X : El P → Pos) : Pos
+#   = (p : P) ×ₚ X p 
 
-let tt : El ⊤ₚ
-  = ttₚ 
+# let tt : El ⊤ₚ
+#   = ttₚ 
+
+# let pi (P : Pos) (X : El P → U) : U
+#   = (p : P) →ₚ X p 
