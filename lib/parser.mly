@@ -11,6 +11,8 @@
 %token POS EL ARROWPOS TIMESPOS
 %token COMMA SUM UNITPOS EMPTYPOS
 %token TTPOS INLPOS INRPOS LAMBDAPOS
+%token APPPOS TOPELIM BOTELIM
+%token SUMELIM SIGELIM 
 %token <string> IDENT
 %token EOF
 
@@ -86,6 +88,8 @@ expr2:
     { e }
   | u = expr2 v = expr3
     { AppE (u,v) }
+  | u = expr2 APPPOS v = expr3
+    { PosAppE (u,v) } 
 
 expr3:
   | TYPE
@@ -104,6 +108,15 @@ expr3:
     { PosInlE e }
   | INRPOS e = expr3
     { PosInrE e }
+  | BOTELIM
+    { PosBotElimE }
+  | TOPELIM e = expr3
+    { PosTopElimE e } 
+  | SUMELIM e = expr3 f = expr3
+    { PosSumElimE (e, f) }
+  | SIGELIM e = expr3
+    { PosSigElimE e }
+
   | id = IDENT
     { VarE id }
   | LPAR t = expr RPAR

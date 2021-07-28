@@ -155,6 +155,10 @@ let rec check gma expr typ =
     let* v' = check (bind gma nm (ElV a)) v (ElV (b (varV gma.lvl))) in
     Ok (PosPairT (u',v')) 
 
+  | (PosLamE (nm,e) , PosPiV (_,a,b)) ->
+    let* t = check (bind gma nm (ElV a)) e (b (varV gma.lvl)) in 
+    Ok (PosLamT (nm, t))
+
   | (e, expected) ->
     let* (e',inferred) = infer gma e in
     let nms = names gma in

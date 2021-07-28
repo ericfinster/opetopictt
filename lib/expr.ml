@@ -34,6 +34,12 @@ type expr =
                 
   | PosPiE of name * expr * expr
   | PosLamE of name * expr 
+  | PosAppE of expr * expr
+
+  | PosBotElimE
+  | PosTopElimE of expr
+  | PosSumElimE of expr * expr
+  | PosSigElimE of expr 
 
   | TypE
 
@@ -102,7 +108,18 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
     pf ppf "(%s : %a)@, \u{2192}\u{209A} %a" nm ppe a ppe b 
   | PosLamE (nm,b) ->
     pf ppf "\u{03BB}\u{209A} %s, %a" nm ppe b 
-    
+  | PosAppE (u,v) ->
+    pf ppf "%a@, @@ %a" ppe u ppe v
+
+  | PosBotElimE ->
+    pf ppf "\u{22A5}-elim"
+  | PosTopElimE e ->
+    pf ppf "\u{22A4}-elim %a" ppe e
+  | PosSumElimE (u,v) ->
+    pf ppf "\u{2294}-elim %a %a" ppe u ppe v
+  | PosSigElimE e ->
+    pf ppf "\u{D7}-elim %a" ppe e 
+
 (*****************************************************************************)
 (*                          Matching pretty printers                         *)
 (*****************************************************************************)

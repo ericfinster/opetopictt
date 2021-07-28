@@ -8,6 +8,8 @@ let pos : U
 let el (P : Pos) : U
   = El P 
 
+# formation rules
+
 let top : Pos
   = ⊤ₚ
 
@@ -19,6 +21,8 @@ let sum (P : Pos) (Q : Pos) : Pos
 
 let sig (P : Pos) (Q : El P → Pos) : Pos
   = (p : P) ×ₚ Q p 
+
+# intro rules
 
 let tt : El ⊤ₚ
   = ttₚ 
@@ -33,5 +37,34 @@ let pair (P : Pos) (Q : El P → Pos)
     (p : El P) (q : El (Q p)) : El ((p : P) ×ₚ Q p)
   = p , q 
 
+# decorations
+
 let pi (P : Pos) (X : El P → U) : U
   = (p : P) →ₚ X p 
+
+let lam (P : Pos) (X : El P → U) (σ : (p : El P) → X p) : (p : P) →ₚ X p
+  = λₚ p . σ p
+
+let app (P : Pos) (X : El P → U) (σ : (p : P) →ₚ X p) (p : El P) : X p
+  = σ @ p
+
+# elim rules 
+
+let bot-elim (X : El ⊥ₚ → U) : (b : ⊥ₚ) →ₚ X
+  = ⊥-elim 
+
+let top-elim (X : El ⊤ₚ → U) (x : X ttₚ) : (u : ⊤ₚ) →ₚ X
+  = ⊤-elim x
+    
+let sum-elim (P : Pos) (Q : Pos)
+    (X : El (P ⊔ₚ Q) → U)
+    (l : (p : P) →ₚ X (inlₚ p))
+    (r : (q : Q) →ₚ X (inrₚ q))
+  : (pq : P ⊔ₚ Q) →ₚ X pq
+  = ⊔-elim l r 
+
+let sig-elim (P : Pos) (Q : El P → Pos)
+    (X : El (Σₚ P Q) → U)
+    (ϕ : (p : P) →ₚ (q : Q p) →ₚ X (p , q))
+  : (pq : Σₚ P Q) → X pq
+  = Σ-elim ϕ 
