@@ -139,6 +139,22 @@ let rec check gma expr typ =
     let* bdy = check (bind gma nm a) e (b (varV gma.lvl)) in
     Ok (LamT (nm,bdy))
 
+  | (PosTtE , ElV PosUnitV) ->
+    Ok PosTtT 
+
+  | (PosInlE u , ElV (PosSumV (ut,_))) ->
+    let* u' = check gma u (ElV ut) in
+    Ok (PosInlT u') 
+
+  | (PosInrE v , ElV (PosSumV (_,vt))) ->
+    let* v' = check gma v (ElV vt) in
+    Ok (PosInlT v') 
+
+  | (PosPairE (u,v) , ElV (PosSigV (nm,a,b))) ->
+    let* u' = check gma u (ElV a) in
+    let* v' = check (bind gma nm (ElV a)) v (ElV (b (varV gma.lvl))) in
+    Ok (PosPairT (u',v')) 
+
   | (e, expected) ->
     let* (e',inferred) = infer gma e in
     let nms = names gma in
