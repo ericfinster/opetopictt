@@ -31,9 +31,31 @@ let rec eval top loc tm =
   | LamT (nm,u) -> LamV (nm, fun vl -> eval top (Ext (loc,vl)) u)
   | AppT (u,v) -> appV (eval top loc u) (eval top loc v) 
   | PiT (nm,u,v) -> PiV (nm, eval top loc u, fun vl -> eval top (Ext (loc,vl)) v)
+  | TypT -> TypV
+    
   | PosT -> PosV
   | ElT t -> ElV (eval top loc t) 
-  | TypT -> TypV
+
+  | PosUnitT -> PosUnitV
+  | PosEmptyT -> PosEmptyV
+  | PosSumT (u, v) ->
+    PosSumV (eval top loc u, eval top loc v) 
+  | PosSigT (nm, a, b) ->
+    PosSigV (nm, eval top loc a,
+             fun v -> eval top (Ext (loc, v)) b)
+
+  | PosTtT -> PosTtV 
+  | PosInlT u -> PosInlV (eval top loc u)
+  | PosInrT v -> PosInrV (eval top loc v) 
+  | PosPairT (u,v) ->
+    PosPairV (eval top loc u, eval top loc v) 
+
+  | PosPiT (nm,a,b) ->
+    PosPiV (nm, eval top loc a,
+            fun v -> eval top (Ext (loc, v)) b)
+  | PosLamT (nm,b) ->
+    PosLamV (nm, fun v -> eval top (Ext (loc,v)) b) 
+
 
 and appV t u =
   match t with
@@ -88,9 +110,27 @@ and quote ufld k v =
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
   | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
   | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
+  | TypV -> TypT
+    
   | PosV -> PosT
   | ElV v -> ElT (qc v)
-  | TypV -> TypT
+               
+  | PosUnitV -> PosUnitT
+  | PosEmptyV -> PosEmptyT
+  | PosSumV (u,v) -> PosSumT (qc u, qc v) 
+  | PosSigV (nm,a,b) ->
+    PosSigT (nm,qc a, quote ufld (k+1) (b (varV k)))
+
+  | PosTtV -> PosTtT
+  | PosInlV u -> PosInlT (qc u)
+  | PosInrV v -> PosInlT (qc v) 
+  | PosPairV (u, v) -> PosPairT (qc u, qc v) 
+
+  | PosPiV (nm,a,b) ->
+    PosPiT (nm,qc a, quote ufld (k+1) (b (varV k)))
+    
+  | PosLamV (nm,b) -> 
+    LamT (nm, quote ufld (k+1) (b (varV k)))
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in

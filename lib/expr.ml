@@ -28,8 +28,8 @@ type expr =
   | PosSigE of name * expr * expr
 
   | PosTtE
-  | PosInrE of expr
   | PosInlE of expr
+  | PosInrE of expr
   | PosPairE of expr * expr
                 
   | PosPiE of name * expr * expr
@@ -61,7 +61,6 @@ let tele_to_pd_dummy _ =
 let rec pp_expr_gen ~si:show_imp ppf expr =
   let ppe = pp_expr_gen ~si:show_imp in
   match expr with
-  | TypE -> string ppf "U"
   | VarE nm -> string ppf nm
   | LamE (nm,bdy) -> pf ppf "\\%s. %a" nm ppe bdy
   | AppE (u, v) ->
@@ -82,10 +81,10 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
     else
       pf ppf "(%s : %a)@, \u{2192} %a" nm
         ppe dom ppe cod
+  | TypE -> string ppf "U"
         
   | PosE -> string ppf "Pos"
   | ElE p -> pf ppf "El %a" ppe p
-
 
   | PosUnitE -> pf ppf "\u{22A4}\u{209A}"
   | PosEmptyE -> pf ppf "\u{22A5}\u{209A}"
