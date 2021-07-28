@@ -19,6 +19,7 @@ type expr =
   | LamE of name * expr
   | AppE of expr * expr 
   | PiE of name * expr * expr
+  | TypE
            
   | PosE
   | ElE of expr
@@ -41,7 +42,6 @@ type expr =
   | PosSumElimE of expr * expr
   | PosSigElimE of expr 
 
-  | TypE
 
 (* This probably belongs elsewhere .... *)
 type defn =

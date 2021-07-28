@@ -55,20 +55,63 @@ let rec eval top loc tm =
             fun v -> eval top (Ext (loc, v)) b)
   | PosLamT (nm,b) ->
     PosLamV (nm, fun v -> eval top (Ext (loc,v)) b) 
+  | PosAppT (u,v) -> posAppV (eval top loc u) (eval top loc v) 
 
+  | PosBotElimT -> PosBotElimV
+  | PosTopElimT u ->
+    PosTopElimV (eval top loc u)
+  | PosSumElimT (u,v) ->
+    PosSumElimV (eval top loc u, eval top loc v)
+  | PosSigElimT u ->
+    PosSigElimV (eval top loc u) 
 
-and appV t u =
+and appV t arg =
   match t with
-  | RigidV (i,sp) -> RigidV (i,AppSp(sp,u))
-  | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u),appV tv u)
-  | LamV (_,cl) -> cl u
+  | RigidV (i,sp) -> RigidV (i, AppSp(sp,arg))
+  | TopV (nm,sp,t') -> TopV (nm, AppSp(sp,arg), appV t' arg)
+  | LamV (_,b) -> b arg
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
+and posAppV t arg =
+  match t with
+  | RigidV (i,sp) -> RigidV (i, PosAppSp(sp,arg))
+  | TopV (nm,sp,t') -> TopV (nm, AppSp(sp,arg), posAppV t' arg)
+  | PosLamV (_,b) -> b arg
+  | PosTopElimV u -> posTopElimV u arg
+  | PosSumElimV (u,v) -> posSumElimV u v arg
+  | PosSigElimV u -> posSigElimV u arg 
+  | _ -> raise (Eval_error (Fmt.str "malformed position application: %a" pp_value t))
+
+and posTopElimV t arg =
+  match arg with
+  | RigidV (i,sp) -> RigidV (i, PosTopElimSp (t,sp))
+  | TopV (nm,sp,arg') -> TopV (nm, PosTopElimSp(t,sp), posTopElimV t arg')
+  | PosTtV -> t
+  | _ -> raise (Eval_error "invalid top elim")
+
+and posSumElimV u v arg =
+  match arg with
+  | RigidV (i,sp) -> RigidV (i, PosSumElimSp (u,v,sp))
+  | TopV (nm,sp,arg') -> TopV (nm, PosSumElimSp (u,v,sp), posSumElimV u v arg')
+  | PosInlV l -> posAppV u l
+  | PosInrV r -> posAppV v r 
+  | _ -> raise (Eval_error "invalid sum elim")
+
+and posSigElimV u arg =
+  match arg with
+  | RigidV (i,sp) -> RigidV (i, PosSigElimSp (u,sp))
+  | TopV (nm,sp,arg') -> TopV (nm, PosSigElimSp (u,sp), posSigElimV u arg')
+  | PosPairV (p,q) -> posAppV (posAppV u p) q 
+  | _ -> raise (Eval_error "invalid sig elim") 
+  
 and runSpV v sp =
   match sp with
   | EmpSp -> v
-  | AppSp (sp',u) -> appV (runSpV v sp') u 
-
+  | AppSp (sp',u) -> appV (runSpV v sp') u
+  | PosAppSp (sp',u) -> posAppV (runSpV v sp') u
+  | PosTopElimSp (u,sp') -> posTopElimV u (runSpV v sp')
+  | PosSumElimSp (u,v,sp') -> posSumElimV u v (runSpV v sp')
+  | PosSigElimSp (u,sp') -> posSigElimV u (runSpV v sp')
 
 (*****************************************************************************)
 (*                        Type Directed eta Expansion                        *)
@@ -128,9 +171,15 @@ and quote ufld k v =
 
   | PosPiV (nm,a,b) ->
     PosPiT (nm,qc a, quote ufld (k+1) (b (varV k)))
-    
   | PosLamV (nm,b) -> 
     LamT (nm, quote ufld (k+1) (b (varV k)))
+
+  | PosBotElimV -> PosBotElimT
+  | PosTopElimV u -> PosTopElimT (qc u) 
+  | PosSumElimV (u, v) ->
+    PosSumElimT (qc u, qc v)
+  | PosSigElimV u ->
+    PosSigElimT (qc u) 
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in
@@ -139,6 +188,14 @@ and quote_sp ufld k t sp =
   | EmpSp -> t
   | AppSp (sp',u) ->
     AppT (qcs t sp',qc u)
+  | PosAppSp (sp', u) ->
+    PosAppT (qcs t sp', qc u)
+  | PosTopElimSp (u,sp') -> 
+    PosAppT (PosTopElimT (qc u), qcs t sp')
+  | PosSumElimSp (u,v,sp') ->
+    PosAppT (PosSumElimT (qc u , qc v), qcs t sp')
+  | PosSigElimSp (u,sp') ->
+    PosAppT (PosSigElimT (qc u), qcs t sp')
 
 let quote_tele tl =
   let rec go tl =
@@ -150,6 +207,7 @@ let quote_tele tl =
       (Ext (r,(nm,ict,ty_tm)),k+1)
   in fst (go tl)
 
+(* Fix this to perform expansion ... *) 
 let nf top loc tm =
   quote true (length loc) (eval top loc tm)
 

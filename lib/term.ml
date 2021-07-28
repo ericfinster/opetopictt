@@ -22,6 +22,7 @@ type term =
   | LamT of name * term
   | AppT of term * term 
   | PiT of name * term * term
+  | TypT
 
   | PosT
   | ElT of term
@@ -37,8 +38,13 @@ type term =
                 
   | PosPiT of name * term * term
   | PosLamT of name * term 
+  | PosAppT of term * term
+
+  | PosBotElimT
+  | PosTopElimT of term
+  | PosSumElimT of term * term
+  | PosSigElimT of term 
       
-  | TypT
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -78,6 +84,16 @@ let rec term_to_expr nms tm =
     PosPiE (nm, tte nms a, tte (Ext (nms,nm)) b)
   | PosLamT (nm,b) ->
     PosLamE (nm, tte (Ext (nms,nm)) b) 
+  | PosAppT (u, v) ->
+    PosAppE (tte nms u, tte nms v) 
+
+  | PosBotElimT -> PosBotElimE 
+  | PosTopElimT u ->
+    PosTopElimE (tte nms u)
+  | PosSumElimT (u, v) ->
+    PosSumElimE (tte nms u, tte nms v) 
+  | PosSigElimT u ->
+    PosSigElimE (tte nms u)
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)
@@ -153,5 +169,16 @@ let rec pp_term ppf tm =
     pf ppf "(%s : %a)@, \u{2192}\u{209A} %a" nm pp_term a pp_term b 
   | PosLamT (nm,b) ->
     pf ppf "\u{03BB}\u{209A} %s, %a" nm pp_term b 
+  | PosAppT (u,v) ->
+    pf ppf "%a@, @@ %a" pp_term u pp_term v
+
+  | PosBotElimT ->
+    pf ppf "\u{22A5}-elim"
+  | PosTopElimT e ->
+    pf ppf "\u{22A4}-elim %a" pp_term e
+  | PosSumElimT (u,v) ->
+    pf ppf "\u{2294}-elim %a %a" pp_term u pp_term v
+  | PosSigElimT e ->
+    pf ppf "\u{D7}-elim %a" pp_term e 
 
 
