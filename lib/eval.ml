@@ -66,7 +66,14 @@ and down (t: value) (v: value) : value =
   | PiV (nm,a,b) ->
     LamV (nm, fun vl ->
         let vl' = up a vl in down (b vl') (appV v vl'))
+  | TypV -> down_typ v 
   | _ -> v
+
+and down_typ (t: value): value =
+  match t with
+  | PiV (nm,a,b) ->
+    PiV (nm, down_typ a, fun v -> down_typ (b (up a v)))
+  | _ -> t 
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)

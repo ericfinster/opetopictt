@@ -22,8 +22,18 @@ type expr =
            
   | PosE
   | ElE of expr
-  | PosPiE of name * expr * expr 
-  | PosSigE of name * expr * expr 
+  | PosUnitE
+  | PosEmptyE
+  | PosSumE of expr * expr 
+  | PosSigE of name * expr * expr
+
+  | PosTtE
+  | PosInrE of expr
+  | PosInlE of expr
+  | PosPairE of expr * expr
+                
+  | PosPiE of name * expr * expr
+  | PosLamE of name * expr 
 
   | TypE
 
@@ -51,6 +61,7 @@ let tele_to_pd_dummy _ =
 let rec pp_expr_gen ~si:show_imp ppf expr =
   let ppe = pp_expr_gen ~si:show_imp in
   match expr with
+  | TypE -> string ppf "U"
   | VarE nm -> string ppf nm
   | LamE (nm,bdy) -> pf ppf "\\%s. %a" nm ppe bdy
   | AppE (u, v) ->
@@ -71,13 +82,27 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
     else
       pf ppf "(%s : %a)@, \u{2192} %a" nm
         ppe dom ppe cod
+        
   | PosE -> string ppf "Pos"
   | ElE p -> pf ppf "El %a" ppe p
+
+
+  | PosUnitE -> pf ppf "\u{22A4}\u{209A}"
+  | PosEmptyE -> pf ppf "\u{22A5}\u{209A}"
+  | PosSumE (l, r) ->
+    pf ppf "%a \u{2294}\u{209A} %a" ppe l ppe r 
+  | PosSigE (nm, a, b) ->
+    pf ppf "(%s : %a)@, \u{D7}\u{209A} %a" nm ppe a ppe b 
+  | PosTtE -> pf ppf "tt\u{209A}"
+  | PosInlE u -> pf ppf "inl\u{209A} %a" ppe u 
+  | PosInrE v -> pf ppf "inr\u{209A} %a" ppe v
+  | PosPairE (u,v) ->
+    pf ppf "%a , %a" ppe u ppe v
+      
   | PosPiE (nm,a,b) ->
     pf ppf "(%s : %a)@, \u{2192}\u{209A} %a" nm ppe a ppe b 
-  | PosSigE (nm,a,b) ->
-    pf ppf "(%s : %a)@, \u{D7}\u{209A} %a" nm ppe a ppe b 
-  | TypE -> string ppf "U"
+  | PosLamE (nm,b) ->
+    pf ppf "\u{03BB}\u{209A} %s, %a" nm ppe b 
     
 (*****************************************************************************)
 (*                          Matching pretty printers                         *)
