@@ -81,6 +81,10 @@ let rec token buf =
   | "El"         -> EL 
   | "U"          -> TYPE
 
+  | "|"          -> VBAR
+  | "normalize"  -> NORMALIZE 
+  | "infer"      -> INFER
+
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
 
   | Plus space -> token buf

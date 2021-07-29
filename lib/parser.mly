@@ -1,6 +1,7 @@
 %{
 
     open Expr
+    open Cmd 
     open Suite
        
 %} 
@@ -12,12 +13,13 @@
 %token COMMA SUM UNITPOS EMPTYPOS
 %token TTPOS INLPOS INRPOS LAMBDAPOS
 %token APPPOS TOPELIM BOTELIM
-%token SUMELIM SIGELIM 
+%token SUMELIM SIGELIM
+%token NORMALIZE INFER VBAR
 %token <string> IDENT
 %token EOF
 
 %start prog
-%type <Expr.defn list> prog
+%type <Cmd.cmd list> prog
 
 %%
 
@@ -40,12 +42,16 @@ non_empty_suite(X,S):
 prog:
   | EOF
     { [] }
-  | defs = nonempty_list(defn) EOF
+  | defs = nonempty_list(cmd) EOF
     { defs }
 
-defn:
+cmd:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
-    { TermDef (id,tl,ty,tm) }
+    { Let (id,tl,ty,tm) }
+  | NORMALIZE tl = tele COLON ty = expr VBAR tm = expr
+    { Normalize (tl,ty,tm) }
+  | INFER tl = tele VBAR tm = expr
+    { Infer (tl,tm) } 
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR

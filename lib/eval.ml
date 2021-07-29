@@ -32,7 +32,7 @@ let rec eval top loc tm =
   | AppT (u,v) -> appV (eval top loc u) (eval top loc v) 
   | PiT (nm,u,v) -> PiV (nm, eval top loc u, fun vl -> eval top (Ext (loc,vl)) v)
   | TypT -> TypV
-    
+
   | PosT -> PosV
   | ElT t -> ElV (eval top loc t) 
 
@@ -104,14 +104,30 @@ and posSigElimV u arg =
   | PosPairV (p,q) -> posAppV (posAppV u p) q 
   | _ -> raise (Eval_error "invalid sig elim") 
   
-and runSpV v sp =
-  match sp with
-  | EmpSp -> v
-  | AppSp (sp',u) -> appV (runSpV v sp') u
-  | PosAppSp (sp',u) -> posAppV (runSpV v sp') u
-  | PosTopElimSp (u,sp') -> posTopElimV u (runSpV v sp')
-  | PosSumElimSp (u,v,sp') -> posSumElimV u v (runSpV v sp')
-  | PosSigElimSp (u,sp') -> posSigElimV u (runSpV v sp')
+(* and runSpV v sp =
+ *   match sp with
+ *   | EmpSp -> v
+ *   | AppSp (sp',u) -> appV (runSpV v sp') u
+ *   | PosAppSp (sp',u) -> posAppV (runSpV v sp') u
+ *   | PosTopElimSp (u,sp') -> posTopElimV u (runSpV v sp')
+ *   | PosSumElimSp (u,v,sp') -> posSumElimV u v (runSpV v sp')
+ *   | PosSigElimSp (u,sp') -> posSigElimV u (runSpV v sp') *)
+
+let rec norm_pos pv =
+  match pv with
+  | PosUnitV -> PosUnitV
+  | PosEmptyV -> PosEmptyV
+  | PosSumV (PosEmptyV, q) -> norm_pos q
+  | PosSumV (p, PosEmptyV) -> norm_pos p 
+  | PosSumV (PosSumV (p, q), r) ->
+    (* Is this a reasonable way to do associativity? *)
+    let r' = norm_pos r in
+    let q' = norm_pos q  in
+    let qr' = norm_pos (PosSumV (q', r')) in 
+    let p' = norm_pos p  in
+    norm_pos (PosSumV (p', qr'))  
+  | _ -> failwith "not done" 
+
 
 (*****************************************************************************)
 (*                        Type Directed eta Expansion                        *)

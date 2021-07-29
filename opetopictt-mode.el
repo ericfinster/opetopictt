@@ -3,8 +3,8 @@
 (defvar opetopictt-font-lock-keywords
  '(
    ("#.*" . 'font-lock-comment-face)
-   ("\\<\\(let\\)\\>" . font-lock-keyword-face)
-   ("\\<\\(U\\|Pos\\|El\\)\\>" . font-lock-builtin-face)
+   ("\\<\\(let\\|normalize\\|infer\\)\\>" . 'font-lock-keyword-face)
+   ("\\<\\(U\\|Pos\\|El\\)\\>" . 'font-lock-builtin-face)
    ("\\<let[ \t]+\\([^ (=]*\\)" 1 'font-lock-function-name-face)
   )
 )

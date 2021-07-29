@@ -1,0 +1,3 @@
+name: opetopictt
+include: .
+depend: mini-hott

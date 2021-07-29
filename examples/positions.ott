@@ -52,10 +52,10 @@ let app (P : Pos) (X : El P → U) (σ : (p : P) →ₚ X p) (p : El P) : X p
 
 let bot-elim (X : El ⊥ₚ → U) : (b : ⊥ₚ) →ₚ X b
   = ⊥-elim 
-
+  
 let top-elim (X : El ⊤ₚ → U) (x : X ttₚ) : (u : ⊤ₚ) →ₚ X u
   = ⊤-elim x
-    
+
 let sum-elim (P : Pos) (Q : Pos)
     (X : El (P ⊔ₚ Q) → U)
     (l : (p : P) →ₚ X (inlₚ p))
@@ -68,3 +68,13 @@ let sig-elim (P : Pos) (Q : El P → Pos)
     (σ : (p : P) →ₚ (q : Q p) →ₚ X (p , q))
   : (pq : (p : P) ×ₚ Q p) →ₚ X pq
   = ×-elim σ
+
+let id (A : U) (a : A) : A
+  = a
+  
+normalize (P : Pos) (Q : El P → Pos) : Pos 
+  | id Pos P
+
+infer (P : Pos)
+  | P 
+
