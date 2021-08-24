@@ -39,7 +39,7 @@ let rec run_cmds gma cmds =
         let* ty' = check gma' ty TypV in
         let ty_v = eval gma'.top gma'.loc ty' in 
         let* tm' = check gma' tm ty_v in
-        let t_nf = normalize gma tm' ty_v in 
+        let t_nf = normalize gma' tm' ty_v in 
         let t_nf_expr = term_to_expr (names gma') t_nf in
         Fmt.pr "Result: @[%a@]@," pp_expr t_nf_expr; 
         Ok ()) in  

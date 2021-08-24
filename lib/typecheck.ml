@@ -78,11 +78,11 @@ let rec quote_types ufld typs =
   | Emp -> (Emp,0)
   | Ext (typs', (nm, (Defined,typ))) ->
     let (res_typs, l) = quote_types ufld typs' in
-    let typ_tm = quote ufld l typ in
+    let typ_tm = quote ufld l (down_typ typ) in
     (Ext (res_typs,(nm,typ_tm)),l)
   | Ext (typs', (nm, (_,typ))) ->
     let (res_typs, l) = quote_types ufld typs' in
-    let typ_tm = quote ufld l typ in
+    let typ_tm = quote ufld l (down_typ typ) in
     (Ext (res_typs,(nm, typ_tm)),l+1)
 
 let dump_ctx ufld gma =
@@ -195,8 +195,8 @@ let rec check gma expr typ =
   | (e, expected) ->
     let* (e',inferred) = infer gma e in
 
-    let inferred_nf = quote true gma.lvl inferred in
-    let expected_nf = quote true gma.lvl expected in
+    let inferred_nf = quote true gma.lvl (down_typ inferred) in
+    let expected_nf = quote true gma.lvl (down_typ expected) in
     
     (* let nms = names gma in *)
     (* let inferred_nf_expr = term_to_expr nms inferred_nf in

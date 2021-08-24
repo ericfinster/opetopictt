@@ -1,0 +1,13 @@
+#
+#  eta.ott - testing eta-long forms 
+#
+
+normalize (A : U) (B : A → U) (σ : (a : A) → B a) : (a : A) → B a 
+  | σ
+
+normalize (A : U) (B : A → U)
+  (C : (a : A) → B a → U)
+  (σ : (a : A) → (b : B a) → C a b) : (a : A) → (b : B a) → C a b
+  | σ
+
+
