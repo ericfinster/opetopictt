@@ -37,7 +37,7 @@ let rec run_cmds gma cmds =
     Fmt.pr "Normalizing: @[%a@]@," pp_expr tm;
     let* _ = with_tele gma tl (fun gma' _ _ ->
         let* ty' = check gma' ty TypV in
-        let ty_v = eval gma'.top gma'.loc ty' in 
+        let ty_v = eval gma'.top gma'.loc ty' in
         let* tm' = check gma' tm ty_v in
         let t_nf = normalize gma' tm' ty_v in 
         let t_nf_expr = term_to_expr (names gma') t_nf in

@@ -171,7 +171,7 @@ let rec check gma expr typ =
     Ok (PosPairT (u',v')) 
 
   | (PosLamE (nm,e) , PosPiV (_,a,b)) ->
-    let* t = check (bind gma nm (ElV a)) e (b (up a (varV gma.lvl))) in 
+    let* t = check (bind gma nm (ElV a)) e (b (up (ElV a) (varV gma.lvl))) in 
     Ok (PosLamT (nm, t))
 
   | (PosBotElimE , PosPiV (_,PosEmptyV,_)) ->

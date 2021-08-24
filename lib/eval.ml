@@ -104,45 +104,28 @@ and posSigElimV u arg =
   | TopV (nm,sp,arg') -> TopV (nm, PosSigElimSp (u,sp), posSigElimV u arg')
   | PosPairV (p,q) -> posAppV (posAppV u p) q 
   | _ -> raise (Eval_error "invalid sig elim") 
-  
-(* and runSpV v sp =
- *   match sp with
- *   | EmpSp -> v
- *   | AppSp (sp',u) -> appV (runSpV v sp') u
- *   | PosAppSp (sp',u) -> posAppV (runSpV v sp') u
- *   | PosTopElimSp (u,sp') -> posTopElimV u (runSpV v sp')
- *   | PosSumElimSp (u,v,sp') -> posSumElimV u v (runSpV v sp')
- *   | PosSigElimSp (u,sp') -> posSigElimV u (runSpV v sp') *)
-
-let rec norm_pos pv =
-  match pv with
-  | PosUnitV -> PosUnitV
-  | PosEmptyV -> PosEmptyV
-  | PosSumV (PosEmptyV, q) -> norm_pos q
-  | PosSumV (p, PosEmptyV) -> norm_pos p 
-  | PosSumV (PosSumV (p, q), r) ->
-    (* Is this a reasonable way to do associativity? *)
-    let r' = norm_pos r in
-    let q' = norm_pos q  in
-    let qr' = norm_pos (PosSumV (q', r')) in 
-    let p' = norm_pos p  in
-    norm_pos (PosSumV (p', qr'))
-  | PosSumV (p, q) ->
-    PosSumV (norm_pos p, norm_pos q) 
-  | _ -> failwith "not done" 
-
 
 (*****************************************************************************)
 (*                        Type Directed eta Expansion                        *)
 (*****************************************************************************)
 
-(* It seems we'll lose the names doing this.  And so on ... *)
-(* Indeed, I would guess that the variables now get kind of unhinged
-   from the original settings.  Have to think about this. *)
-                       
+(* TOOD: you are not really handling variable names correctly when
+   they are getting expanded.  Currently, you generate based on the
+   level during readback.  But this does not prevent capture.  You
+   need to fix this. *)
+
 let rec up (t: value) (v: value) : value =
   match t with
   | PiV (nm,a,b) -> LamV (nm, fun vl -> up (b vl) (appV v (down a vl)))
+  | PosPiV (_,PosEmptyV,_) -> PosBotElimV
+  | PosPiV (nm,PosSumV (l,r), b) ->
+    let lelim = PosLamV (nm ^ "-l", fun lv ->
+        up (b lv) (posAppV v (PosInlV (down_pos l lv)))) in
+    let relim = PosLamV (nm ^ "-r", fun rv ->
+        up (b rv) (posAppV v (PosInrV (down_pos r rv)))) in 
+    PosSumElimV (lelim, relim)
+  | PosPiV (nm,a,b) -> PosLamV (nm, fun vp -> up (b vp) (posAppV v (down_pos a vp)))
+  | ElV a -> up_pos a v
   | _ -> v 
 
 and down (t: value) (v: value) : value =
@@ -150,13 +133,53 @@ and down (t: value) (v: value) : value =
   | PiV (nm,a,b) ->
     LamV (nm, fun vl ->
         let vl' = up a vl in down (b vl') (appV v vl'))
-  | TypV -> down_typ v 
+  (* We could also eta-expand arbitrary functions out of 
+     El bot by saying they are app bot-elim ... *) 
+  | PosPiV (_,PosEmptyV,_) ->
+    PosBotElimV
+  | PosPiV (nm, PosSumV (l,r), b) ->
+    (* TODO: variable renaming here is not safe *)
+    let lelim = LamV (nm ^ "-l", fun lv ->
+        let lv' = up_pos l lv in 
+        down (b (PosInlV lv')) (posAppV v (PosInlV lv'))) in 
+    let relim = LamV (nm ^ "-r", fun rv ->
+        let rv' = up_pos r rv in 
+        down (b (PosInrV rv')) (posAppV v (PosInrV rv'))) in 
+    PosSumElimV (lelim, relim) 
+  | PosPiV (nm,a,b) ->
+    PosLamV (nm, fun vp ->
+        let vp' = up a vp in down (b vp') (posAppV v vp'))
+  | ElV a -> down_pos a v 
+  | TypV -> down_typ v
+  | PosV -> down_pos_typ v
   | _ -> v
 
-and down_typ (t: value): value =
+and down_typ (t: value) : value =
   match t with
   | PiV (nm,a,b) ->
     PiV (nm, down_typ a, fun v -> down_typ (b (up a v)))
+  | PosPiV (nm,a,b) ->
+    PosPiV (nm, down_pos_typ a, fun v -> down_typ (b (up_pos a v)))
+  | _ -> t 
+
+and up_pos (t: value) (v: value) : value =
+  match t with
+  | PosUnitV -> PosTtV
+  | _ -> v 
+
+and down_pos (t: value) (v: value) : value =
+  match t with
+  | PosUnitV -> PosTtV
+  | _ -> v 
+
+and down_pos_typ (t: value) : value =
+  match t with
+  | PosEmptyV -> PosEmptyV
+  | PosUnitV -> PosUnitV
+  | PosSumV (u,v) ->
+    PosSumV (down_pos_typ u, down_pos_typ v)
+  | PosSigV (nm,a,b) ->
+    PosSigV (nm, down_pos_typ a, fun v -> down_pos_typ (b (up_pos a v)))
   | _ -> t 
 
 (*****************************************************************************)
@@ -170,7 +193,14 @@ and quote ufld k v =
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
-  | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
+  | LamV (nm,cl) ->
+    (* TODO: this is a hack which generates new names when eta
+       expansion has inserted anonymous variables but how can we be
+       sure that this name is fresh for the resulting expression? *)
+    let nm' = if (String.equal nm "")
+      then "x" ^ (string_of_int k)
+      else nm in 
+    LamT (nm', quote ufld (k+1) (cl (varV k)))
   | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
   | TypV -> TypT
     

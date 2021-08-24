@@ -2,12 +2,61 @@
 #  eta.ott - testing eta-long forms 
 #
 
-normalize (A : U) (B : A → U) (σ : (a : A) → B a) : (a : A) → B a 
+normalize (A : U) (B : A → U)
+    (σ : (a : A) → B a)
+  : (a : A) → B a 
   | σ
 
 normalize (A : U) (B : A → U)
-  (C : (a : A) → B a → U)
-  (σ : (a : A) → (b : B a) → C a b) : (a : A) → (b : B a) → C a b
+    (C : (a : A) → B a → U)
+    (σ : (a : A) → (b : B a) → C a b)
+  : (a : A) → (b : B a) → C a b
   | σ
 
+# uh, yeah.  so here, since we don't
+# name the variable in the pi abstraction
+# we don't have a name to expand with.
+normalize (A : U) (B : U)
+    (f : (A → A) → B)
+  : (A → A) → B 
+  | f 
 
+# this is the correct version of the above...
+normalize (A : U) (B : U)
+    (f : (q : (a : A) → A) → B)
+  : (q : (a : A) → A) → B
+  | f 
+
+#
+#  Trying for positions ...
+#
+
+normalize (P : Pos) (Q : El P → U)
+    (σ : (p : P) →ₚ Q p)
+  : (p : P) →ₚ Q p
+  | σ
+
+normalize (u : El ⊤ₚ)
+  : El ⊤ₚ
+  | u
+
+# this shows how now all dependent types over the unit position type
+# are now constant....
+normalize (A : El ⊤ₚ → U)
+  : El ⊤ₚ → U 
+  | A
+
+normalize (A : El ⊥ₚ → U) (σ : (b : ⊥ₚ) →ₚ A b)
+  : (b : ⊥ₚ) →ₚ A b 
+  | σ 
+
+normalize (P : Pos) (Q : Pos) (A : El (P ⊔ₚ Q) → U)
+    (σ : (pq : P ⊔ₚ Q) →ₚ A pq)
+  : (pq : P ⊔ₚ Q) →ₚ A pq
+  | σ 
+
+normalize (P : Pos) (Q : Pos) (A : El (P ⊔ₚ Q) → U)
+    (l : (p : P) →ₚ A (inlₚ p))
+    (r : (q : Q) →ₚ A (inrₚ q))
+  : (pq : P ⊔ₚ Q) →ₚ A pq
+  | ⊔-elim l r 
