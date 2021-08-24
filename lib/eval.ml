@@ -38,6 +38,7 @@ let rec eval top loc tm =
 
   | PosUnitT -> PosUnitV
   | PosEmptyT -> PosEmptyV
+
   | PosSumT (u, v) ->
     PosSumV (eval top loc u, eval top loc v) 
   | PosSigT (nm, a, b) ->
@@ -125,7 +126,9 @@ let rec norm_pos pv =
     let q' = norm_pos q  in
     let qr' = norm_pos (PosSumV (q', r')) in 
     let p' = norm_pos p  in
-    norm_pos (PosSumV (p', qr'))  
+    norm_pos (PosSumV (p', qr'))
+  | PosSumV (p, q) ->
+    PosSumV (norm_pos p, norm_pos q) 
   | _ -> failwith "not done" 
 
 
@@ -222,8 +225,4 @@ let quote_tele tl =
       let ty_tm = quote true k typ in
       (Ext (r,(nm,ict,ty_tm)),k+1)
   in fst (go tl)
-
-(* Fix this to perform expansion ... *) 
-let nf top loc tm =
-  quote true (length loc) (eval top loc tm)
 

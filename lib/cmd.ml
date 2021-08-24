@@ -39,7 +39,7 @@ let rec run_cmds gma cmds =
         let* ty' = check gma' ty TypV in
         let ty_v = eval gma'.top gma'.loc ty' in 
         let* tm' = check gma' tm ty_v in
-        let t_nf = quote true gma'.lvl (eval gma'.top gma'.loc tm') in
+        let t_nf = normalize gma tm' ty_v in 
         let t_nf_expr = term_to_expr (names gma') t_nf in
         Fmt.pr "Result: @[%a@]@," pp_expr t_nf_expr; 
         Ok ()) in  
@@ -49,7 +49,7 @@ let rec run_cmds gma cmds =
     Fmt.pr "Infering the type of: @[%a@]@," pp_expr tm;
     let* _ = with_tele gma tl (fun gma' _ _ ->
         let* (_,ty) = infer gma' tm in
-        let ty_nf = quote true gma'.lvl ty in
+        let ty_nf = quote true gma'.lvl (down_typ ty) in
         let ty_expr = term_to_expr (names gma') ty_nf in 
         Fmt.pr "Result type: @[%a@]@," pp_expr ty_expr; 
         Ok ()) in  

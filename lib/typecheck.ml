@@ -53,7 +53,7 @@ let empty_loc gma = {
 
 let bind gma nm ty =
   let l = gma.lvl in {
-    loc = Ext (gma.loc, varV l);
+    loc = Ext (gma.loc, up ty (varV l));
     top = gma.top;
     lvl = l+1;
     types = Ext (gma.types,(nm,(Bound,ty)));
@@ -115,6 +115,14 @@ let pp_error ppf e =
 
 
 (*****************************************************************************)
+(*                               Normalization                               *)
+(*****************************************************************************)
+
+let normalize gma tm ty =
+  quote true gma.lvl
+    (down ty (eval gma.top gma.loc tm)) 
+
+(*****************************************************************************)
 (*                             Typechecking Rules                            *)
 (*****************************************************************************)
 
@@ -143,7 +151,7 @@ let rec check gma expr typ =
     check gma e tv
 
   | (LamE (nm,e) , PiV (_,a,b))  ->
-    let* bdy = check (bind gma nm a) e (b (varV gma.lvl)) in
+    let* bdy = check (bind gma nm a) e (b (up a (varV gma.lvl))) in
     Ok (LamT (nm,bdy))
 
   | (PosTtE , ElV PosUnitV) ->
@@ -163,7 +171,7 @@ let rec check gma expr typ =
     Ok (PosPairT (u',v')) 
 
   | (PosLamE (nm,e) , PosPiV (_,a,b)) ->
-    let* t = check (bind gma nm (ElV a)) e (b (varV gma.lvl)) in 
+    let* t = check (bind gma nm (ElV a)) e (b (up a (varV gma.lvl))) in 
     Ok (PosLamT (nm, t))
 
   | (PosBotElimE , PosPiV (_,PosEmptyV,_)) ->

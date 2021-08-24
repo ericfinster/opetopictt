@@ -12,39 +12,6 @@ open Syntax
 (*                              Type Definitions                             *)
 (*****************************************************************************)
 
-type calc_expr =
-  | Zero
-  | One 
-  | Var of name
-  | Plus of calc_expr * calc_expr
-  | Times of calc_expr * calc_expr 
-
-type mult_expr =
-  | Var of name
-  | TimesVar of (mult_expr * name)
-
-type sum_expr_init =
-  | Init of mult_expr
-  | PlusFact of sum_expr_init * mult_expr
-
-type sum_expr_finish =
-  | Start of sum_expr_init
-  | PlusOne of sum_expr_finish
-
-type nf_expr =
-  | Zero
-  | One
-  | Something of sum_expr_finish
-
-(* let rec claim (c : calc_expr) : nf_expr =
- *   match c with
- *   | Zero -> Zero
- *   | One -> One
- *   | Plus (l, r) ->
- *     begin match claim l with
- *       | Zero -> claim r
- *       | One ->  *)
-
 type value =
 
   (* Primitives *)
