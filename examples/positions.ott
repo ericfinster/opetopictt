@@ -56,6 +56,12 @@ let bot-elim (X : El ⊥ₚ → U) : (b : ⊥ₚ) →ₚ X b
 let top-elim (X : El ⊤ₚ → U) (x : X ttₚ) : (u : ⊤ₚ) →ₚ X u
   = ⊤-elim x
 
+# now that we have η-expansion, I think essentially every
+# function out of unit is of this form.  So we shouldn't
+# need the eliminator anymore.
+let top-elim-eta (X : El ⊤ₚ → U) (x : X ttₚ) : (u : ⊤ₚ) →ₚ X u
+  = λₚ u . x
+
 let sum-elim (P : Pos) (Q : Pos)
     (X : El (P ⊔ₚ Q) → U)
     (l : (p : P) →ₚ X (inlₚ p))

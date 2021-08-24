@@ -60,3 +60,38 @@ normalize (P : Pos) (Q : Pos) (A : El (P ⊔ₚ Q) → U)
     (r : (q : Q) →ₚ A (inrₚ q))
   : (pq : P ⊔ₚ Q) →ₚ A pq
   | ⊔-elim l r 
+
+# So is this kind of positive η-rule enough to get us commutation of
+# functions through the sum eliminator?  Where would I have an example
+# of that? 
+
+# Here's what Antoine needed:
+
+# ⊔ₚ-Frm-rec-lem : ∀ {ℓ} {n : ℕ} {X Y : 𝕆 ℓ n}
+#     → {U V : ℙ}
+#     → (inlₚ* : El U → Frm X)
+#     → (inrₚ* : El V → Frm X)
+#     → (g : Frm X → Frm Y)
+#     → g ∘ (⊔ₚ-Frm-rec inlₚ* inrₚ*) == ⊔ₚ-Frm-rec (g ∘ inlₚ*) (g ∘ inrₚ*)
+# ⊔ₚ-Frm-rec-lem {U = U} {V} inlₚ* inrₚ* g =
+#   let P p = g (⊔ₚ-Frm-rec inlₚ* inrₚ* p) == ⊔ₚ-Frm-rec (g ∘ inlₚ*) (g ∘ inrₚ*) p
+#   in λ= (⊔ₚ-elim {U = U} {V} P (λ _ → idp) (λ _ → idp))
+
+# here's the thing to test, then:
+# normalize (P : Pos) (Q : Pos)
+#     (A : El (P ⊔ₚ Q) → U)
+#     (B : El (P ⊔ₚ Q) → U)
+#     (l : (p : P) →ₚ A (inlₚ p))
+#     (r : (q : Q) →ₚ A (inrₚ q))
+#     (g : (pq : El (P ⊔ₚ Q)) → A pq → B pq)
+#   : (pq : P ⊔ₚ Q) →ₚ B pq
+#   | λₚ pq . g pq ((⊔-elim l r) @ pq)
+  
+  # the alternative is this:
+  # | ⊔ₚ-elim (λₚ p . g (inlₚ p) (l p))
+  #           (λₚ q . g (inrₚ q) (r q)) 
+
+# so there are some typing problems because we are not inferring
+# eliminators but checking them.  But other than that, it indeed
+# looks like this is exactly the kind of equation that we will
+# get from the strong η-rule for sums.
