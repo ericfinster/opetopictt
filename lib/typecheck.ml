@@ -280,6 +280,7 @@ and infer gma expr =
     let t = fresh_meta () in
     Ok (t , a)
 
+  | FrmE _ -> Error `InternalError
 
 and with_tele : 'a . ctx -> expr tele
   -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)

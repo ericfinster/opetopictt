@@ -11,6 +11,7 @@
 %token ARROW HOLE 
 %token TYPE
 %token LF ND UNIT
+%token FRM 
 %token <string> IDENT
 %token EOF
 
@@ -102,6 +103,8 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
+  | FRM t = tr_expr(UNIT)
+    { FrmE t } 
   | LPAR t = expr RPAR
     { t }
 

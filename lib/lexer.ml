@@ -49,6 +49,7 @@ let rec token buf =
   | "lf"         -> LF
   | "nd"         -> ND
   | "tt"         -> UNIT
+  | "Frm"        -> FRM 
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
 

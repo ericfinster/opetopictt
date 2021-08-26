@@ -9,6 +9,8 @@ open Base
 open Expr
 open Suite
 open Syntax
+
+open Opetopes.Complex
        
 (*****************************************************************************)
 (*                              Type Definitions                             *)
@@ -25,6 +27,7 @@ type term =
   | MetaT of mvar
   | InsMetaT of mvar
   | TypT
+  | FrmT of unit cmplx
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -46,6 +49,7 @@ let rec term_to_expr nms tm =
   (* Somewhat dubious, since we lose the implicit application ... *)
   | InsMetaT _ -> HoleE
   | TypT -> TypE
+  | FrmT op -> FrmE (of_cmplx op)
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

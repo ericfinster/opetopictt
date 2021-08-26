@@ -27,6 +27,9 @@ type expr =
   | HoleE
   | TypE
 
+  (* Opetopic structure *)
+  | FrmE of unit tr_expr suite  
+
 (* This probably belongs elsewhere .... *)
 type defn =
   | TermDef of name * expr tele * expr * expr
@@ -102,6 +105,8 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
         ppe dom ppe cod
   | TypE -> string ppf "U"
   | HoleE -> string ppf "_"
+
+  | FrmE _ -> string ppf "frm" 
 
 (*****************************************************************************)
 (*                          Matching pretty printers                         *)
