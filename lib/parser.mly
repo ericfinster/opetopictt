@@ -4,8 +4,6 @@
     open Suite
     open Syntax
        
-    open Opetopes.Idt.IdtConv
-       
 %} 
 
 %token LET LAMBDA COLON EQUAL DOT
@@ -13,8 +11,6 @@
 %token ARROW HOLE 
 %token TYPE
 %token LF ND UNIT
-%token LBRKT RBRKT VBAR YIELDS
-%token FULL NONFULL
 %token <string> IDENT
 %token EOF
 
@@ -54,10 +50,10 @@ tr_expr(V):
 prog:
   | EOF
     { [] }
-  | defs = nonempty_list(defn) EOF
+  | defs = nonempty_list(cmd) EOF
     { defs }
 
-defn:
+cmd:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
     { TermDef (id,tl,ty,tm) }
 
@@ -71,21 +67,11 @@ tele:
   | tl = suite(var_decl)
     { tl } 
 
-jdgmt:
-  | tl = tele YIELDS tm = expr COLON ty = expr
-    { (tl,tm,ty) }
-
 pi_head:
   | v = var_decl
     { v }
   | e = expr2
     { ("",Expl,e) }
-
-occ:
-  | FULL
-    { Full }
-  | NONFULL
-    { NonFull }
 
 expr: 
   | e = expr1
@@ -116,8 +102,6 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
-  | LBRKT j = jdgmt VBAR c = non_empty_suite(tr_expr(occ),VBAR) RBRKT
-    { CellE (j,c) } 
   | LPAR t = expr RPAR
     { t }
 

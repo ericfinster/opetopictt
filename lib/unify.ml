@@ -61,19 +61,6 @@ let rename m pren v =
     | TopV (_,_,tv) -> go pr tv
     | LamV (nm,ict,a) -> LamT (nm, ict, go (lift pr) (a $$ varV pr.cod))
     | PiV (nm,ict,a,b) -> PiT (nm, ict, go pr a, go (lift pr) (b $$ varV pr.cod))
-    | CellV (TlClosure (top,loc,(tl,tm,ty)),frm) ->
-
-      let (ttl,ttm,tty) = Suite.fold_accum_cont tl (loc,pr)
-          (fun (nm,ict,typ) (loc',pr') ->
-             ((nm,ict, go pr' (eval top loc' typ)),
-              (Ext (loc',varV pr'.cod), lift pr')))
-          (fun tl' (loc',pr') ->
-             (tl',
-              go pr' (eval top loc' tm),
-              go pr' (eval top loc' ty))) in
-
-      CellT ((ttl,ttm,tty),frm)
-
     | TypV -> TypT
 
   and goSp pr v sp =

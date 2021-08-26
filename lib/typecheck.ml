@@ -143,48 +143,48 @@ let pp_error ppf e =
   | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
-(*****************************************************************************)
-(*                              Opetopic Typing                              *)
-(*****************************************************************************)
-
-open Opetopes.Idt
-open Opetopes.Complex
-
-let rec tele_prefixes (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
-    match tl with
-    | Emp -> Ext (Emp, (Emp, ty))
-    | Ext (tl',(_,_,ty')) ->
-      let pfxs = tele_prefixes tl' ty' in
-      let new_pr = (tl , ty) in
-      Ext (pfxs, new_pr)
-
-module OpetopicUtils (S : Syntax) = struct
-
-  (* open S *)
-  open SyntaxUtil(S)
-
-  (* let opetopic_tele (tl : s tele) (ty : s) (frm : occ cmplx) : s tele =
-   * 
-   *   let _ = faces (numerate frm) in
-   *   let _ = ty in
-   * 
-   *   let tl_args tl = Suite.map_with_idx tl
-   *       ~f:(fun (_,ict,_) i -> (ict, VarT i)) in 
-   * 
-   *   let do_tl op_tl tl ty =
-   *     let do_face f =
-   *       let typ =
-   *         if (is_base f) then
-   *           let open TermUtil in
-   *           let args = Suite.map_suite tl
-   *               ~f:(fun (nm,ict,_) -> (ict, VarT (level_of op_tl nm))) in 
-   *           app_args (abstract_tele tl ty) args
-   *         else CellT ((tl,ty,TypT), map_cmplx f ~f:(fun _ -> Full))
-   *       in f
-   *     in ()
-   *   in tl *)
-
-end
+(* (\*****************************************************************************\)
+ * (\*                              Opetopic Typing                              *\)
+ * (\*****************************************************************************\)
+ * 
+ * (\* open Opetopes.Idt
+ *  * open Opetopes.Complex *\)
+ * 
+ * (\* let rec tele_prefixes (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
+ *  *     match tl with
+ *  *     | Emp -> Ext (Emp, (Emp, ty))
+ *  *     | Ext (tl',(_,_,ty')) ->
+ *  *       let pfxs = tele_prefixes tl' ty' in
+ *  *       let new_pr = (tl , ty) in
+ *  *       Ext (pfxs, new_pr)
+ *  * 
+ *  * module OpetopicUtils (S : Syntax) = struct *\)
+ * 
+ *   (\* open S *\)
+ *   open SyntaxUtil(S)
+ * 
+ *   (\* let opetopic_tele (tl : s tele) (ty : s) (frm : occ cmplx) : s tele =
+ *    * 
+ *    *   let _ = faces (numerate frm) in
+ *    *   let _ = ty in
+ *    * 
+ *    *   let tl_args tl = Suite.map_with_idx tl
+ *    *       ~f:(fun (_,ict,_) i -> (ict, VarT i)) in 
+ *    * 
+ *    *   let do_tl op_tl tl ty =
+ *    *     let do_face f =
+ *    *       let typ =
+ *    *         if (is_base f) then
+ *    *           let open TermUtil in
+ *    *           let args = Suite.map_suite tl
+ *    *               ~f:(fun (nm,ict,_) -> (ict, VarT (level_of op_tl nm))) in 
+ *    *           app_args (abstract_tele tl ty) args
+ *    *         else CellT ((tl,ty,TypT), map_cmplx f ~f:(fun _ -> Full))
+ *    *       in f
+ *    *     in ()
+ *    *   in tl *\)
+ * 
+ * end *)
 
 (*****************************************************************************)
 (*                             Typechecking Rules                            *)
@@ -276,32 +276,6 @@ and infer gma expr =
     let* a' = check gma a TypV in
     let* b' = check (bind gma nm (eval gma.top gma.loc a')) b TypV in
     Ok (PiT (nm,ict,a',b') , TypV)
-
-  | CellE ((tl,ty,TypE),frm) ->
-
-    let open IdtConv in 
-
-    let pfxs = tele_prefixes tl ty in
-    log_val "pfxs" pfxs (vbox (pp_suite ~sep:Fmt.cut
-                           (Fmt.pair ~sep:(any " |- ") (hbox (pp_tele pp_expr)) pp_expr)));
-    
-    let* frm' =
-      begin try
-          let frm' = to_cmplx frm in
-          let _ = validate_opetope frm' in
-          Ok frm'
-        with TreeExprError msg -> Error (`InvalidShape msg)
-           | ShapeError msg -> Error (`InvalidShape msg) 
-      end in
-    
-    let* (ttl,tty) = with_tele gma tl
-        (fun gma' _ ttl  ->
-           let* tty = check gma' ty TypV in
-           Ok (ttl,tty)) in 
-           
-    Ok (CellT ((ttl,tty,TypT),frm') , TypV)
-
-  | CellE _ -> Error `InternalError
     
   | TypE -> Ok (TypT , TypV)
 

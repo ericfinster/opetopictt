@@ -27,9 +27,6 @@ type expr =
   | HoleE
   | TypE
 
-  (* Opetopic Expressions *)
-  | CellE of expr judgmt * occ tr_expr suite 
-
 (* This probably belongs elsewhere .... *)
 type defn =
   | TermDef of name * expr tele * expr * expr
@@ -106,8 +103,6 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
   | TypE -> string ppf "U"
   | HoleE -> string ppf "_"
 
-  | CellE _ -> string ppf "cell"
-    
 (*****************************************************************************)
 (*                          Matching pretty printers                         *)
 (*****************************************************************************)
@@ -118,7 +113,6 @@ let pp_expr_with_impl = pp_expr_gen ~si:true
 (*****************************************************************************)
 (*                         Expr Syntax Implmentations                        *)
 (*****************************************************************************)
-
 
 module ExprSyntax = struct
   type s = expr

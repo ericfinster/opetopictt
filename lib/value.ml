@@ -9,8 +9,6 @@ open Term
 open Suite
 open Syntax
 
-open Opetopes.Complex
-       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
@@ -23,7 +21,6 @@ type value =
   | TopV of name * spine * value
   | LamV of name * icit * closure
   | PiV of name * icit * value * closure
-  | CellV of tele_closure * occ cmplx
   | TypV
 
 and spine =
@@ -34,8 +31,6 @@ and top_env = (name * value) suite
 and loc_env = value suite
 and closure =
   | Closure of top_env * loc_env * term
-and tele_closure =
-  | TlClosure of top_env * loc_env * term judgmt
 
 let varV k = RigidV (k,EmpSp)
 
@@ -61,7 +56,6 @@ let rec pp_value ppf v =
   | PiV (nm,Impl,a,Closure (_,_,bdy)) ->
     pf ppf "{%s : %a} -> <%a>" nm
       pp_value a pp_term bdy
-  | CellV _ -> pf ppf "cellv"
   | TypV -> pf ppf "U"
 
 and pp_spine ppf sp =
