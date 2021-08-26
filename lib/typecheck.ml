@@ -195,26 +195,6 @@ let rec check gma expr typ =
    * let typ_expr = term_to_expr (names gma) typ_tm in
    * pr "Checking @[%a@] has type @[%a@]@," pp_expr_with_impl expr pp_expr_with_impl typ_expr ; *)
 
-  let switch e expected =
-    (* pr "switching mode@,";
-     * pr "e: %a@," pp_expr e;
-     * pr "exp: %a@," pp_term (quote gma.lvl expected false); *)
-    let* (e',inferred) = insert gma (infer gma e) in
-    try unify OneShot gma.top gma.lvl expected inferred ; Ok e'
-    with Unify_error msg ->
-      pr "Unification error: %s\n" msg;
-      (* I guess the unification error will have more information .... *)
-      let nms = names gma in
-      let inferred_nf = term_to_expr nms (quote false gma.lvl inferred) in
-      let expected_nf = term_to_expr nms (quote true gma.lvl expected) in
-      let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
-                                str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_expr inferred_nf;
-                                str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
-                                 pp_expr expected_nf ]
-
-      in Error (`TypeMismatch msg)
-  in
-
   match (expr, force_meta typ) with
 
   | (e , TopV (_,_,tv)) ->
@@ -231,7 +211,23 @@ let rec check gma expr typ =
   | (HoleE , _) -> (* pr "fresh meta@,"; *)
     let mv = fresh_meta () in Ok mv
 
-  | (e, expected) -> switch e expected
+  | (e, expected) ->
+    
+    let* (e',inferred) = insert gma (infer gma e) in
+    try unify OneShot gma.top gma.lvl expected inferred ; Ok e'
+    with Unify_error msg ->
+      pr "Unification error: %s\n" msg;
+      (* I guess the unification error will have more information .... *)
+      let nms = names gma in
+      let inferred_nf = term_to_expr nms (quote false gma.lvl inferred) in
+      let expected_nf = term_to_expr nms (quote true gma.lvl expected) in
+      let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
+                                str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_expr inferred_nf;
+                                str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
+                                  pp_expr expected_nf ]
+
+      in Error (`TypeMismatch msg)
+
 
 and infer gma expr =
   (* pr "@[<v>Inferring type of: @[%a@]@,@]"
