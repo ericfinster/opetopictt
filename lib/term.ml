@@ -116,6 +116,7 @@ let rec pp_term ppf tm =
   (* Again, misses some implicit information ... *)
   | InsMetaT _ -> pf ppf "*_*"
   | TypT -> pf ppf "U"
+  | FrmT _ -> pf ppf "frm" 
 
 (*****************************************************************************)
 (*                         Term Syntax Implmentations                        *)

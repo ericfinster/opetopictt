@@ -35,6 +35,7 @@ let rec eval top loc tm =
   | TypT -> TypV
   | MetaT m -> metaV m
   | InsMetaT m -> appLocV loc (metaV m)
+  | FrmT c -> FrmV c 
 
 and metaV m =
   match lookup_meta m with
@@ -86,6 +87,7 @@ and quote ufld k v =
   | LamV (nm,ict,cl) -> LamT (nm, ict, quote ufld (k+1) (cl $$ varV k))
   | PiV (nm,ict,u,cl) -> PiT (nm, ict, qc u, quote ufld (k+1) (cl $$ varV k))
   | TypV -> TypT
+  | FrmV c -> FrmT c 
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in

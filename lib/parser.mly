@@ -11,6 +11,7 @@
 %token ARROW HOLE 
 %token TYPE
 %token LF ND UNIT
+%token LBRKT RBRKT VBAR
 %token FRM 
 %token <string> IDENT
 %token EOF
@@ -74,6 +75,10 @@ pi_head:
   | e = expr2
     { ("",Expl,e) }
 
+cmplx:
+  | LBRKT c = non_empty_suite(tr_expr(UNIT),VBAR) RBRKT
+    { c } 
+
 expr: 
   | e = expr1
     { e }
@@ -103,8 +108,8 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
-  | FRM t = tr_expr(UNIT)
-    { FrmE t } 
+  | FRM c = cmplx
+    { FrmE c } 
   | LPAR t = expr RPAR
     { t }
 

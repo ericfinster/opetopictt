@@ -9,6 +9,8 @@ open Term
 open Suite
 open Syntax
 
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
@@ -22,6 +24,7 @@ type value =
   | LamV of name * icit * closure
   | PiV of name * icit * value * closure
   | TypV
+  | FrmV of unit cmplx
 
 and spine =
   | EmpSp
@@ -57,6 +60,7 @@ let rec pp_value ppf v =
     pf ppf "{%s : %a} -> <%a>" nm
       pp_value a pp_term bdy
   | TypV -> pf ppf "U"
+  | FrmV _ -> pf ppf "frm" 
 
 and pp_spine ppf sp =
   match sp with
