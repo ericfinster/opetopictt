@@ -5,9 +5,10 @@
 (*****************************************************************************)
 
 open Format
-
+    
 open Opetopictt.Io
 open Opetopictt.Typecheck
+open Opetopictt.Cmd 
 
 (*****************************************************************************)
 (*                                  Options                                  *)
@@ -27,8 +28,8 @@ let () =
   open_vbox 0; (* initialize the pretty printer *)
   Arg.parse spec_list (fun s -> file_in := s::!file_in) usage;
   let files = List.rev (!file_in) in
-  let defs = parse_all files in
-  match check_defs empty_ctx defs with
+  let cmds = parse_all files in
+  match run_cmds empty_ctx cmds with
   | Ok _ -> 
     printf "----------------@,Success!";
     print_newline ();

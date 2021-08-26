@@ -3,6 +3,7 @@
     open Expr
     open Suite
     open Syntax
+    open Cmd
        
 %} 
 
@@ -17,7 +18,7 @@
 %token EOF
 
 %start prog
-%type <Expr.defn list> prog
+%type <Cmd.cmd list> prog
 
 %%
 
@@ -57,7 +58,7 @@ prog:
 
 cmd:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
-    { TermDef (id,tl,ty,tm) }
+    { Let (id,tl,ty,tm) }
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
