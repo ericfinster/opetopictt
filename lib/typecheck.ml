@@ -143,49 +143,6 @@ let pp_error ppf e =
   | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
-(* (\*****************************************************************************\)
- * (\*                              Opetopic Typing                              *\)
- * (\*****************************************************************************\)
- * 
- * (\* open Opetopes.Idt
- *  * open Opetopes.Complex *\)
- * 
- * (\* let rec tele_prefixes (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
- *  *     match tl with
- *  *     | Emp -> Ext (Emp, (Emp, ty))
- *  *     | Ext (tl',(_,_,ty')) ->
- *  *       let pfxs = tele_prefixes tl' ty' in
- *  *       let new_pr = (tl , ty) in
- *  *       Ext (pfxs, new_pr)
- *  * 
- *  * module OpetopicUtils (S : Syntax) = struct *\)
- * 
- *   (\* open S *\)
- *   open SyntaxUtil(S)
- * 
- *   (\* let opetopic_tele (tl : s tele) (ty : s) (frm : occ cmplx) : s tele =
- *    * 
- *    *   let _ = faces (numerate frm) in
- *    *   let _ = ty in
- *    * 
- *    *   let tl_args tl = Suite.map_with_idx tl
- *    *       ~f:(fun (_,ict,_) i -> (ict, VarT i)) in 
- *    * 
- *    *   let do_tl op_tl tl ty =
- *    *     let do_face f =
- *    *       let typ =
- *    *         if (is_base f) then
- *    *           let open TermUtil in
- *    *           let args = Suite.map_suite tl
- *    *               ~f:(fun (nm,ict,_) -> (ict, VarT (level_of op_tl nm))) in 
- *    *           app_args (abstract_tele tl ty) args
- *    *         else CellT ((tl,ty,TypT), map_cmplx f ~f:(fun _ -> Full))
- *    *       in f
- *    *     in ()
- *    *   in tl *\)
- * 
- * end *)
-
 (*****************************************************************************)
 (*                             Typechecking Rules                            *)
 (*****************************************************************************)
@@ -280,7 +237,26 @@ and infer gma expr =
     let t = fresh_meta () in
     Ok (t , a)
 
-  | FrmE _ -> Error `InternalError
+  | FrmE c ->
+
+    let open Opetopes.Idt in
+    let open Opetopes.Complex in 
+    let open IdtConv in 
+
+    let* c' =
+      begin try
+          let c' = to_cmplx c in
+          let _ = validate_opetope c' in
+          Ok c'
+        with TreeExprError msg -> Error (`InvalidShape msg)
+           | ShapeError msg -> Error (`InvalidShape msg) 
+
+      end in
+
+    let frm_typ =
+      eval gma.top gma.loc (PiT ("",Expl,TypT, TypT)) in
+    
+    Ok (FrmT c' , frm_typ) 
 
 and with_tele : 'a . ctx -> expr tele
   -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)
