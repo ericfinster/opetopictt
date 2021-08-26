@@ -36,6 +36,8 @@ let rec eval top loc tm =
   | MetaT m -> metaV m
   | InsMetaT m -> appLocV loc (metaV m)
   | FrmT (t,c) -> FrmV (eval top loc t, c) 
+  | CellT (t,c,f) ->
+    CellV (eval top loc t, c, eval top loc f) 
 
 and metaV m =
   match lookup_meta m with
@@ -88,6 +90,7 @@ and quote ufld k v =
   | PiV (nm,ict,u,cl) -> PiT (nm, ict, qc u, quote ufld (k+1) (cl $$ varV k))
   | TypV -> TypT
   | FrmV (t,c) -> FrmT (qc t, c )
+  | CellV (t,c,f) -> CellT (qc t, c, qc f) 
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in

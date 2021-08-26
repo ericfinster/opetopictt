@@ -62,7 +62,8 @@ let rename m pren v =
     | LamV (nm,ict,a) -> LamT (nm, ict, go (lift pr) (a $$ varV pr.cod))
     | PiV (nm,ict,a,b) -> PiT (nm, ict, go pr a, go (lift pr) (b $$ varV pr.cod))
     | TypV -> TypT
-    | FrmV (t, c) -> FrmT (go pr t, c) 
+    | FrmV (t, c) -> FrmT (go pr t, c)
+    | CellV (t,c,f) -> CellT (go pr t, c, go pr f) 
 
   and goSp pr v sp =
     match sp with

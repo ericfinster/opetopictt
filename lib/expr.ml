@@ -29,6 +29,7 @@ type expr =
 
   (* Opetopic structure *)
   | FrmE of expr * unit tr_expr suite  
+  | CellE of expr * unit tr_expr suite * expr 
 
 (* This probably belongs elsewhere .... *)
 type defn =
@@ -107,6 +108,7 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
   | HoleE -> string ppf "_"
 
   | FrmE _ -> string ppf "frm" 
+  | CellE _ -> string ppf "cell" 
 
 (*****************************************************************************)
 (*                          Matching pretty printers                         *)

@@ -28,6 +28,7 @@ type term =
   | InsMetaT of mvar
   | TypT
   | FrmT of term * unit cmplx
+  | CellT of term * unit cmplx * term 
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -51,6 +52,8 @@ let rec term_to_expr nms tm =
   | TypT -> TypE
   | FrmT (t,c) ->
     FrmE (tte nms t , of_cmplx c)
+  | CellT (t,c,f) ->
+    CellE (tte nms t, of_cmplx c, tte nms f) 
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)
@@ -118,6 +121,7 @@ let rec pp_term ppf tm =
   | InsMetaT _ -> pf ppf "*_*"
   | TypT -> pf ppf "U"
   | FrmT _ -> pf ppf "frm" 
+  | CellT _ -> pf ppf "cell"
 
 (*****************************************************************************)
 (*                         Term Syntax Implmentations                        *)

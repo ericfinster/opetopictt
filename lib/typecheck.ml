@@ -238,9 +238,19 @@ and infer gma expr =
     Ok (t , a)
 
   | FrmE (t, c) ->
-
     let* t' = check gma t TypV in
-    
+    let* c' = check_cmplx c in 
+    Ok (FrmT (t', c') , TypV)
+
+  | CellE (t,c,f) ->
+    let* t' = check gma t TypV in
+    let* c' = check_cmplx c in
+    let tv = eval gma.top gma.loc t' in 
+    let* f' = check gma f (FrmV (tv,c')) in 
+    Ok (CellT (t', c', f') , TypV)
+
+and check_cmplx c =
+
     let open Opetopes.Idt in
     let open Opetopes.Complex in 
     let open IdtConv in 
@@ -253,9 +263,7 @@ and infer gma expr =
         with TreeExprError msg -> Error (`InvalidShape msg)
            | ShapeError msg -> Error (`InvalidShape msg) 
 
-      end in
-    
-    Ok (FrmT (t', c') , TypV) 
+      end in Ok c' 
 
 and with_tele : 'a . ctx -> expr tele
   -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)
