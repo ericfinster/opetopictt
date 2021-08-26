@@ -27,7 +27,7 @@ type term =
   | MetaT of mvar
   | InsMetaT of mvar
   | TypT
-  | FrmT of unit cmplx
+  | FrmT of term * unit cmplx
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -49,7 +49,8 @@ let rec term_to_expr nms tm =
   (* Somewhat dubious, since we lose the implicit application ... *)
   | InsMetaT _ -> HoleE
   | TypT -> TypE
-  | FrmT op -> FrmE (of_cmplx op)
+  | FrmT (t,c) ->
+    FrmE (tte nms t , of_cmplx c)
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

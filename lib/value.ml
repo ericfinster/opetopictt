@@ -24,7 +24,7 @@ type value =
   | LamV of name * icit * closure
   | PiV of name * icit * value * closure
   | TypV
-  | FrmV of unit cmplx
+  | FrmV of value * unit cmplx
 
 and spine =
   | EmpSp

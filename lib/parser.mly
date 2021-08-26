@@ -109,8 +109,8 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
-  | FRM c = cmplx
-    { FrmE c } 
+  | FRM t = expr3 c = cmplx
+    { FrmE (t,c) } 
   | LPAR t = expr RPAR
     { t }
 

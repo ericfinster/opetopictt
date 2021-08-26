@@ -28,7 +28,7 @@ type expr =
   | TypE
 
   (* Opetopic structure *)
-  | FrmE of unit tr_expr suite  
+  | FrmE of expr * unit tr_expr suite  
 
 (* This probably belongs elsewhere .... *)
 type defn =

@@ -2,10 +2,9 @@
 #  cells.ott - demonstrations of cells
 #
 
-
-let frm_test : U -> U
+let frm_test (A : U) : U 
   = Frm [ nd { tt } (nd (lf { tt }) (lf tt)) 
-        | lf { tt } ] 
+        | lf { tt } ] A 
 
   
 

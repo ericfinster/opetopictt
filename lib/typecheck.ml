@@ -237,12 +237,14 @@ and infer gma expr =
     let t = fresh_meta () in
     Ok (t , a)
 
-  | FrmE c ->
+  | FrmE (t, c) ->
 
+    let* t' = check gma t TypV in
+    
     let open Opetopes.Idt in
     let open Opetopes.Complex in 
     let open IdtConv in 
-
+    
     let* c' =
       begin try
           let c' = to_cmplx c in
@@ -252,11 +254,8 @@ and infer gma expr =
            | ShapeError msg -> Error (`InvalidShape msg) 
 
       end in
-
-    let frm_typ =
-      eval gma.top gma.loc (PiT ("",Expl,TypT, TypT)) in
     
-    Ok (FrmT c' , frm_typ) 
+    Ok (FrmT (t', c') , TypV) 
 
 and with_tele : 'a . ctx -> expr tele
   -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)
