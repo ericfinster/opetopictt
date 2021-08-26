@@ -52,7 +52,8 @@ let rec token buf =
   | "["          -> LBRKT
   | "]"          -> RBRKT
   | "|"          -> VBAR
-  | "Frm"        -> FRM 
+  | "Frm"        -> FRM
+  | "Cell"       -> CELL
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
 

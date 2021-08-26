@@ -13,7 +13,7 @@
 %token TYPE
 %token LF ND UNIT
 %token LBRKT RBRKT VBAR
-%token FRM 
+%token FRM CELL
 %token <string> IDENT
 %token EOF
 
@@ -110,7 +110,9 @@ expr3:
   | id = IDENT
     { VarE id }
   | FRM t = expr3 c = cmplx
-    { FrmE (t,c) } 
+    { FrmE (t,c) }
+  | CELL t = expr3 c = cmplx f = expr3
+    { CellE (t,c,f) } 
   | LPAR t = expr RPAR
     { t }
 

@@ -153,6 +153,17 @@ let rec unify stgy top l t u =
     raise (Unify_error "refusing to unfold top level def")
   | (t , TopV (_,_,tv')) -> unify stgy top l t tv'
 
+  | (FrmV (t,c), FrmV (t',c')) ->
+    if (Poly.(<>) c c') then
+      raise (Unify_error "incompatible opetopes")
+    else unify stgy top l t t'
+
+  | (CellV (t,c,f), CellV (t',c',f')) ->
+    if (Poly.(<>) c c') then
+      raise (Unify_error "incompatible opetopes")
+    else unify stgy top l t t';
+    unify stgy top l f f' 
+    
   | (tm,um) ->
     let msg = str "Failed to unify: %a =/= %a"
         pp_value tm pp_value um in

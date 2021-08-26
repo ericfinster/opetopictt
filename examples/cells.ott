@@ -6,6 +6,8 @@ let arr_frm (A : U) : U
   = Frm A [ nd { tt } (nd (lf { tt }) (lf tt)) 
           | lf { tt } ]
 
-
+let Arr (A : U) (f : arr_frm A) : U
+  = Cell A [ nd { tt } (nd (lf { tt }) (lf tt)) 
+          | lf { tt } ] f 
   
 
