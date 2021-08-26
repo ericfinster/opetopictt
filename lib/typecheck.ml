@@ -270,23 +270,3 @@ and with_tele : 'a . ctx -> expr tele
         m (bind g id ty_val)
           (Ext (tv,(id,ict,ty_val)))
           (Ext (tt,(id,ict,ty_tm))))
-
-
-let rec check_defs gma defs =
-  let module E = ExprUtil in
-  match defs with
-  | [] -> Ok gma
-  | (TermDef (id,tl,ty,tm))::ds ->
-    pr "----------------@,";
-    pr "Checking definition: %s@," id;
-    let (abs_ty,abs_tm) = E.abstract_tele_with_type tl ty tm in
-    let* ty_tm = check gma abs_ty TypV in
-    let ty_val = eval gma.top gma.loc ty_tm in
-    let* tm_tm = check gma abs_tm ty_val in
-    let tm_val = eval gma.top gma.loc tm_tm in
-    pr "Checking complete for %s@," id;
-    (* let tm_nf = term_to_expr Emp (quote (gma.lvl) tm_val false) in
-     * let ty_nf = term_to_expr Emp (quote (gma.lvl) ty_val false) in *)
-    (* pr "Type: @[%a@]@," pp_expr ty_nf; *)
-    (* pr "Term: @[%a@]@," pp_expr tm_nf; *)
-    check_defs (define gma id tm_val ty_val) ds
