@@ -52,10 +52,11 @@ let rec token buf =
   | "["          -> LBRKT
   | "]"          -> RBRKT
   | "|"          -> VBAR
-  | "Frm"        -> FRM
-  | "Cell"       -> CELL
+  | "*"          -> STAR
+  | "@"          -> AT 
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
+  (* | number -> INT (Base.Int.of_string (Sedlexing.Utf8.lexeme buf)) *)
 
   | Plus space -> token buf
   | "#",Star (Compl '\n') -> token buf

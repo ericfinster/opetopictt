@@ -16,6 +16,7 @@ open Opetopes.Complex
 (*                              Type Definitions                             *)
 (*****************************************************************************)
 
+
 type term =
 
   (* Primitives *)
@@ -29,6 +30,7 @@ type term =
   | TypT
   | FrmT of term * unit cmplx
   | CellT of term * unit cmplx * term 
+  (* | FrmRecT of (face_addr * term) suite  *)
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -53,7 +55,7 @@ let rec term_to_expr nms tm =
   | FrmT (t,c) ->
     FrmE (tte nms t , of_cmplx c)
   | CellT (t,c,f) ->
-    CellE (tte nms t, of_cmplx c, tte nms f) 
+    CellE (tte nms t, of_cmplx c, tte nms f)
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

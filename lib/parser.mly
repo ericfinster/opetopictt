@@ -7,13 +7,12 @@
        
 %} 
 
-%token LET LAMBDA COLON EQUAL DOT
+%token LET LAMBDA COLON EQUAL DOT 
 %token LPAR RPAR LBR RBR 
 %token ARROW HOLE 
 %token TYPE
 %token LF ND UNIT
-%token LBRKT RBRKT VBAR
-%token FRM CELL
+%token LBRKT RBRKT VBAR AT STAR
 %token <string> IDENT
 %token EOF
 
@@ -50,6 +49,10 @@ tr_expr(V):
   | LPAR t = tr_expr(V) RPAR
     { t } 
 
+cmplx(X):
+  | c = non_empty_suite(tr_expr(X),VBAR) 
+    { c } 
+
 prog:
   | EOF
     { [] }
@@ -76,9 +79,17 @@ pi_head:
   | e = expr2
     { ("",Expl,e) }
 
-cmplx:
-  | LBRKT c = non_empty_suite(tr_expr(UNIT),VBAR) RBRKT
-    { c } 
+/* dir: */
+/*   | a = addr */
+/*     { Dir a } */
+
+/* addr: */
+/*   | LBRKT ds = separated_list(COMMA,dir) RBRKT */
+/*     { ds }  */
+      
+/* frm_entry: */
+/*   | i = INT a = addr ARROW e = expr */
+/*     { ((i,a),e) } */
 
 expr: 
   | e = expr1
@@ -109,10 +120,12 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
-  | FRM t = expr3 c = cmplx
+  | LBRKT t = expr3 AT c = cmplx(UNIT) RBRKT
     { FrmE (t,c) }
-  | CELL t = expr3 c = cmplx f = expr3
-    { CellE (t,c,f) } 
+  | LBRKT t = expr3 AT c = cmplx(UNIT) STAR f = expr3 RBRKT
+    { CellE (t,c,f) }
+  | LBR f = cmplx(expr) RBR
+    { FrmElE f } 
   | LPAR t = expr RPAR
     { t }
 

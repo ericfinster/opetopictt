@@ -15,6 +15,9 @@ type cmd =
    * | Infer of expr tele * expr  *)
 
 let rec run_cmds gma cmds =
+
+  let (let*) m f = Base.Result.bind m ~f in 
+  
   let module E = ExprUtil in
   match cmds with
   | [] -> Ok gma

@@ -16,11 +16,9 @@ open Eval
 open Unify
 open Syntax
 
-(* open Opetopes.Idt *)
+open Opetopes.Idt
+open Opetopes.Complex
        
-(* Monadic bind for errors in scope *)
-let (let*) m f = Base.Result.bind m ~f
-
 (*****************************************************************************)
 (*                                  Contexts                                 *)
 (*****************************************************************************)
@@ -107,6 +105,7 @@ let fresh_meta _ =
   InsMetaT m
 
 let rec insert' gma m =
+  let (let*) m f = Base.Result.bind m ~f in 
   let* (tm, ty) = m in
   match force_meta ty with
   | PiV (_,Impl,_,b) ->
@@ -116,6 +115,7 @@ let rec insert' gma m =
   | _ -> Ok (tm, ty)
 
 let insert gma m =
+  let (let*) m f = Base.Result.bind m ~f in 
   let* (tm, ty) = m in
   match tm with
   | LamT (_,Impl,_) -> Ok (tm, ty)
@@ -143,8 +143,125 @@ let pp_error ppf e =
   | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
+
 (*****************************************************************************)
-(*                             Typechecking Rules                            *)
+(*                            Typechecking Monad                             *)
+(*****************************************************************************)
+
+type 'a tcm = ctx -> ('a , typing_error) Result.t
+
+
+module TcmBasic = 
+  struct
+
+    type 'a t = 'a tcm
+        
+    let return a _ = Ok a
+    let bind m ~f:f gma =
+      match m gma with
+      | Ok x -> f x gma 
+      | Error e -> Error e
+
+    let map m ~f:f gma =
+      Result.map (m gma) ~f:f
+
+    let map = `Custom map
+        
+    let apply mf mx =
+      bind mf ~f:(fun f ->
+          bind mx ~f:(fun x ->
+              return (f x)))
+      
+  end
+  
+module TcmMonad = Monad.Make(TcmBasic) 
+module TcmApplicative = Applicative.Make(TcmBasic)
+module TcmTraverse = TreeTraverse(TcmBasic) 
+
+let (let*) m f = TcmMonad.bind m ~f 
+let tcm_ok = TcmMonad.return 
+let tcm_fail e _ = Error e 
+
+let tcm_ctx : ctx tcm =
+  fun gma -> Ok gma
+      
+let tcm_eval (t : term) : value tcm =
+  fun gma -> Ok (eval gma.top gma.loc t) 
+
+let tcm_in_ctx g m _ = m g 
+  
+(*****************************************************************************)
+(*                          Meta Variable Utilities                          *)
+(*****************************************************************************)
+
+let rec tcm_insert' m =
+  let* (tm,ty) = m in 
+  match force_meta ty with
+  | PiV (_,Impl,_,b) ->
+    let m = fresh_meta () in
+    let* mv = tcm_eval m in
+    tcm_insert' (tcm_ok (AppT (tm,m,Impl) , b $$ mv))
+  | _ -> tcm_ok (tm, ty)
+  
+let tcm_insert m =
+  let* (tm,ty) = m in 
+  match tm with
+  | LamT (_,Impl,_) -> tcm_ok (tm, ty)
+  | _ -> tcm_insert' (tcm_ok (tm, ty))
+
+(*****************************************************************************)
+(*                            Typechecking Rules                             *)
+(*****************************************************************************)
+
+let rec tcm_check (e : expr) (t : value) : term tcm =
+
+  match (e , force_meta t) with
+
+  | (e , TopV (_,_,tv)) -> tcm_check e tv
+
+  | (LamE (nm,i,e) , PiV (_,i',a,b)) when Poly.(=) i i' ->
+    let* gma = tcm_ctx in
+    tcm_in_ctx (bind gma nm a)
+      begin
+        let* bdy = tcm_check e (b $$ varV gma.lvl) in
+        tcm_ok (LamT (nm,i,bdy))
+      end
+
+  | (t , PiV (nm,Impl,a,b)) ->
+    let* gma = tcm_ctx in
+    tcm_in_ctx (bind gma nm a)
+      begin
+        let* bdy = tcm_check t (b $$ varV gma.lvl) in
+        tcm_ok (LamT (nm,Impl,bdy))
+      end
+
+  | (HoleE , _) -> (* pr "fresh meta@,"; *)
+    let mv = fresh_meta () in tcm_ok mv
+
+  | (e , expected) ->
+
+    let* gma = tcm_ctx in 
+    let* (e',inferred) = tcm_insert (tcm_infer e) in 
+    try unify OneShot gma.top gma.lvl expected inferred ; tcm_ok e'
+    with Unify_error msg ->
+      pr "Unification error: %s\n" msg;
+      (* I guess the unification error will have more information .... *)
+      let nms = names gma in
+      let inferred_nf = term_to_expr nms (quote false gma.lvl inferred) in
+      let expected_nf = term_to_expr nms (quote true gma.lvl expected) in
+      let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
+                                str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_expr inferred_nf;
+                                str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
+                                  pp_expr expected_nf ]
+
+      in tcm_fail (`TypeMismatch msg)
+    
+
+and tcm_infer (_ : expr) : (term * value) tcm =
+  tcm_fail `InternalError 
+
+(*****************************************************************************)
+(*                            Typechecking Rules                             *)
 (*****************************************************************************)
                             
 let rec check gma expr typ =
@@ -152,6 +269,8 @@ let rec check gma expr typ =
    * let typ_expr = term_to_expr (names gma) typ_tm in
    * pr "Checking @[%a@] has type @[%a@]@," pp_expr_with_impl expr pp_expr_with_impl typ_expr ; *)
 
+  let (let*) m f = Base.Result.bind m ~f in 
+  
   match (expr, force_meta typ) with
 
   | (e , TopV (_,_,tv)) ->
@@ -189,6 +308,9 @@ let rec check gma expr typ =
 and infer gma expr =
   (* pr "@[<v>Inferring type of: @[%a@]@,@]"
    *   pp_expr_with_impl expr ; *)
+
+  let (let*) m f = Base.Result.bind m ~f in 
+  
   match expr with
 
   | VarE nm -> (
@@ -239,26 +361,30 @@ and infer gma expr =
 
   | FrmE (t, c) ->
     let* t' = check gma t TypV in
-    let* c' = check_cmplx c in 
+    let* c' = check_frame c in 
     Ok (FrmT (t', c') , TypV)
 
   | CellE (t,c,f) ->
     let* t' = check gma t TypV in
-    let* c' = check_cmplx c in
+    let* c' = check_frame c in
     let tv = eval gma.top gma.loc t' in 
     let* f' = check gma f (FrmV (tv,c')) in 
     Ok (CellT (t', c', f') , TypV)
 
-and check_cmplx c =
+  | FrmElE _ ->
 
-    let open Opetopes.Idt in
-    let open Opetopes.Complex in 
+    Error (`NotImplemented "frame elements")
+      
+and check_frame c =
+
+  let (let*) m f = Base.Result.bind m ~f in 
+  
     let open IdtConv in 
     
     let* c' =
       begin try
           let c' = to_cmplx c in
-          let _ = validate_opetope c' in
+          let _ = validate_frame c' in
           Ok c'
         with TreeExprError msg -> Error (`InvalidShape msg)
            | ShapeError msg -> Error (`InvalidShape msg) 
@@ -268,6 +394,9 @@ and check_cmplx c =
 and with_tele : 'a . ctx -> expr tele
   -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)
   -> ('a,typing_error) Result.t = fun gma tl m ->
+
+  let (let*) m f = Base.Result.bind m ~f in 
+
   match tl with
   | Emp -> m gma Emp Emp
   | Ext (tl',(id,ict,ty)) ->
