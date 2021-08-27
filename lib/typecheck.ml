@@ -257,8 +257,76 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
       in tcm_fail (`TypeMismatch msg)
     
 
-and tcm_infer (_ : expr) : (term * value) tcm =
-  tcm_fail `InternalError 
+and tcm_infer (e : expr) : (term * value) tcm =
+
+  match e with
+
+
+           
+  (* | VarE nm -> (
+   *     try
+   *       let (idx,(b,typ)) = assoc_with_idx nm gma.types in
+   *       match b with
+   *       | Bound -> Ok (VarT idx, typ)
+   *       | Defined -> Ok (TopT nm, typ)
+   *     with Lookup_error -> Error (`NameNotInScope nm)
+   *   ) *)
+
+  (* | LamE (nm,ict,e) ->
+   *   let a = eval gma.top gma.loc (fresh_meta ()) in
+   *   let* (e', t) = insert gma (infer (bind gma nm a) e) in
+   *   let cl = Closure (gma.top,gma.loc,quote false (gma.lvl + 1) t) in
+   *   Ok (LamT (nm,ict,e') , PiV (nm,ict,a,cl)) *)
+
+  (* | AppE (u,v,ict) ->
+   *   let* (u',ut) = match ict with
+   *     | Impl -> infer gma u
+   *     | Expl -> insert' gma (infer gma u)
+   *   in
+   * 
+   *   let* (a,b) = match force_meta ut with
+   *     | PiV (_,ict',a,b) ->
+   *       if (Poly.(<>) ict ict') then
+   *         Error (`IcityMismatch (ict,ict'))
+   *       else Ok (a,b)
+   *     | _ ->
+   *       let a = eval gma.top gma.loc (fresh_meta ()) in
+   *       let b = Closure (gma.top,gma.loc,fresh_meta ()) in
+   *       unify OneShot gma.top gma.lvl ut (PiV ("x",ict,a,b));
+   *       Ok (a,b)
+   *   in let* v' = check gma v a in
+   *   Ok (AppT (u', v', ict) , b $$ eval gma.top gma.loc v') *)
+
+  (* | PiE (nm,ict,a,b) ->
+   *   let* a' = check gma a TypV in
+   *   let* b' = check (bind gma nm (eval gma.top gma.loc a')) b TypV in
+   *   Ok (PiT (nm,ict,a',b') , TypV) *)
+    
+  (* | TypE -> Ok (TypT , TypV) *)
+
+  (* | HoleE ->
+   *   let a = eval gma.top gma.loc (fresh_meta ()) in
+   *   let t = fresh_meta () in
+   *   Ok (t , a) *)
+
+  (* | FrmE (t, c) ->
+   *   let* t' = check gma t TypV in
+   *   let* c' = check_frame c in 
+   *   Ok (FrmT (t', c') , TypV) *)
+
+  (* | CellE (t,c,f) ->
+   *   let* t' = check gma t TypV in
+   *   let* c' = check_frame c in
+   *   let tv = eval gma.top gma.loc t' in 
+   *   let* f' = check gma f (FrmV (tv,c')) in 
+   *   Ok (CellT (t', c', f') , TypV) *)
+
+  (* | FrmElE _ ->
+   * 
+   *   Error (`NotImplemented "frame elements") *)
+
+  | _ -> tcm_fail `InternalError
+
 
 (*****************************************************************************)
 (*                            Typechecking Rules                             *)
