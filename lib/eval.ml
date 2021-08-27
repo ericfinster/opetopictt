@@ -5,9 +5,7 @@
 (*****************************************************************************)
 
 open Term
-open Meta
 open Value
-open Suite
 open Syntax
 
 (*****************************************************************************)
@@ -28,41 +26,25 @@ let rec eval top loc tm =
   match tm with
   | VarT i -> loc i 
   | TopT nm -> TopV (nm,EmpSp,top nm)
-  | LamT (nm,ict,u) ->
-    LamV (nm, ict,
-          fun v -> eval top (ext_loc loc v) u)
-  | AppT (u,v,ict) -> appV (eval top loc u) (eval top loc v) ict
-  | PiT (nm,ict,a,b) ->
-    PiV (nm, ict, eval top loc a,
+  | LamT (nm,u) ->
+    LamV (nm,fun v -> eval top (ext_loc loc v) u)
+  | AppT (u,v) -> appV (eval top loc u) (eval top loc v) 
+  | PiT (nm,a,b) ->
+    PiV (nm, eval top loc a,
          fun v -> eval top (ext_loc loc v) b)
   | TypT -> TypV
-  | MetaT m -> metaV m
 
-and metaV m =
-  match lookup_meta m with
-  | Unsolved -> FlexV (m, EmpSp)
-  | Solved v -> v
-
-and appV t u ict =
+and appV t u =
   match t with
-  | FlexV (m,sp) -> FlexV (m,AppSp(sp,u,ict))
-  | RigidV (i,sp) -> RigidV (i,AppSp(sp,u,ict))
-  | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u,ict),appV tv u ict)
-  | LamV (_,_,cl) -> cl u
+  | RigidV (i,sp) -> RigidV (i,AppSp(sp,u))
+  | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u),appV tv u )
+  | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
 and runSpV v sp =
   match sp with
   | EmpSp -> v
-  | AppSp (sp',u,ict) -> appV (runSpV v sp') u ict
-
-and force_meta v =
-  match v with
-  | FlexV (m,sp) ->
-    (match lookup_meta m with
-     | Unsolved -> FlexV (m,sp)
-     | Solved v -> force_meta (runSpV v sp))
-  | _ -> v
+  | AppSp (sp',u) -> appV (runSpV v sp') u
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
@@ -71,13 +53,12 @@ and force_meta v =
 and quote ufld k v =
   let qc x = quote ufld k x in
   let qcs x s = quote_sp ufld k x s in
-  match force_meta v with
-  | FlexV (m,sp) -> qcs (MetaT m) sp
+  match v with
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
-  | LamV (nm,ict,cl) -> LamT (nm, ict, quote ufld (k+1) (cl (varV k)))
-  | PiV (nm,ict,u,cl) -> PiT (nm, ict, qc u, quote ufld (k+1) (cl (varV k)))
+  | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
+  | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
   | TypV -> TypT
 
 and quote_sp ufld k t sp =
@@ -85,17 +66,6 @@ and quote_sp ufld k t sp =
   let qcs x s = quote_sp ufld k x s in
   match sp with
   | EmpSp -> t
-  | AppSp (sp',u,ict) ->
-    AppT (qcs t sp',qc u,ict)
-
-let quote_tele tl =
-  let rec go tl =
-    match tl with
-    | Emp -> (Emp,0)
-    | Ext (typs',(nm,ict,typ)) ->
-      let (r,k) = go typs' in
-      let ty_tm = quote true k typ in
-      (Ext (r,(nm,ict,ty_tm)),k+1)
-  in fst (go tl)
-
+  | AppSp (sp',u) ->
+    AppT (qcs t sp',qc u)
 

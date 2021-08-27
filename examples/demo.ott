@@ -4,24 +4,20 @@
 
 let id (A : U) (a : A) : A = a
 
-let id2 {A : U} : A -> A = \a. a
-
-let const {A : U} {B : U} : A -> B -> A
+let const (A : U) (B : U) : A -> B -> A
   = \a.\b.a
-
-let argTest1 : U -> U = const {U} {U} U
 
 let List : U -> U
   = \A. (L : U) -> (A -> L -> L) -> L -> L
 
-let nil : (A : _) -> List A
+let nil : (A : U) -> List A
   = \A. \L. \cons. \nil. nil
 
 let cons : (A : U) -> A -> List A -> List A
-  = \A. \x. \xs. \L. \cons. \nil. cons x (xs _ cons nil)
+  = \A. \x. \xs. \L. \cons. \nil. cons x (xs L cons nil)
 
 let Bool : U
-  = (B : _) -> B -> B -> B
+  = (B : U) -> B -> B -> B
 
 let true : Bool
   = \B. \t. \f. t
@@ -32,17 +28,17 @@ let false : Bool
 let not : Bool -> Bool
   = \b. \B. \t. \f. b B f t
 
-let Eq : (A : _) -> A -> A -> U
+let Eq : (A : U) -> A -> A -> U
   = \A. \x. \y. (P : A -> U) -> P x -> P y
 
-let refl : (A : _) -> (x : A) -> Eq A x x
+let refl : (A : U) -> (x : A) -> Eq A x x
   = \A. \x. \P. \px. px
 
 let list1 : List Bool
-  = cons _ (id _ true) (nil _)
+  = cons Bool (id Bool true) (nil Bool)
 
 let list2 : List Bool
-  = cons _ true (cons _ false (nil _))
+  = cons Bool true (cons Bool false (nil Bool))
 
 let Nat : U
   = (A : U) -> A -> (A -> A) -> A

@@ -44,7 +44,6 @@ let rec token buf =
   | "."          -> DOT
   | "\\"         -> LAMBDA
   | 0x03bb       -> LAMBDA
-  | "_"          -> HOLE
   | "U"          -> TYPE
   | "lf"         -> LF
   | "nd"         -> ND

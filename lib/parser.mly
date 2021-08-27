@@ -2,14 +2,13 @@
 
     open Expr
     open Suite
-    open Syntax
     open Cmd
        
 %} 
 
 %token LET LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR 
-%token ARROW HOLE 
+%token ARROW 
 %token TYPE
 %token LF ND UNIT
 %token <string> IDENT
@@ -64,9 +63,7 @@ cmd:
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
-    { (id,Expl,ty) }
-  | LBR id = IDENT COLON ty = expr RBR
-    { (id,Impl,ty) }
+    { (id,ty) }
 
 tele:
   | tl = suite(var_decl)
@@ -76,7 +73,7 @@ pi_head:
   | v = var_decl
     { v }
   | e = expr2
-    { ("",Expl,e) }
+    { ("",e) }
 
 /* dir: */
 /*   | a = addr */
@@ -98,25 +95,19 @@ expr1:
   | e = expr2
     { e }
   | LAMBDA id = IDENT DOT e = expr1
-    { LamE (id,Expl,e) }
-  | LAMBDA LBR id = IDENT RBR DOT e = expr1
-    { LamE (id,Impl,e) }
+    { LamE (id,e) }
   | hd = pi_head ARROW cod = expr1
-    { let (nm,ict,dom) = hd in PiE (nm,ict,dom,cod) }
+    { let (nm,dom) = hd in PiE (nm,dom,cod) }
 
 expr2:
   | e = expr3
     { e }
-  | u = expr2 LBR v = expr2 RBR
-    { AppE (u,v,Impl) }
   | u = expr2 v = expr3
-    { AppE (u,v,Expl) }
+    { AppE (u,v) }
 
 expr3:
   | TYPE
     { TypE }
-  | HOLE
-    { HoleE } 
   | id = IDENT
     { VarE id }
   | LPAR t = expr RPAR
