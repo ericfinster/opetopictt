@@ -72,20 +72,38 @@ let top_lookup gma nm =
            
 type typing_error = [
   | `NameNotInScope of name
-  | `TypeMismatch of string
+  | `TypeMismatch of expr * term * term 
   | `NotImplemented of string
-  | `InferrenceFailed of string
-  | `ExpectedFunction of string
+  | `InferrenceFailed of expr
+  | `ExpectedFunction of expr
   | `InternalError
 ]
 
 let pp_error ppf e =
   match e with
-  | `NameNotInScope nm -> Fmt.pf ppf "Name not in scope: %s" nm
-  | `TypeMismatch msg -> Fmt.pf ppf "%s" msg  
-  | `NotImplemented f -> Fmt.pf ppf "Feature not implemented: %s" f
-  | `InferrenceFailed msg -> Fmt.pf ppf "%s" msg
-  | `ExpectedFunction msg -> Fmt.pf ppf "%s" msg
+  | `NameNotInScope nm ->
+    
+    Fmt.pf ppf "Name not in scope: %s" nm
+      
+  | `TypeMismatch (e,exp,inf) ->
+
+    Fmt.pf ppf "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
+    Fmt.pf ppf "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_term inf;
+    Fmt.pf ppf "@[<v>but was expected to have type: @,@, @[%a@]@,@]" pp_term exp;
+
+  | `NotImplemented f ->
+
+    Fmt.pf ppf "Feature not implemented: %s" f
+      
+  | `InferrenceFailed e ->
+
+    Fmt.pf ppf "Failed to infer the type of: %a" pp_expr e
+      
+  | `ExpectedFunction e -> 
+
+    Fmt.pf ppf "The expression @,@, @[%a@] @,@," pp_expr e ;
+    Fmt.pf ppf "was expected to be a function but isn.t" 
+
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
 
@@ -151,8 +169,7 @@ let rec tcm_extract_pi (v: value) =
   | _ ->
     let* gma = tcm_ctx in 
     let e = term_to_expr (names gma) (quote false gma.lvl v) in 
-    let msg = Fmt.str "The expression %a is not a function." pp_expr e in 
-    tcm_fail (`ExpectedFunction msg) 
+    tcm_fail (`ExpectedFunction e) 
 
 (*****************************************************************************)
 (*                            Typechecking Rules                             *)
@@ -182,14 +199,7 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     let expected_nf = quote true gma.lvl expected in
 
     if (Poly.(<>) expected_nf inferred_nf)
-       
-    then let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
-                                   str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_term inferred_nf;
-                                   str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
-                                     pp_term expected_nf ]
-
-      in tcm_fail (`TypeMismatch msg)
-        
+    then tcm_fail (`TypeMismatch (e,expected_nf,inferred_nf))
     else tcm_ok e'
 
 and tcm_infer (e : expr) : (term * value) tcm =
@@ -227,9 +237,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
     
   | TypE -> tcm_ok (TypT , TypV)
 
-  | _ ->
-    let msg = Fmt.str "Could not infer the type of: %a" pp_expr e in 
-    tcm_fail (`InferrenceFailed msg)
+  | _ -> tcm_fail (`InferrenceFailed e) 
 
 and tcm_in_tele (tl : expr tele)
     (k : value tele -> term tele -> 'a tcm) : 'a tcm =
