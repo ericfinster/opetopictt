@@ -16,7 +16,6 @@ open Opetopes.Complex
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
-
                   
 type expr =
 
@@ -52,26 +51,25 @@ let rec of_cmplx (c : 'a cmplx) : 'a tr_expr suite =
 (*                         Pretty Printing Raw Syntax                        *)
 (*****************************************************************************)
 
-let is_app e =
-  match e with
-  | AppE (_, _) -> true
-  | _ -> false
-
 let is_pi e =
   match e with
-  | PiE (_,_,_) -> true
+  | PiE _ -> true
+  | _ -> false
+    
+let app_parens e =
+  match e with
+  | PiE _ -> true
+  | AppE _ -> true
+  | LamE _ -> true
   | _ -> false
 
-let tele_to_pd_dummy _ =
-  Error "dummy"
-
-let rec pp_expr_gen ~si:show_imp ppf expr =
-  let ppe = pp_expr_gen ~si:show_imp in
+let rec pp_expr ppf expr =
+  let ppe = pp_expr in
   match expr with
   | VarE nm -> string ppf nm
   | LamE (nm,bdy) -> pf ppf "\\%s. %a" nm ppe bdy
   | AppE (u, v) ->
-    let pp_v = if (is_app v) then
+    let pp_v = if (app_parens v) then
         parens ppe
       else ppe in
     pf ppf "%a@, %a" ppe u pp_v v
@@ -91,13 +89,6 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
   | TypE -> pf ppf "U"
 
   | CellE _ -> pf ppf "cell" 
-
-(*****************************************************************************)
-(*                          Matching pretty printers                         *)
-(*****************************************************************************)
-
-let pp_expr = pp_expr_gen ~si:false 
-let pp_expr_with_impl = pp_expr_gen ~si:true
 
 (*****************************************************************************)
 (*                         Expr Syntax Implmentations                        *)
