@@ -7,8 +7,8 @@
 %} 
 
 %token LET LAMBDA COLON EQUAL DOT VBAR
-%token LPAR RPAR LBR RBR 
-%token ARROW 
+%token LPAR RPAR LBR RBR LBRKT RBRKT
+%token ARROW VDASH EMPTY SEMI
 %token TYPE
 %token LF ND UNIT
 %token <string> IDENT
@@ -24,16 +24,18 @@ suite(X):
   | s = suite(X) x = X
     { Ext (s,x) }
 
-sep_suite(X,S):
-  | { Emp }
-  | s = sep_suite(X,S) S x = X
-    { Ext (s,x) }
-
 non_empty_suite(X,S):
   | x = X
     { Ext (Emp,x) }
   | s = non_empty_suite(X,S) S x = X
     { Ext (s,x) }
+
+sep_suite(X,S):
+  | { Emp }
+  | x = X
+    { Ext (Emp,x) }
+  | s = sep_suite(X,S) S x = X
+    { Ext (s,x) } 
 
 tr_expr(V):
   | UNIT
@@ -82,10 +84,12 @@ pi_head:
 /* addr: */
 /*   | LBRKT ds = separated_list(COMMA,dir) RBRKT */
 /*     { ds }  */
-      
-/* frm_entry: */
-/*   | i = INT a = addr ARROW e = expr */
-/*     { ((i,a),e) } */
+
+dep_term:
+  | s = sep_suite(expr,SEMI) VDASH e = expr
+    { (s,Some e) }
+  | s = sep_suite(expr,SEMI) VDASH EMPTY
+    { (s,None) }
 
 expr: 
   | e = expr1
@@ -110,6 +114,8 @@ expr3:
     { TypE }
   | id = IDENT
     { VarE id }
+  | LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
+    { CellE (t,e,c) } 
   | LPAR t = expr RPAR
     { t }
 

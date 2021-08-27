@@ -17,6 +17,7 @@ open Opetopes.Complex
 (*                              Type Definitions                             *)
 (*****************************************************************************)
 
+                  
 type expr =
 
   (* Type theory primitives *)
@@ -25,6 +26,11 @@ type expr =
   | AppE of expr * expr
   | PiE of name * expr * expr
   | TypE
+
+  | CellE of expr tele * expr * dep_term tr_expr suite
+
+and dep_term = expr suite * expr option
+
 
 (*****************************************************************************)
 (*                          Parsing Tree Expressions                         *)
@@ -82,7 +88,9 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
     else
       pf ppf "(%s : %a)@, -> %a" nm
         ppe dom ppe cod
-  | TypE -> string ppf "U"
+  | TypE -> pf ppf "U"
+
+  | CellE _ -> pf ppf "cell" 
 
 (*****************************************************************************)
 (*                          Matching pretty printers                         *)
