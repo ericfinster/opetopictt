@@ -180,10 +180,6 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
 
     let inferred_nf = quote true gma.lvl inferred in
     let expected_nf = quote true gma.lvl expected in
-    
-    (* let nms = names gma in *)
-    (* let inferred_nf_expr = term_to_expr nms inferred_nf in
-     * let expected_nf_expr = term_to_expr nms expected_nf in *)
 
     if (Poly.(<>) expected_nf inferred_nf)
        
@@ -231,10 +227,9 @@ and tcm_infer (e : expr) : (term * value) tcm =
     
   | TypE -> tcm_ok (TypT , TypV)
 
-  (* TODO: inferrence error *)
-  | _ -> tcm_fail
-           (`InferrenceFailed
-              (Fmt.str "Could not infer the type of: %a" pp_expr e))
+  | _ ->
+    let msg = Fmt.str "Could not infer the type of: %a" pp_expr e in 
+    tcm_fail (`InferrenceFailed msg)
 
 and tcm_in_tele (tl : expr tele)
     (k : value tele -> term tele -> 'a tcm) : 'a tcm =
