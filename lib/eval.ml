@@ -4,7 +4,6 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-open Fmt
 open Term
 open Meta
 open Value
@@ -17,49 +16,40 @@ open Syntax
 
 exception Eval_error of string
 
+let ext_loc loc v i =
+  if (i <= 0) then v
+  else loc (i-1)
+
+let emp_loc _ =
+  raise (Eval_error "Empty local environment")
+
 let rec eval top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
   match tm with
-  | VarT i ->
-    (try db_get i loc
-     with Lookup_error ->
-       raise (Eval_error (str "Index out of range: %d" i)))
-  | TopT nm -> TopV (nm,EmpSp,(
-      try assoc nm top
-      with Lookup_error ->
-        raise (Eval_error (str "Unknown id during eval: %s" nm))
-    ))
-  | LamT (nm,ict,u) -> LamV (nm, ict, Closure (top,loc,u))
+  | VarT i -> loc i 
+  | TopT nm -> TopV (nm,EmpSp,top nm)
+  | LamT (nm,ict,u) ->
+    LamV (nm, ict,
+          fun v -> eval top (ext_loc loc v) u)
   | AppT (u,v,ict) -> appV (eval top loc u) (eval top loc v) ict
-  | PiT (nm,ict,u,v) -> PiV (nm, ict, eval top loc u, Closure (top,loc,v))
+  | PiT (nm,ict,a,b) ->
+    PiV (nm, ict, eval top loc a,
+         fun v -> eval top (ext_loc loc v) b)
   | TypT -> TypV
   | MetaT m -> metaV m
-  | InsMetaT m -> appLocV loc (metaV m)
-  | FrmT (t,c) -> FrmV (eval top loc t, c) 
-  | CellT (t,c,f) ->
-    CellV (eval top loc t, c, eval top loc f) 
 
 and metaV m =
   match lookup_meta m with
   | Unsolved -> FlexV (m, EmpSp)
   | Solved v -> v
 
-and ($$) c v =
-  match c with
-  | Closure (top,loc,tm) -> eval top (Ext (loc,v)) tm
-
 and appV t u ict =
   match t with
   | FlexV (m,sp) -> FlexV (m,AppSp(sp,u,ict))
   | RigidV (i,sp) -> RigidV (i,AppSp(sp,u,ict))
   | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u,ict),appV tv u ict)
-  | LamV (_,_,cl) -> cl $$ u
+  | LamV (_,_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
-
-and appLocV loc v =
-  match loc with
-  | Emp -> v
-  | Ext (loc',u) -> appV (appLocV loc' v) u Expl
 
 and runSpV v sp =
   match sp with
@@ -86,11 +76,9 @@ and quote ufld k v =
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
-  | LamV (nm,ict,cl) -> LamT (nm, ict, quote ufld (k+1) (cl $$ varV k))
-  | PiV (nm,ict,u,cl) -> PiT (nm, ict, qc u, quote ufld (k+1) (cl $$ varV k))
+  | LamV (nm,ict,cl) -> LamT (nm, ict, quote ufld (k+1) (cl (varV k)))
+  | PiV (nm,ict,u,cl) -> PiT (nm, ict, qc u, quote ufld (k+1) (cl (varV k)))
   | TypV -> TypT
-  | FrmV (t,c) -> FrmT (qc t, c )
-  | CellV (t,c,f) -> CellT (qc t, c, qc f) 
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in
@@ -110,6 +98,4 @@ let quote_tele tl =
       (Ext (r,(nm,ict,ty_tm)),k+1)
   in fst (go tl)
 
-let nf top loc tm =
-  quote true (length loc) (eval top loc tm)
 

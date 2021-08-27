@@ -7,12 +7,11 @@
        
 %} 
 
-%token LET LAMBDA COLON EQUAL DOT 
+%token LET LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR 
 %token ARROW HOLE 
 %token TYPE
 %token LF ND UNIT
-%token LBRKT RBRKT VBAR AT STAR
 %token <string> IDENT
 %token EOF
 
@@ -120,12 +119,6 @@ expr3:
     { HoleE } 
   | id = IDENT
     { VarE id }
-  | LBRKT t = expr3 AT c = cmplx(UNIT) RBRKT
-    { FrmE (t,c) }
-  | LBRKT t = expr3 AT c = cmplx(UNIT) STAR f = expr3 RBRKT
-    { CellE (t,c,f) }
-  | LBR f = cmplx(expr) RBR
-    { FrmElE f } 
   | LPAR t = expr RPAR
     { t }
 

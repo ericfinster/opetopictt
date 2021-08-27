@@ -5,7 +5,6 @@
 (*****************************************************************************)
 
 open Expr
-open Eval 
 open Syntax
 open Typecheck
 
@@ -14,27 +13,29 @@ type cmd =
   (* | Normalize of expr tele * expr  * expr
    * | Infer of expr tele * expr  *)
 
-let rec run_cmds gma cmds =
-
-  let (let*) m f = Base.Result.bind m ~f in 
+let rec run_cmds cmds =
   
   let module E = ExprUtil in
+  
   match cmds with
-  | [] -> Ok gma
+  | [] -> tcm_ctx
   | (Let (id,tl,ty,tm))::cs ->
     Fmt.pr "----------------@,";
     Fmt.pr "Checking definition: %s@," id;
     let (abs_ty,abs_tm) = E.abstract_tele_with_type tl ty tm in
-    let* ty_tm = check gma abs_ty TypV in
-    let ty_val = eval gma.top gma.loc ty_tm in
-    let* tm_tm = check gma abs_tm ty_val in
-    let tm_val = eval gma.top gma.loc tm_tm in
+    let* ty_tm = tcm_check abs_ty TypV in
+    let* ty_val = tcm_eval ty_tm in
+    let* tm_tm = tcm_check abs_tm ty_val in
+    let* tm_val = tcm_eval tm_tm in
     Fmt.pr "Checking complete for %s@," id;
     (* let tm_nf = term_to_expr Emp (quote (gma.lvl) tm_val false) in
      * let ty_nf = term_to_expr Emp (quote (gma.lvl) ty_val false) in *)
     (* pr "Type: @[%a@]@," pp_expr ty_nf; *)
     (* pr "Term: @[%a@]@," pp_expr tm_nf; *)
-    run_cmds (define gma id tm_val ty_val) cs
+    let* gma = tcm_ctx in
+    tcm_in_ctx (define gma id tm_val ty_val)
+      (run_cmds cs)
+      
   (* | (Normalize (tl,ty,tm))::cs ->
    *   Fmt.pr "----------------@,";
    *   Fmt.pr "Normalizing: @[%a@]@," pp_expr tm;

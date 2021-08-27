@@ -59,11 +59,9 @@ let rename m pren v =
     (* We maximally unfold meta-solutions.  I think this is the only
        reasonable choice for top-level metas like we have here. *)
     | TopV (_,_,tv) -> go pr tv
-    | LamV (nm,ict,a) -> LamT (nm, ict, go (lift pr) (a $$ varV pr.cod))
-    | PiV (nm,ict,a,b) -> PiT (nm, ict, go pr a, go (lift pr) (b $$ varV pr.cod))
+    | LamV (nm,ict,a) -> LamT (nm, ict, go (lift pr) (a (varV pr.cod)))
+    | PiV (nm,ict,a,b) -> PiT (nm, ict, go pr a, go (lift pr) (b (varV pr.cod)))
     | TypV -> TypT
-    | FrmV (t, c) -> FrmT (go pr t, c)
-    | CellV (t,c,f) -> CellT (go pr t, c, go pr f) 
 
   and goSp pr v sp =
     match sp with
@@ -82,7 +80,7 @@ let rec lams k sp t =
 let solve top k m sp v =
   let prn = invert k sp in
   let rhs = rename m prn v in
-  let sol = eval top Emp (lams 0 sp rhs) in
+  let sol = eval top emp_loc (lams 0 sp rhs) in
   let mctx = ! metacontext in
   (* pr "Meta solution : ?%d = @[%a@]@," m pp_value sol; *)
   metacontext := Map.update mctx m ~f:(fun _ -> Solved sol)
@@ -111,13 +109,13 @@ let rec unify stgy top l t u =
   match (force_meta t , force_meta u) with
   | (TypV , TypV) -> ()
 
-  | (LamV (_,_,a) , LamV (_,_,a')) -> unify stgy top (l+1) (a $$ varV l) (a' $$ varV l)
-  | (t' , LamV(_,i,a')) -> unify stgy top (l+1) (appV t' (varV l) i) (a' $$ varV l)
-  | (LamV (_,i,a) , t') -> unify stgy top (l+1) (a $$ varV l) (appV t' (varV l) i)
+  | (LamV (_,_,a) , LamV (_,_,a')) -> unify stgy top (l+1) (a (varV l)) (a' (varV l))
+  | (t' , LamV(_,i,a')) -> unify stgy top (l+1) (appV t' (varV l) i) (a' (varV l))
+  | (LamV (_,i,a) , t') -> unify stgy top (l+1) (a (varV l)) (appV t' (varV l) i)
 
   | (PiV (_,ict,a,b) , PiV (_,ict',a',b')) when Poly.(=) ict ict' ->
     unify stgy top l a a' ;
-    unify stgy top (l+1) (b $$ varV l) (b' $$ varV l)
+    unify stgy top (l+1) (b (varV l)) (b' (varV l))
   | (PiV (_,_,_,_) , PiV (_,_,_,_)) ->
     raise (Unify_error "Icity mismatch")
 
@@ -152,17 +150,6 @@ let rec unify stgy top l t u =
   | (_ , TopV (_,_,_)) when isUnfoldNone stgy  ->
     raise (Unify_error "refusing to unfold top level def")
   | (t , TopV (_,_,tv')) -> unify stgy top l t tv'
-
-  | (FrmV (t,c), FrmV (t',c')) ->
-    if (Poly.(<>) c c') then
-      raise (Unify_error "incompatible opetopes")
-    else unify stgy top l t t'
-
-  | (CellV (t,c,f), CellV (t',c',f')) ->
-    if (Poly.(<>) c c') then
-      raise (Unify_error "incompatible opetopes")
-    else unify stgy top l t t';
-    unify stgy top l f f' 
     
   | (tm,um) ->
     let msg = str "Failed to unify: %a =/= %a"

@@ -27,15 +27,6 @@ type expr =
   | HoleE
   | TypE
 
-  (* Opetopic structure *)
-  | FrmE of expr * unit tr_expr suite  
-  | CellE of expr * unit tr_expr suite * expr 
-  | FrmElE of expr tr_expr suite 
-
-(* This probably belongs elsewhere .... *)
-type defn =
-  | TermDef of name * expr tele * expr * expr
-
 (*****************************************************************************)
 (*                          Parsing Tree Expressions                         *)
 (*****************************************************************************)
@@ -107,10 +98,6 @@ let rec pp_expr_gen ~si:show_imp ppf expr =
         ppe dom ppe cod
   | TypE -> string ppf "U"
   | HoleE -> string ppf "_"
-
-  | FrmE _ -> string ppf "frm" 
-  | CellE _ -> string ppf "cell" 
-  | FrmElE _ -> string ppf "frmrec"
 
 (*****************************************************************************)
 (*                          Matching pretty printers                         *)

@@ -49,11 +49,11 @@ let rec token buf =
   | "lf"         -> LF
   | "nd"         -> ND
   | "tt"         -> UNIT
-  | "["          -> LBRKT
-  | "]"          -> RBRKT
+  (* | "["          -> LBRKT
+   * | "]"          -> RBRKT *)
   | "|"          -> VBAR
-  | "*"          -> STAR
-  | "@"          -> AT 
+  (* | "*"          -> STAR
+   * | "@"          -> AT  *)
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
   (* | number -> INT (Base.Int.of_string (Sedlexing.Utf8.lexeme buf)) *)

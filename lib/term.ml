@@ -10,12 +10,9 @@ open Expr
 open Suite
 open Syntax
 
-open Opetopes.Complex
-       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
-
 
 type term =
 
@@ -26,11 +23,7 @@ type term =
   | AppT of term * term * icit
   | PiT of name * icit * term * term
   | MetaT of mvar
-  | InsMetaT of mvar
   | TypT
-  | FrmT of term * unit cmplx
-  | CellT of term * unit cmplx * term 
-  (* | FrmRecT of (face_addr * term) suite  *)
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -49,13 +42,7 @@ let rec term_to_expr nms tm =
   | PiT (nm,ict,a,b) ->
     PiE (nm, ict, tte nms a, tte (Ext (nms,nm)) b)
   | MetaT _ -> HoleE
-  (* Somewhat dubious, since we lose the implicit application ... *)
-  | InsMetaT _ -> HoleE
   | TypT -> TypE
-  | FrmT (t,c) ->
-    FrmE (tte nms t , of_cmplx c)
-  | CellT (t,c,f) ->
-    CellE (tte nms t, of_cmplx c, tte nms f)
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)
@@ -119,11 +106,7 @@ let rec pp_term ppf tm =
     pf ppf "(%s : %a) -> %a" nm
       pp_term a pp_term p
   | MetaT _ -> pf ppf "_"
-  (* Again, misses some implicit information ... *)
-  | InsMetaT _ -> pf ppf "*_*"
   | TypT -> pf ppf "U"
-  | FrmT _ -> pf ppf "frm" 
-  | CellT _ -> pf ppf "cell"
 
 (*****************************************************************************)
 (*                         Term Syntax Implmentations                        *)

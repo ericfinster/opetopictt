@@ -29,7 +29,7 @@ let () =
   Arg.parse spec_list (fun s -> file_in := s::!file_in) usage;
   let files = List.rev (!file_in) in
   let cmds = parse_all files in
-  match run_cmds empty_ctx cmds with
+  match run_cmds cmds empty_ctx with
   | Ok _ -> 
     printf "----------------@,Success!";
     print_newline ();
