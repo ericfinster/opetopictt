@@ -137,6 +137,10 @@ let tcm_eval (t : term) : value tcm =
             (loc_lookup gma) t)
 
 let tcm_in_ctx g m _ = m g 
+
+let tcm_with_binding nm ty m =
+  let* gma = tcm_ctx in
+  tcm_in_ctx (bind gma nm ty) m 
   
 (*****************************************************************************)
 (*                          Meta Variable Utilities                          *)
@@ -223,70 +227,67 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   match e with
            
-  (* | VarE nm -> (
-   *     try
-   *       let (idx,(b,typ)) = assoc_with_idx nm gma.types in
-   *       match b with
-   *       | Bound -> Ok (VarT idx, typ)
-   *       | Defined -> Ok (TopT nm, typ)
-   *     with Lookup_error -> Error (`NameNotInScope nm)
-   *   ) *)
+  | VarE nm ->
+    let* gma = tcm_ctx in
+    begin try
+        let (idx,(_,ty)) = assoc_with_idx nm gma.loc in
+        tcm_ok (VarT idx, ty)
+      with Lookup_error ->
+      begin try 
+          let (_, ty) = assoc nm gma.top in
+          tcm_ok (TopT nm, ty)
+        with Lookup_error -> tcm_fail (`NameNotInScope nm)
+      end
+    end
 
-  (* | LamE (nm,ict,e) ->
-   *   let a = eval gma.top gma.loc (fresh_meta ()) in
-   *   let* (e', t) = insert gma (infer (bind gma nm a) e) in
-   *   let cl = Closure (gma.top,gma.loc,quote false (gma.lvl + 1) t) in
-   *   Ok (LamT (nm,ict,e') , PiV (nm,ict,a,cl)) *)
+  | LamE (nm,ict,e) ->
+    let* m = tcm_fresh_meta () in
+    let* mv = tcm_eval m in
+    let* gma = tcm_ctx in 
+    let* (e',t) = tcm_insert
+        (tcm_in_ctx (bind gma nm mv) (tcm_infer e)) in
+    let t_tm = quote false (gma.lvl + 1) t in
+    let cl v = eval (top_lookup gma) (ext_loc (loc_lookup gma) v) t_tm in 
+    tcm_ok (LamT (nm,ict,e'), PiV (nm,ict,mv,cl))
 
-  (* | AppE (u,v,ict) ->
-   *   let* (u',ut) = match ict with
-   *     | Impl -> infer gma u
-   *     | Expl -> insert' gma (infer gma u)
-   *   in
-   * 
-   *   let* (a,b) = match force_meta ut with
-   *     | PiV (_,ict',a,b) ->
-   *       if (Poly.(<>) ict ict') then
-   *         Error (`IcityMismatch (ict,ict'))
-   *       else Ok (a,b)
-   *     | _ ->
-   *       let a = eval gma.top gma.loc (fresh_meta ()) in
-   *       let b = Closure (gma.top,gma.loc,fresh_meta ()) in
-   *       unify OneShot gma.top gma.lvl ut (PiV ("x",ict,a,b));
-   *       Ok (a,b)
-   *   in let* v' = check gma v a in
-   *   Ok (AppT (u', v', ict) , b $$ eval gma.top gma.loc v') *)
+  | AppE (u,v,ict) ->
+    let* (u',ut) = match ict with
+      | Impl -> tcm_infer u
+      | Expl -> tcm_insert' (tcm_infer u)
+    in
+  
+    let* (a,b) = match force_meta ut with
+      | PiV (_,ict',a,b) ->
+        if (Poly.(<>) ict ict') then
+          tcm_fail (`IcityMismatch (ict,ict'))
+        else tcm_ok (a,b)
+      | _ ->
+        let* gma = tcm_ctx in 
+        let* am = tcm_fresh_meta () in 
+        let* bm = tcm_fresh_meta () in 
+        let* a = tcm_eval am in
+        let b _ = eval (top_lookup gma) (loc_lookup gma) bm in
+        unify OneShot (top_lookup gma) gma.lvl ut (PiV ("x",ict,a,b));
+        tcm_ok (a,b)
+    in let* v' = tcm_check v a in
+    let* vv = tcm_eval v' in 
+    tcm_ok (AppT (u', v', ict) , b vv)
 
-  (* | PiE (nm,ict,a,b) ->
-   *   let* a' = check gma a TypV in
-   *   let* b' = check (bind gma nm (eval gma.top gma.loc a')) b TypV in
-   *   Ok (PiT (nm,ict,a',b') , TypV) *)
+  | PiE (nm,ict,a,b) ->
+    let* a' = tcm_check a TypV in
+    let* av = tcm_eval a' in
+    let* b' = tcm_with_binding nm av
+        (tcm_check b TypV) in 
+
+    tcm_ok (PiT (nm,ict,a',b') , TypV)
     
-  (* | TypE -> Ok (TypT , TypV) *)
+  | TypE -> tcm_ok (TypT , TypV)
 
-  (* | HoleE ->
-   *   let a = eval gma.top gma.loc (fresh_meta ()) in
-   *   let t = fresh_meta () in
-   *   Ok (t , a) *)
-
-  (* | FrmE (t, c) ->
-   *   let* t' = check gma t TypV in
-   *   let* c' = check_frame c in 
-   *   Ok (FrmT (t', c') , TypV) *)
-
-  (* | CellE (t,c,f) ->
-   *   let* t' = check gma t TypV in
-   *   let* c' = check_frame c in
-   *   let tv = eval gma.top gma.loc t' in 
-   *   let* f' = check gma f (FrmV (tv,c')) in 
-   *   Ok (CellT (t', c', f') , TypV) *)
-
-  (* | FrmElE _ ->
-   * 
-   *   Error (`NotImplemented "frame elements") *)
-
-  | _ -> tcm_fail `InternalError
-
+  | HoleE ->
+    let* m = tcm_fresh_meta () in
+    let* mv = tcm_eval m in
+    let* t = tcm_fresh_meta () in
+    tcm_ok (t, mv)
 
 and tcm_in_tele (tl : expr tele)
     (k : value tele -> term tele -> 'a tcm) : 'a tcm =
@@ -302,149 +303,3 @@ and tcm_in_tele (tl : expr tele)
           (k (Ext (vt,(id,ict,ty_val)))
              (Ext (tt,(id,ict,ty_tm)))))
 
-(*****************************************************************************)
-(*                            Typechecking Rules                             *)
-(*****************************************************************************)
-                            
-(* let rec check gma expr typ =
- *   (\* let typ_tm = quote false gma.lvl typ in
- *    * let typ_expr = term_to_expr (names gma) typ_tm in
- *    * pr "Checking @[%a@] has type @[%a@]@," pp_expr_with_impl expr pp_expr_with_impl typ_expr ; *\)
- * 
- *   let (let*\) m f = Base.Result.bind m ~f in 
- *   
- *   match (expr, force_meta typ) with
- * 
- *   | (e , TopV (_,_,tv)) ->
- *     check gma e tv
- * 
- *   | (LamE (nm,i,e) , PiV (_,i',a,b)) when Poly.(=) i i' ->
- *     let* bdy = check (bind gma nm a) e (b $$ varV gma.lvl) in
- *     Ok (LamT (nm,i,bdy))
- * 
- *   | (t , PiV (nm,Impl,a,b)) ->
- *     let* bdy = check (bind gma nm a) t (b $$ varV gma.lvl) in
- *     Ok (LamT (nm,Impl,bdy))
- * 
- *   | (HoleE , _) -> (\* pr "fresh meta@,"; *\)
- *     let mv = fresh_meta () in Ok mv
- * 
- *   | (e, expected) ->
- *     
- *     let* (e',inferred) = insert gma (infer gma e) in
- *     try unify OneShot gma.top gma.lvl expected inferred ; Ok e'
- *     with Unify_error msg ->
- *       pr "Unification error: %s\n" msg;
- *       (\* I guess the unification error will have more information .... *\)
- *       let nms = names gma in
- *       let inferred_nf = term_to_expr nms (quote false gma.lvl inferred) in
- *       let expected_nf = term_to_expr nms (quote true gma.lvl expected) in
- *       let msg = String.concat [ str "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
- *                                 str "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_expr inferred_nf;
- *                                 str "@[<v>but was expected to have type: @,@, @[%a@]@,@]"
- *                                   pp_expr expected_nf ]
- * 
- *       in Error (`TypeMismatch msg)
- * 
- * 
- * and infer gma expr =
- *   (\* pr "@[<v>Inferring type of: @[%a@]@,@]"
- *    *   pp_expr_with_impl expr ; *\)
- * 
- *   let (let*\) m f = Base.Result.bind m ~f in 
- *   
- *   match expr with
- * 
- *   | VarE nm -> (
- *       try
- *         let (idx,(b,typ)) = assoc_with_idx nm gma.types in
- *         match b with
- *         | Bound -> Ok (VarT idx, typ)
- *         | Defined -> Ok (TopT nm, typ)
- *       with Lookup_error -> Error (`NameNotInScope nm)
- *     )
- * 
- *   | LamE (nm,ict,e) ->
- *     let a = eval gma.top gma.loc (fresh_meta ()) in
- *     let* (e', t) = insert gma (infer (bind gma nm a) e) in
- *     let cl = Closure (gma.top,gma.loc,quote false (gma.lvl + 1) t) in
- *     Ok (LamT (nm,ict,e') , PiV (nm,ict,a,cl))
- * 
- *   | AppE (u,v,ict) ->
- *     let* (u',ut) = match ict with
- *       | Impl -> infer gma u
- *       | Expl -> insert' gma (infer gma u)
- *     in
- * 
- *     let* (a,b) = match force_meta ut with
- *       | PiV (_,ict',a,b) ->
- *         if (Poly.(<>) ict ict') then
- *           Error (`IcityMismatch (ict,ict'))
- *         else Ok (a,b)
- *       | _ ->
- *         let a = eval gma.top gma.loc (fresh_meta ()) in
- *         let b = Closure (gma.top,gma.loc,fresh_meta ()) in
- *         unify OneShot gma.top gma.lvl ut (PiV ("x",ict,a,b));
- *         Ok (a,b)
- *     in let* v' = check gma v a in
- *     Ok (AppT (u', v', ict) , b $$ eval gma.top gma.loc v')
- * 
- *   | PiE (nm,ict,a,b) ->
- *     let* a' = check gma a TypV in
- *     let* b' = check (bind gma nm (eval gma.top gma.loc a')) b TypV in
- *     Ok (PiT (nm,ict,a',b') , TypV)
- *     
- *   | TypE -> Ok (TypT , TypV)
- * 
- *   | HoleE ->
- *     let a = eval gma.top gma.loc (fresh_meta ()) in
- *     let t = fresh_meta () in
- *     Ok (t , a)
- * 
- *   | FrmE (t, c) ->
- *     let* t' = check gma t TypV in
- *     let* c' = check_frame c in 
- *     Ok (FrmT (t', c') , TypV)
- * 
- *   | CellE (t,c,f) ->
- *     let* t' = check gma t TypV in
- *     let* c' = check_frame c in
- *     let tv = eval gma.top gma.loc t' in 
- *     let* f' = check gma f (FrmV (tv,c')) in 
- *     Ok (CellT (t', c', f') , TypV)
- * 
- *   | FrmElE _ ->
- * 
- *     Error (`NotImplemented "frame elements")
- *       
- * and check_frame c =
- * 
- *   let (let*\) m f = Base.Result.bind m ~f in 
- *   
- *     let open IdtConv in 
- *     
- *     let* c' =
- *       begin try
- *           let c' = to_cmplx c in
- *           let _ = validate_frame c' in
- *           Ok c'
- *         with TreeExprError msg -> Error (`InvalidShape msg)
- *            | ShapeError msg -> Error (`InvalidShape msg) 
- * 
- *       end in Ok c' 
- * 
- * and with_tele : 'a . ctx -> expr tele
- *   -> (ctx -> value tele -> term tele -> ('a,typing_error) Result.t)
- *   -> ('a,typing_error) Result.t = fun gma tl m ->
- * 
- *   let (let*\) m f = Base.Result.bind m ~f in 
- * 
- *   match tl with
- *   | Emp -> m gma Emp Emp
- *   | Ext (tl',(id,ict,ty)) ->
- *     with_tele gma tl' (fun g tv tt ->
- *         let* ty_tm = check g ty TypV in
- *         let ty_val = eval g.top g.loc ty_tm in
- *         m (bind g id ty_val)
- *           (Ext (tv,(id,ict,ty_val)))
- *           (Ext (tt,(id,ict,ty_tm)))) *)
