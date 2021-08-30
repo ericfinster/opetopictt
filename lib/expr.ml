@@ -16,7 +16,9 @@ open Opetopes.Complex
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
-                  
+
+type 'a dep_term = 'a suite * 'a option
+                     
 type expr =
 
   (* Variables *)
@@ -28,10 +30,10 @@ type expr =
   | PiE of name * expr * expr
 
   (* Cell types *) 
-  | CellE of expr tele * expr * dep_term tr_expr suite
-  | CompE of expr tele * expr * dep_term tr_expr suite
-  | FillE of expr tele * expr * dep_term tr_expr suite
-  | CellElimE of expr tele * expr * dep_term tr_expr suite *
+  | CellE of expr tele * expr * expr dep_term tr_expr suite
+  | CompE of expr tele * expr * expr dep_term tr_expr suite
+  | FillE of expr tele * expr * expr dep_term tr_expr suite
+  | CellElimE of expr tele * expr * expr dep_term tr_expr suite *
                  name * name * expr * expr 
 
   (* For cell elim: we have a kan situation.  Then we bind two
@@ -47,7 +49,7 @@ type expr =
   (* The Universe *) 
   | TypE
 
-and dep_term = expr suite * expr option
+(* and dep_term = expr suite * expr option *)
 
 
 (*****************************************************************************)

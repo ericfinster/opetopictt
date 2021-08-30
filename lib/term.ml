@@ -28,9 +28,16 @@ type term =
   | PiT of name * term * term
 
   (* Cell Types *)
-  | CellT of term tele * term * dep_term cmplx
+  | CellT of term tele * term * term dep_term cmplx
 
   | TypT
+
+type 'a cell_desc = 'a dep_term cmplx 
+
+let map_cell_desc (c : 'a cell_desc) ~f:(f : 'a -> 'b) : 'b cell_desc =
+  map_cmplx c ~f:(fun (tms,topt) ->
+      (map_suite tms ~f:f,
+       Option.map topt ~f:f))
 
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
@@ -49,6 +56,15 @@ let rec term_to_expr nms tm =
   | PiT (nm,a,b) ->
     PiE (nm,tte nms a, tte (Ext (nms,nm)) b)
   | CellT (tl,ty,c) ->
+
+    let (etl, ety) = fold_accum_cont tl Emp
+        (fun (nm,typ) nms ->
+           ((nm,term_to_expr nms typ),Ext (nms,nm)))
+        (fun etl nms -> (etl, term_to_expr nms ty)) in
+
+    let c' = map_cell_desc c ~f:(tte nms) in 
+    
+    CellE (etl,ety, of_cmplx c')
     
   | TypT -> TypE
 
@@ -105,6 +121,7 @@ let rec pp_term ppf tm =
   | PiT (nm,a,p) ->
     pf ppf "(%s : %a) -> %a" nm
       pp_term a pp_term p
+  | CellT _ -> pf ppf "cellterm"
   | TypT -> pf ppf "U"
 
 (*****************************************************************************)

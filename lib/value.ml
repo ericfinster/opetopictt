@@ -5,19 +5,28 @@
 (*****************************************************************************)
 
 open Fmt
+open Expr
 open Syntax
 
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
 
 type value =
 
-  (* Primitives *)
   | RigidV of lvl * spine 
   | TopV of name * spine * value
+
+  (* Pi Types *)
   | LamV of name * (value -> value) 
-  | PiV of name * value * (value -> value) 
+  | PiV of name * value * (value -> value)
+
+  (* Cell Types *)
+  | CellV of value tele * value * value dep_term cmplx
+
+  (* The Universe *)
   | TypV
 
 and spine =
@@ -40,7 +49,8 @@ let rec pp_value ppf v =
     pf ppf "\\%s.<closure>" nm 
   | PiV (nm,a,_) ->
     pf ppf "(%s : %a) -> <closure>" nm
-      pp_value a 
+      pp_value a
+  | CellV _ -> pf ppf "cellvalue"
   | TypV -> pf ppf "U"
     
 and pp_spine ppf sp =

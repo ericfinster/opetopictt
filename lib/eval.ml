@@ -6,6 +6,7 @@
 
 open Term
 open Value
+open Suite
 open Syntax
 
 (*****************************************************************************)
@@ -32,7 +33,25 @@ let rec eval top loc tm =
   | PiT (nm,a,b) ->
     PiV (nm, eval top loc a,
          fun v -> eval top (ext_loc loc v) b)
+  | CellT (tl,ty,c) ->
+
+    let (tl_v , ty_v) = eval_fib top loc tl ty in 
+    let c' = map_cell_desc c ~f:(eval top loc) in 
+
+    CellV (tl_v , ty_v , c')
+
   | TypT -> TypV
+
+and eval_fib top loc tl ty =
+  match tl with
+  | Emp -> (Emp , eval top loc ty)
+  | Ext (tl',(nm,ty')) ->
+
+    let (tl_v , ty_v) = eval_fib top loc tl' ty' in
+    let lams = TermUtil.abstract_tele tl ty in 
+    let this_ty_val = eval top loc lams in
+
+    (Ext (tl_v,(nm,ty_v)) , this_ty_val) 
 
 and appV t u =
   match t with
@@ -59,7 +78,37 @@ and quote ufld k v =
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
   | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
   | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
+  | CellV (tl,ty,c) ->
+
+    let (tl',ty') = quote_fib ufld k tl ty in
+    let c' = map_cell_desc c ~f:qc in 
+
+    CellT (tl',ty',c')
+
   | TypV -> TypT
+
+and quote_fib ufld k tl ty =
+  match tl with
+  | Emp -> (Emp , quote ufld k ty)
+  | Ext (tl',(nm,ty')) ->
+
+    (* TODO: Check the logic here.  Idea is to iteratively apply the
+       fibration to all the variables in the context and then quote.
+       But are we quoting at the right level and everything?  Have to
+       check this .... *)
+    
+    let rec app_vars t v =
+      match t with
+      | Emp -> (v,k)
+      | Ext (t',(_,_)) ->
+        let (v',k') = app_vars t' v in 
+        (appV v' (varV k'), k' + 1)
+    in
+
+    let (tl_tm, ty_tm) = quote_fib ufld k tl' ty' in
+    let (app_v , k') = app_vars tl ty in
+
+    (Ext (tl_tm,(nm,ty_tm)) , quote ufld k' app_v)
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in
