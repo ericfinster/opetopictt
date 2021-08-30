@@ -15,7 +15,8 @@ open Eval
 open Syntax
 
 open Opetopes.Idt
-       
+open Opetopes.Complex
+
 (*****************************************************************************)
 (*                                  Contexts                                 *)
 (*****************************************************************************)
@@ -76,6 +77,7 @@ type typing_error = [
   | `NotImplemented of string
   | `InferrenceFailed of expr
   | `ExpectedFunction of expr
+  | `InvalidShape of string 
   | `InternalError
 ]
 
@@ -102,7 +104,9 @@ let pp_error ppf e =
   | `ExpectedFunction e -> 
 
     Fmt.pf ppf "The expression @,@, @[%a@] @,@," pp_expr e ;
-    Fmt.pf ppf "was expected to be a function but isn.t" 
+    Fmt.pf ppf "was expected to be a function but isn.t"
+
+  | `InvalidShape msg -> pf ppf "Shape error: %s" msg 
 
   | `InternalError -> Fmt.pf ppf "Internal Error"
 
@@ -139,6 +143,7 @@ module TcmBasic =
 module TcmMonad = Monad.Make(TcmBasic) 
 module TcmApplicative = Applicative.Make(TcmBasic)
 module TcmTraverse = TreeTraverse(TcmBasic) 
+module TcmComplexTraverse = ComplexTraverse(TcmBasic)
 
 let (let*) m f = TcmMonad.bind m ~f 
 let tcm_ok = TcmMonad.return 
@@ -189,7 +194,6 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
         tcm_ok (LamT (nm,bdy))
       end
 
-
   | (e, expected) ->
     
     let* gma = tcm_ctx in 
@@ -234,10 +238,46 @@ and tcm_infer (e : expr) : (term * value) tcm =
         (tcm_check b TypV) in 
 
     tcm_ok (PiT (nm,a',b') , TypV)
+
+  | CellE (tl,ty,c) ->
+
+    let* (tm_tl, val_tl , ty_tm , ty_val) =
+      tcm_in_tele tl (fun tt vt ->
+          let* tyt = tcm_check ty TypV in
+          let* tyv = tcm_eval tyt in
+          tcm_ok (tt,vt,tyt,tyv)) in 
+        
+    let* c' = tcm_to_cmplx c in 
     
+    tcm_fail (`NotImplemented "cell type inferrence")
+
   | TypE -> tcm_ok (TypT , TypV)
 
   | _ -> tcm_fail (`InferrenceFailed e) 
+
+and tcm_to_cmplx c =
+  let open IdtConv in 
+  try let c' = to_cmplx c in
+    let _ = validate_opetope c' in 
+    tcm_ok c' 
+    with TreeExprError msg -> tcm_fail (`InvalidShape msg)
+       | ShapeError msg -> tcm_fail (`InvalidShape msg) 
+
+and tcm_check_cmplx (ty : value) (c : expr cmplx) : term cmplx tcm =
+
+  match c with
+  | Base n ->
+    let* n' = TcmTraverse.traverse_nst n
+        ~f:(fun e -> tcm_check e ty) in 
+    tcm_ok (Base n')
+  | Adjoin (t,n) ->
+    let* t' = tcm_check_cmplx ty t in
+    let* tv = TcmComplexTraverse.traverse_cmplx t'
+        ~f:(fun tm -> tcm_eval tm) in 
+    let c' = Adjoin (tv,map_nst n ~f:(fun _ -> TypV)) in 
+    let cfs = face_cmplx c' in
+    tcm_fail `InternalError
+
 
 and tcm_in_tele (tl : expr tele)
     (k : value tele -> term tele -> 'a tcm) : 'a tcm =

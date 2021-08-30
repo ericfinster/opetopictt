@@ -10,6 +10,8 @@ open Expr
 open Suite
 open Syntax
 
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
@@ -19,9 +21,15 @@ type term =
   (* Primitives *)
   | VarT of idx
   | TopT of name
+
+  (* Pi Types *) 
   | LamT of name * term
   | AppT of term * term 
   | PiT of name * term * term
+
+  (* Cell Types *)
+  | CellT of term tele * term * dep_term cmplx
+
   | TypT
 
 (*****************************************************************************)
@@ -40,6 +48,8 @@ let rec term_to_expr nms tm =
     AppE (tte nms u, tte nms v)
   | PiT (nm,a,b) ->
     PiE (nm,tte nms a, tte (Ext (nms,nm)) b)
+  | CellT (tl,ty,c) ->
+    
   | TypT -> TypE
 
 (*****************************************************************************)

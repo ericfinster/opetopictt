@@ -19,14 +19,33 @@ open Opetopes.Complex
                   
 type expr =
 
-  (* Type theory primitives *)
+  (* Variables *)
   | VarE of name
+
+  (* Pi Types *)
   | LamE of name * expr
   | AppE of expr * expr
   | PiE of name * expr * expr
-  | TypE
 
+  (* Cell types *) 
   | CellE of expr tele * expr * dep_term tr_expr suite
+  | CompE of expr tele * expr * dep_term tr_expr suite
+  | FillE of expr tele * expr * dep_term tr_expr suite
+  | CellElimE of expr tele * expr * dep_term tr_expr suite *
+                 name * name * expr * expr 
+
+  (* For cell elim: we have a kan situation.  Then we bind two
+     variables of the type of the missing cells.  Then we have a type
+     valid in the context with these variables bound to the
+     appropriate types.  Then we have a term of this fibration with
+     the variables substituted for the two Kan cells. *)
+
+  (* I mean, alternatively, just type the first expression as a Pi
+     type into the universe, and then the lambda can take care of
+     binding the variables.... *)
+
+  (* The Universe *) 
+  | TypE
 
 and dep_term = expr suite * expr option
 
@@ -86,9 +105,13 @@ let rec pp_expr ppf expr =
     else
       pf ppf "(%s : %a)@, -> %a" nm
         ppe dom ppe cod
-  | TypE -> pf ppf "U"
 
   | CellE _ -> pf ppf "cell" 
+  | CompE _ -> pf ppf "comp"
+  | FillE _ -> pf ppf "fill"
+  | CellElimE _ -> pf ppf "cell-elim" 
+
+  | TypE -> pf ppf "U"
 
 (*****************************************************************************)
 (*                         Expr Syntax Implmentations                        *)
