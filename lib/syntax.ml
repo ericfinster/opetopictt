@@ -21,6 +21,39 @@ let idx_to_lvl k i = k - i - 1
 
 type 'a decl = (name * 'a)
 type 'a tele = ('a decl) suite
+
+type 'a dep_term = 'a suite * 'a option
+
+
+module DepTermBasic =
+struct
+
+  type 'a t = 'a dep_term
+
+  module SA = SuiteApplicative
+  module SM = SuiteMonad
+  module O = Option
+      
+  let return a =
+    (SA.return a, O.return a)
+
+  let bind (ma,mb) ~f =
+    (SM.bind ma ~f:(fun a -> fst (f a)) ,
+     O.bind mb ~f:(fun a -> snd (f a)))
+
+  let map (ta : 'a dep_term) ~f:(f: 'a -> 'b) : 'b dep_term =
+    (SA.map (fst ta) ~f:f, O.map (snd ta) ~f:f)
+      
+  let map = `Custom map
+  
+  let apply mf mx =
+    bind mf ~f:(fun f ->
+        bind mx ~f:(fun x ->
+            return (f x)))
+      
+end
+
+module DepTermApplicative = Applicative.Make(DepTermBasic)
     
 (*****************************************************************************)
 (*                                 Telescopes                                *)

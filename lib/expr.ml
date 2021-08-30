@@ -17,8 +17,6 @@ open Opetopes.Complex
 (*                              Type Definitions                             *)
 (*****************************************************************************)
 
-type 'a dep_term = 'a suite * 'a option
-                     
 type expr =
 
   (* Variables *)

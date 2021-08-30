@@ -282,74 +282,29 @@ let open_at k s =
 (*                               Instances                                   *)
 (*****************************************************************************)
 
-module SuiteMnd = Monad.Make (struct
-    type 'a t = 'a suite
+module SuiteBasic =
+struct
 
-    let return = singleton
+  type 'a t = 'a suite
 
-    let map = `Custom map_suite
+  let return a = Ext (Emp,a)
 
-    let rec bind s ~f =
-      match s with
-      | Emp -> Emp
-      | Ext (s',x) -> append (bind s' ~f) (f x)
+  let rec bind s ~f =
+    match s with
+    | Emp -> Emp
+    | Ext (s',x) -> append (bind s' ~f) (f x)
 
-  end)
+  let map = `Custom map_suite
 
-(* include struct
- *   (\* We are explicit about what we import from the general Monad functor so that we don't
- *      accidentally rebind more efficient list-specific functions. *\)
- *   module Monad = Monad.Make (struct
- *       type 'a t = 'a list
- *
- *       let bind x ~f = concat_map x ~f
- *       let map = `Custom map
- *       let return x = [ x ]
- *     end)
- *
- *   open Monad
- *   module Monad_infix = Monad_infix
- *   module Let_syntax = Let_syntax
- *
- *   let ignore_m = ignore_m
- *   let join = join
- *   let bind = bind
- *   let ( >>= ) t f = bind t ~f
- *   let return = return
- *   let all = all
- *   let all_unit = all_unit
- * end *)
+  let apply mf mx =
+    bind mf ~f:(fun f ->
+        bind mx ~f:(fun x ->
+            return (f x)))
 
+end
 
-(* module SuiteMnd = struct
- *
- *   type 'a m = 'a suite
- *
- *   let pure = singleton
- *
- *   let rec bind s f =
- *     match s with
- *     | Emp -> Emp
- *     | Ext (s',x) -> append (bind s' f) (f x)
- *
- * end
- *
- * module SuiteTraverse(A: Applicative) = struct
- *
- *   type 'a t = 'a suite
- *   type 'a m = 'a A.t
- *
- *   open ApplicativeSyntax(A)
- *
- *   let rec traverse f s =
- *     match s with
- *     | Emp -> A.pure Emp
- *     | Ext (s',x) ->
- *       let+ y = f x
- *       and+ t = traverse f s' in
- *       Ext (t,y)
- *
- * end *)
+module SuiteApplicative = Applicative.Make(SuiteBasic)
+module SuiteMonad = Monad.Make(SuiteBasic)
 
 (*****************************************************************************)
 (*                              Pretty Printing                              *)

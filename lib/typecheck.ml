@@ -241,15 +241,25 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | CellE (tl,ty,c) ->
 
-    let* (tm_tl, val_tl , ty_tm , ty_val) =
-      tcm_in_tele tl (fun tt vt ->
-          let* tyt = tcm_check ty TypV in
-          let* tyv = tcm_eval tyt in
-          tcm_ok (tt,vt,tyt,tyv)) in 
-        
-    let* c' = tcm_to_cmplx c in 
+    (* So, you could modify tcm_in_tele to progressively evaluate the
+       fibration as you do in eval_fib so that you don't evaluate
+       everybody twice ...*)
     
-    tcm_fail (`NotImplemented "cell type inferrence")
+    let* (tm_tl, ty_tm) =
+      tcm_in_tele tl (fun tt ->
+          let* tyt = tcm_check ty TypV in
+          (* let* tyv = tcm_eval tyt in *)
+          tcm_ok (tt,tyt)) in 
+
+    let* gma = tcm_ctx in 
+    let (val_tl , val_ty) =
+      eval_fib (top_lookup gma) (loc_lookup gma)
+        tm_tl ty_tm in 
+    
+    let* c' = tcm_to_cmplx c in 
+    let* c'' = tcm_check_cmplx val_tl val_ty c' in 
+    
+    tcm_ok (CellT (tm_tl,ty_tm,c''), TypV)
 
   | TypE -> tcm_ok (TypT , TypV)
 
@@ -263,33 +273,50 @@ and tcm_to_cmplx c =
     with TreeExprError msg -> tcm_fail (`InvalidShape msg)
        | ShapeError msg -> tcm_fail (`InvalidShape msg) 
 
-and tcm_check_cmplx (ty : value) (c : expr cmplx) : term cmplx tcm =
 
+and tcm_check_dep_term (s : expr list) (tm : expr) (tl : value list) (ty : value) : (term list * term) tcm =
+  match (s,tl) with
+  | ([],[]) ->
+    let* t = tcm_check tm ty in 
+    tcm_ok ([],t)
+  | (e::es , v::vs) ->
+    let* t = tcm_check e v in
+    let* tv = tcm_eval t in
+    let vs' = List.map vs ~f:(fun v -> appV v tv) in
+    let* (ltm, dtm) = tcm_check_dep_term es tm vs' (appV ty tv) in
+    tcm_ok (t::ltm,dtm)
+
+  (* TODO: this should be named ... *)
+  | _ -> tcm_fail `InternalError
+
+
+and tcm_check_cmplx (_ : value tele) (_ : value)
+    (c : expr dep_term cmplx) : term dep_term cmplx tcm =
+
+  
   match c with
-  | Base n ->
-    let* n' = TcmTraverse.traverse_nst n
-        ~f:(fun e -> tcm_check e ty) in 
-    tcm_ok (Base n')
-  | Adjoin (t,n) ->
-    let* t' = tcm_check_cmplx ty t in
-    let* tv = TcmComplexTraverse.traverse_cmplx t'
-        ~f:(fun tm -> tcm_eval tm) in 
-    let c' = Adjoin (tv,map_nst n ~f:(fun _ -> TypV)) in 
-    let cfs = face_cmplx c' in
-    tcm_fail `InternalError
-
+  | Base n -> failwith "not done" 
+    (* let* n' = TcmTraverse.traverse_nst n
+     *     ~f:(fun (es,eop) -> tcm_check e ty) in 
+     * tcm_ok (Base n') *)
+  | Adjoin (t,n) -> failwith "not done"
+    (* let* t' = tcm_check_cmplx ty t in
+     * let* tv = TcmComplexTraverse.traverse_cmplx t'
+     *     ~f:(fun tm -> tcm_eval tm) in 
+     * let c' = Adjoin (tv,map_nst n ~f:(fun _ -> TypV)) in 
+     * let cfs = face_cmplx c' in
+     * tcm_fail `InternalError *)
 
 and tcm_in_tele (tl : expr tele)
-    (k : value tele -> term tele -> 'a tcm) : 'a tcm =
+    (k : term tele -> 'a tcm) : 'a tcm =
   
   match tl with
-  | Emp -> k Emp Emp
+  | Emp -> k Emp
   | Ext (tl',(id,ty)) ->
-    tcm_in_tele tl' (fun vt tt -> 
+    tcm_in_tele tl' (fun tt -> 
         let* ty_tm = tcm_check ty TypV in
         let* ty_val = tcm_eval ty_tm in
         let* gma = tcm_ctx in
         tcm_in_ctx (bind gma id ty_val)
-          (k (Ext (vt,(id,ty_val)))
-             (Ext (tt,(id,ty_tm)))))
+          (k (Ext (tt,(id,ty_tm)))))
 

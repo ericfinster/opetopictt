@@ -5,7 +5,6 @@
 (*****************************************************************************)
 
 open Fmt
-open Expr
 open Syntax
 
 open Opetopes.Complex
