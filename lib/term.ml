@@ -57,7 +57,7 @@ let rec term_to_expr nms tm =
     PiE (nm,tte nms a, tte (Ext (nms,nm)) b)
   | CellT (tl,ty,c) ->
 
-    let (etl, ety) = fold_accum_cont tl Emp
+    let (etl, ety) = fold_accum_cont tl nms
         (fun (nm,typ) nms ->
            ((nm,term_to_expr nms typ),Ext (nms,nm)))
         (fun etl nms -> (etl, term_to_expr nms ty)) in
@@ -90,39 +90,43 @@ let pi_to_tele ty =
 (*                              Pretty Printing                              *)
 (*****************************************************************************)
 
-let is_app_tm tm =
-  match tm with
-  | AppT (_,_) -> true
-  | _ -> false
-
-let is_pi_tm tm =
-  match tm with
-  | PiT (_,_,_) -> true
-  | _ -> false
-
 let rec pp_term ppf tm =
   match tm with
   | VarT i -> int ppf i
   | TopT nm -> string ppf nm
+                 
   | LamT (nm,t) ->
-    pf ppf "\\%s. %a" nm pp_term t
+    pf ppf "\u{03bb} %s . %a" nm pp_term t
   | AppT (u,v) ->
-    (* Need's a generic lookahead for parens routine ... *)
-    let pp_v = if (is_app_tm v) then
-        parens pp_term
-      else pp_term in
-    pf ppf "%a %a" pp_term u pp_v v
+    pf ppf "%a %a" pp_term u (term_app_parens v) v
+      
   | PiT (nm,a,p) when Poly.(=) nm "" ->
-    let pp_a = if (is_pi_tm a) then
-        parens pp_term
-      else pp_term in
-    pf ppf "%a -> %a"
-      pp_a a pp_term p
+    pf ppf "%a \u{2192} %a"
+      (term_pi_parens a) a pp_term p
   | PiT (nm,a,p) ->
-    pf ppf "(%s : %a) -> %a" nm
+    pf ppf "(%s : %a) \u{2192} %a" nm
       pp_term a pp_term p
-  | CellT _ -> pf ppf "cellterm"
+      
+  | CellT (tl,ty,c) -> 
+    pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
+      (pp_tele pp_term) tl
+      pp_term ty
+      (pp_cmplx (pp_dep_term pp_term)) c
+                 
   | TypT -> pf ppf "U"
+
+and term_app_parens t =
+  match t with
+  | PiT _ -> parens pp_term
+  | AppT _ -> parens pp_term
+  | LamT _ -> parens pp_term
+  | _ -> pp_term
+
+and term_pi_parens t =
+  match t with
+  | PiT _ -> parens pp_term
+  | _ -> pp_term
+  
 
 (*****************************************************************************)
 (*                         Term Syntax Implmentations                        *)

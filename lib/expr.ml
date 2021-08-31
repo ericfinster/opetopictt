@@ -70,49 +70,48 @@ let rec of_cmplx (c : 'a cmplx) : 'a tr_expr suite =
 (*                         Pretty Printing Raw Syntax                        *)
 (*****************************************************************************)
 
-let is_pi e =
-  match e with
-  | PiE _ -> true
-  | _ -> false
-    
-let app_parens e =
-  match e with
-  | PiE _ -> true
-  | AppE _ -> true
-  | LamE _ -> true
-  | _ -> false
-
 let rec pp_expr ppf expr =
   let ppe = pp_expr in
   match expr with
   | VarE nm -> string ppf nm
-  | LamE (nm,bdy) -> pf ppf "\\%s. %a" nm ppe bdy
+                 
+  | LamE (nm,bdy) -> pf ppf "\u{03bb} %s. %a" nm ppe bdy
   | AppE (u, v) ->
-    let pp_v = if (app_parens v) then
-        parens ppe
-      else ppe in
-    pf ppf "%a@, %a" ppe u pp_v v
+    pf ppf "%a@, %a" ppe u
+      (expr_app_parens v) v
+      
   | PiE (nm,a,b) when Poly.(=) nm "" ->
-    let pp_a = if (is_pi a) then
-        parens ppe
-      else ppe in
-    pf ppf "%a -> %a"
-      pp_a a ppe b
+    pf ppf "%a \u{2192} %a"
+      (expr_pi_parens a) a ppe b
   | PiE (nm,dom,cod) ->
-    if (is_pi cod) then
-      pf ppf "(%s : %a)@, %a" nm
-        ppe dom ppe cod
-    else
-      pf ppf "(%s : %a)@, -> %a" nm
-        ppe dom ppe cod
+    pf ppf "(%s : %a)@, \u{2192} %a" nm
+      ppe dom ppe cod
+      
+  | CellE (tl,ty,c) ->
+    pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
+      (pp_tele pp_expr) tl
+      pp_expr ty
+      (pp_suite ~sep:(any "@,| ")
+         (pp_tr_expr (pp_dep_term pp_expr))) c 
 
-  | CellE _ -> pf ppf "cell" 
   | CompE _ -> pf ppf "comp"
   | FillE _ -> pf ppf "fill"
   | CellElimE _ -> pf ppf "cell-elim" 
 
   | TypE -> pf ppf "U"
 
+and expr_app_parens e =
+  match e with
+  | PiE _ -> parens pp_expr
+  | AppE _ -> parens pp_expr
+  | LamE _ -> parens pp_expr
+  | _ -> pp_expr
+
+and expr_pi_parens e =
+  match e with
+  | PiE _ -> parens pp_expr
+  | _ -> pp_expr
+    
 (*****************************************************************************)
 (*                         Expr Syntax Implmentations                        *)
 (*****************************************************************************)

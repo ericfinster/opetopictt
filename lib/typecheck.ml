@@ -73,7 +73,7 @@ let top_lookup gma nm =
            
 type typing_error = [
   | `NameNotInScope of name
-  | `TypeMismatch of expr * term * term 
+  | `TypeMismatch of expr * expr * expr
   | `NotImplemented of string
   | `InferrenceFailed of expr
   | `ExpectedFunction of expr
@@ -90,8 +90,8 @@ let pp_error ppf e =
   | `TypeMismatch (e,exp,inf) ->
 
     Fmt.pf ppf "@[<v>The expression: @,@, @[%a@]@,@,@]" pp_expr e;
-    Fmt.pf ppf "@[<v>has type: @,@,  @[%a@]@,@,@]" pp_term inf;
-    Fmt.pf ppf "@[<v>but was expected to have type: @,@, @[%a@]@,@]" pp_term exp;
+    Fmt.pf ppf "@[<v>has type: @,@, @[%a@]@,@,@]" pp_expr inf;
+    Fmt.pf ppf "@[<v>but was expected to have type: @,@, @[%a@]@,@]" pp_expr exp;
 
   | `NotImplemented f ->
 
@@ -207,7 +207,10 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     let expected_nf = quote true gma.lvl expected in
 
     if (Poly.(<>) expected_nf inferred_nf)
-    then tcm_fail (`TypeMismatch (e,expected_nf,inferred_nf))
+    then
+      let exp_e = term_to_expr (names gma) expected_nf in
+      let inf_e = term_to_expr (names gma) inferred_nf in
+      tcm_fail (`TypeMismatch (e,exp_e,inf_e))
     else tcm_ok e'
 
 and tcm_infer (e : expr) : (term * value) tcm =

@@ -26,6 +26,12 @@ type 'a tele = ('a decl) suite
 
 type 'a dep_term = 'a suite * 'a option
 
+let pp_dep_term pp_a =
+  Fmt.pair ~sep:(Fmt.any " \u{22a2} ")
+    (pp_suite ~sep:(Fmt.any ";") pp_a)
+    (Fmt.option pp_a)
+
+(* Not sure we're using this anymore ... *)
 module DepTermBasic =
 struct
 
