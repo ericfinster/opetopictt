@@ -270,6 +270,7 @@ and tcm_to_cmplx c =
 
 and tcm_check_dep_term (s : expr list) (tm_opt : expr option)
     (tl : value list) (ty : value) : (term list * term option) tcm =
+  log_msg (Fmt.str "checking dependent term: @[%a@]" (Fmt.option pp_expr) tm_opt); 
   match (s,tl) with
   | ([],[]) ->
     begin match tm_opt with

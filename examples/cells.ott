@@ -9,3 +9,15 @@ let Eq (A : U) (a₀ : A) (a₁ : A) : U
     | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
     | lf { ⊢ ● }
     ] 
+
+let Simplex (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
+    (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) (r : Eq A a₀ a₂)
+  : U
+  = [ ⊢ A
+    | nd { ⊢ a₂ } (nd (nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt))) (lf tt))
+    | nd { ⊢ r } (nd (lf { ⊢ q }) (nd (nd (lf { ⊢ p })
+        (nd (lf tt) (lf tt))) (lf tt)))
+    | lf { ⊢ ● }
+    ]
+
+
