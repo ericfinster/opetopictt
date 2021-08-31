@@ -318,13 +318,8 @@ and tcm_check_cmplx (tl : term tele) (ty : term)
     let* t' = tcm_check_cmplx tl ty t in
 
     (* Let's check that the top guys is full here ... *)
-    let empty_addr_nst = map_nst_with_addr (head_of t')
-        ~f:(fun (_,topt) addr ->
-            match topt with
-            | Some _ -> None
-            | None -> Some addr) in
-    let empty_addrs = List.filter_opt (nodes_nst empty_addr_nst) in 
-    let* _ = tcm_ensure (List.is_empty empty_addrs)
+    let eaddrs = empty_addrs (head_of t') in 
+    let* _ = tcm_ensure (List.is_empty eaddrs)
         (`InternalError "fullness error") in 
     
     (* Okay, now we build the next typing problem *) 

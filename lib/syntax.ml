@@ -7,6 +7,8 @@
 open Suite
 open Base
 
+open Opetopes.Idt
+       
 (*****************************************************************************)
 (*                             Basic Syntax Types                            *)
 (*****************************************************************************)
@@ -54,6 +56,14 @@ end
 
 module DepTermApplicative = Applicative.Make(DepTermBasic)
 
+let empty_addrs (n : 'a dep_term nst) : addr list =
+  let empty_addr_nst = map_nst_with_addr n
+      ~f:(fun (_,topt) addr ->
+          match topt with
+          | Some _ -> None
+          | None -> Some addr) in
+  List.filter_opt (nodes_nst empty_addr_nst) 
+  
 let rec sub_terms ((s,a_opt) : 'a dep_term) : 'a dep_term suite =
   match s with
   | Emp -> singleton (Emp,a_opt)
