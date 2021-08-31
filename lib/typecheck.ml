@@ -78,7 +78,7 @@ type typing_error = [
   | `InferrenceFailed of expr
   | `ExpectedFunction of expr
   | `InvalidShape of string 
-  | `InternalError
+  | `InternalError of string 
 ]
 
 let pp_error ppf e =
@@ -108,7 +108,7 @@ let pp_error ppf e =
 
   | `InvalidShape msg -> pf ppf "Shape error: %s" msg 
 
-  | `InternalError -> Fmt.pf ppf "Internal Error"
+  | `InternalError msg -> Fmt.pf ppf "Internal Error: %s" msg 
 
 
 (*****************************************************************************)
@@ -176,6 +176,10 @@ let rec tcm_extract_pi (v: value) =
     let e = term_to_expr (names gma) (quote false gma.lvl v) in 
     tcm_fail (`ExpectedFunction e) 
 
+let tcm_ensure (b : bool) (e : typing_error) : unit tcm =
+  if b then tcm_ok ()
+  else tcm_fail e
+      
 (*****************************************************************************)
 (*                            Typechecking Rules                             *)
 (*****************************************************************************)
@@ -282,7 +286,7 @@ and tcm_check_dep_term (s : expr list) (tm_opt : expr option)
     tcm_ok (t::ltm,dtm)
 
   (* TODO: this should be named ... *)
-  | _ -> tcm_fail `InternalError
+  | _ -> tcm_fail (`InternalError "context mismatch in check_dep_term")
 
 (* TODO: should return a list of the cells which were empty 
    at top level.... *)
@@ -314,11 +318,16 @@ and tcm_check_cmplx (tl : term tele) (ty : term)
     let* t' = tcm_check_cmplx tl ty t in
 
     (* Let's check that the top guys is full here ... *)
-    let module OA = Applicative.Of_monad(Option) in
-    let module OT = OptionTraverse in 
-    let m = OT.sequence_nst (map_nst (head_of t') ~f:snd) in
-    let _ = tcm_ensure (Option.is_some m) in 
+    let empty_addr_nst = map_nst_with_addr (head_of t')
+        ~f:(fun (_,topt) addr ->
+            match topt with
+            | Some _ -> None
+            | None -> Some addr) in
+    let empty_addrs = List.filter_opt (nodes_nst empty_addr_nst) in 
+    let* _ = tcm_ensure (List.is_empty empty_addrs)
+        (`InternalError "fullness error") in 
     
+    (* Okay, now we build the next typing problem *) 
     let ts = map_cmplx t' ~f:sub_terms in
     let ntms = map_nst n ~f:(fun _ -> dep_vars) in
     let t_cmplx = Adjoin (ts,ntms) in
