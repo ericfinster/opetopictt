@@ -27,5 +27,3 @@ let Simplex (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
     ]
 
 
-
-

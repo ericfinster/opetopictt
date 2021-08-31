@@ -8,7 +8,7 @@ open Suite
 open Base
 
 open Opetopes.Idt
-       
+
 (*****************************************************************************)
 (*                             Basic Syntax Types                            *)
 (*****************************************************************************)
@@ -83,6 +83,25 @@ let rec sub_teles (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
   | Ext (tl',(_,ty')) ->
     let rtl = sub_teles tl' ty' in
     Ext (rtl,(tl,ty))
+
+let rec seq_nst (n : 'a suite nst) : 'a nst suite =
+  match n with
+  | Lf s -> map_suite s ~f:(fun a -> Lf a)
+  | Nd (s,sh) ->
+    let sh' = map_tr sh ~f:(fun v -> seq_nst v) in
+    let sh'' = seq_tr sh' s in 
+    map_suite (SuiteApplicative.both s sh'')
+      ~f:(fun (a,v) -> Nd (a,v))
+
+and seq_tr : 'a 'b . 'a suite tr -> 'b suite -> 'a tr suite =
+  fun t g -> 
+  match t with
+  | Lf _ ->
+    map_suite g ~f:(fun _ -> Lf ())
+  | Nd (s,sh) ->
+    let sh' = seq_tr (map_tr sh ~f:(fun v -> seq_tr v s)) g in
+    map_suite (SuiteApplicative.both s sh')
+        ~f:(fun (a, v) -> Nd (a,v)) 
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

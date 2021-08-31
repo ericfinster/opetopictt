@@ -296,11 +296,11 @@ struct
 
   let map = `Custom map_suite
 
-  let apply mf mx =
+  let apply mf ma =
     bind mf ~f:(fun f ->
-        bind mx ~f:(fun x ->
-            return (f x)))
-
+        bind ma ~f:(fun a ->
+            return (f a)))
+  
 end
 
 module SuiteApplicative = Applicative.Make(SuiteBasic)

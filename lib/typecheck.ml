@@ -132,11 +132,11 @@ module TcmBasic =
       Result.map (m gma) ~f:f
 
     let map = `Custom map
-        
-    let apply mf mx =
+
+    let apply mf ma =
       bind mf ~f:(fun f ->
-          bind mx ~f:(fun x ->
-              return (f x)))
+          bind ma ~f:(fun a ->
+              return (f a)))
       
   end
   
@@ -330,6 +330,18 @@ and tcm_check_cmplx (tl : term tele) (ty : term)
     let ts = map_cmplx t' ~f:sub_terms in
     let ntms = map_nst n ~f:(fun _ -> dep_vars) in
     let t_cmplx = Adjoin (ts,ntms) in
+
+    log_val "t_cmplx (before)" t_cmplx
+      (pp_cmplx (pp_suite ~sep:(any " || ") (pp_dep_term pp_term))) ;
+
+    let module ST = ComplexTraverse(SuiteBasic) in 
+    let tmp = ST.sequence t_cmplx in
+
+    log_val "suite_length" (length tmp) Fmt.int ;
+    
+    log_val "t_cmplx (after)" tmp 
+      (vbox (pp_suite ~sep:(any "@,@,")
+         (pp_cmplx (pp_dep_term pp_term)))) ;
 
     let module ST = ComplexTraverse(SuiteBasic) in    
     let* r = TcmTraverse.traverse_nst_with_addr n
