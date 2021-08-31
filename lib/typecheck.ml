@@ -251,13 +251,16 @@ and tcm_infer (e : expr) : (term * value) tcm =
           (* let* tyv = tcm_eval tyt in *)
           tcm_ok (tt,tyt)) in 
 
-    let* gma = tcm_ctx in 
-    let (val_tl , val_ty) =
-      eval_fib (top_lookup gma) (loc_lookup gma)
-        tm_tl ty_tm in 
+    (* let* gma = tcm_ctx in 
+     * let (val_tl , val_ty) =
+     *   eval_fib (top_lookup gma) (loc_lookup gma)
+     *     tm_tl ty_tm in  *)
     
     let* c' = tcm_to_cmplx c in 
-    let* c'' = tcm_check_cmplx val_tl val_ty c' in 
+    let* c'' = tcm_check_cmplx tm_tl ty_tm c' in
+
+    let module DTT = ComplexTraverse(DepTermBasic) in
+    let _ = DTT.traverse_cmplx c' ~f:(fun e -> e) in 
     
     tcm_ok (CellT (tm_tl,ty_tm,c''), TypV)
 
@@ -274,38 +277,81 @@ and tcm_to_cmplx c =
        | ShapeError msg -> tcm_fail (`InvalidShape msg) 
 
 
-and tcm_check_dep_term (s : expr list) (tm : expr) (tl : value list) (ty : value) : (term list * term) tcm =
+and tcm_check_dep_term (s : expr list) (tm_opt : expr option)
+    (tl : value list) (ty : value) : (term list * term option) tcm =
   match (s,tl) with
   | ([],[]) ->
-    let* t = tcm_check tm ty in 
-    tcm_ok ([],t)
+    begin match tm_opt with
+      | None -> tcm_ok ([],None)
+      | Some tm ->
+        let* t = tcm_check tm ty in 
+        tcm_ok ([],Some t)
+    end
   | (e::es , v::vs) ->
     let* t = tcm_check e v in
     let* tv = tcm_eval t in
     let vs' = List.map vs ~f:(fun v -> appV v tv) in
-    let* (ltm, dtm) = tcm_check_dep_term es tm vs' (appV ty tv) in
+    let* (ltm, dtm) = tcm_check_dep_term es tm_opt vs' (appV ty tv) in
     tcm_ok (t::ltm,dtm)
 
   (* TODO: this should be named ... *)
   | _ -> tcm_fail `InternalError
 
 
-and tcm_check_cmplx (_ : value tele) (_ : value)
+and tcm_check_cmplx (tl : term tele) (ty : term)
     (c : expr dep_term cmplx) : term dep_term cmplx tcm =
-
   
   match c with
-  | Base n -> failwith "not done" 
-    (* let* n' = TcmTraverse.traverse_nst n
-     *     ~f:(fun (es,eop) -> tcm_check e ty) in 
-     * tcm_ok (Base n') *)
-  | Adjoin (t,n) -> failwith "not done"
-    (* let* t' = tcm_check_cmplx ty t in
-     * let* tv = TcmComplexTraverse.traverse_cmplx t'
-     *     ~f:(fun tm -> tcm_eval tm) in 
-     * let c' = Adjoin (tv,map_nst n ~f:(fun _ -> TypV)) in 
-     * let cfs = face_cmplx c' in
-     * tcm_fail `InternalError *)
+  | Base n ->
+
+    let* gma = tcm_ctx in 
+    let (val_tl , val_ty) =
+      eval_fib (top_lookup gma) (loc_lookup gma) tl ty in 
+    
+    let* n' = TcmTraverse.traverse_nst n
+        ~f:(fun (es,tm_opt) ->
+            let* (tl,topt) = tcm_check_dep_term (to_list es)
+                tm_opt (to_list (map_suite val_tl ~f:snd)) val_ty in
+            tcm_ok (from_list tl,topt)) in 
+    
+    tcm_ok (Base n')
+
+  | Adjoin (t,n) ->
+
+    let fibs = sub_teles tl ty in
+    let tele_args t = map_with_idx t ~f:(fun _ i -> VarT i) in 
+    let dep_vars = map_suite fibs
+        ~f:(fun (tys,_) -> (tele_args tys, None)) in 
+    
+    let* t' = tcm_check_cmplx tl ty t in
+    let ts = map_cmplx t' ~f:sub_terms in
+    let ntms = map_nst n ~f:(fun _ -> dep_vars) in
+    let t_cmplx = Adjoin (ts,ntms) in
+
+    let module ST = ComplexTraverse(SuiteBasic) in    
+    let* r = TcmTraverse.traverse_nst_with_addr n
+        ~f:(fun (es,eo) addr ->
+
+            let f = face_at t_cmplx (0,addr) in
+            match ST.sequence f with
+            | Emp -> failwith "impossible"
+            | Ext (p,q) -> 
+            
+              let cell_tl = map_suite (zip (zip tl fibs) p)
+                  ~f:(fun (((nm,_),(ltl,lty)),c) -> (nm,CellT (ltl,lty,c))) in
+
+              let* gma = tcm_ctx in
+              let (val_tl, val_ty) =
+                eval_fib (top_lookup gma) (loc_lookup gma) cell_tl (CellT (tl,ty,q)) in
+              let val_lst = to_list (map_suite val_tl ~f:snd) in 
+
+              let* (tlst,topt) = tcm_check_dep_term (to_list es) eo val_lst val_ty in
+              tcm_ok (from_list tlst,topt)
+
+          ) in 
+    
+    tcm_ok (Adjoin (t',r))
+
 
 and tcm_in_tele (tl : expr tele)
     (k : term tele -> 'a tcm) : 'a tcm =

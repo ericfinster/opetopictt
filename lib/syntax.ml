@@ -24,7 +24,6 @@ type 'a tele = ('a decl) suite
 
 type 'a dep_term = 'a suite * 'a option
 
-
 module DepTermBasic =
 struct
 
@@ -54,7 +53,21 @@ struct
 end
 
 module DepTermApplicative = Applicative.Make(DepTermBasic)
-    
+
+let rec sub_terms ((s,a_opt) : 'a dep_term) : 'a dep_term suite =
+  match s with
+  | Emp -> singleton (Emp,a_opt)
+  | Ext (s',a) ->
+    let r = sub_terms (s',Some a) in
+    Ext (r,(s,a_opt))
+
+let rec sub_teles (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
+  match tl with
+  | Emp -> singleton (Emp,ty)
+  | Ext (tl',(_,ty')) ->
+    let rtl = sub_teles tl' ty' in
+    Ext (rtl,(tl,ty))
+
 (*****************************************************************************)
 (*                                 Telescopes                                *)
 (*****************************************************************************)
