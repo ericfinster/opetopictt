@@ -2,31 +2,10 @@
 #  cells.ott - demonstrations of cells
 #
 
-let ArrFrm (A : U) : U 
-  = [ A
-    @ nd { tt } (nd (lf { tt }) (lf tt))
-    ]
+let id (A : U) (a : A) : A = a
 
-let Arr (A : U) (f : ArrFrm A) : U
-  = [ A 
-    @ nd { tt } (nd (lf { tt }) (lf tt))
-    * f
-    ]
-
-let mk_arr (A : U) (a₀ : A) (a₁ : A) : ArrFrm A
-  = { nd { a₁ } (nd (lf { a₀ }) (lf tt)) } 
-
-#
-#  We'll then have projects, for an abstract frame,
-#  which look like this:
-#
-#    f @ 0 [] , f @ 1 [[],[]] , ...
-#
-#  and so on.
-# 
-
-#
-#  Note that we can also use the opetopic syntax to directly express
-#  the frame, generating the associated dictionary on the fly while
-#  typechecking.
-# 
+let Eq (A : U) (a₀ : A) (a₁ : A) : U
+  = [ ⊢ A
+    | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
+    | lf { ⊢ ● }
+    ] 
