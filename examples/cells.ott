@@ -10,6 +10,14 @@ let Eq (A : U) (a₀ : A) (a₁ : A) : U
     | lf { ⊢ ● }
     ] 
 
+let PathOver
+    (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (B : A -> U) (b₀ : B a₀) (b₁ : B a₁) : U
+  = [ (a : A) ⊢ B a
+    | nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
+    | lf { p ⊢ ● }
+    ] 
+
 let Simplex (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
     (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) (r : Eq A a₀ a₂)
   : U
@@ -19,5 +27,7 @@ let Simplex (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
         (nd (lf tt) (lf tt))) (lf tt)))
     | lf { ⊢ ● }
     ]
+
+
 
 
