@@ -195,7 +195,7 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
       end
 
   | (e, expected) ->
-    
+
     let* gma = tcm_ctx in 
     let* (e',inferred) = tcm_infer e in
 
@@ -209,22 +209,22 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
 and tcm_infer (e : expr) : (term * value) tcm =
 
   match e with
-           
+
   | VarE nm ->
     let* gma = tcm_ctx in
     begin try
         let (idx,(_,ty)) = assoc_with_idx nm gma.loc in
         tcm_ok (VarT idx, ty)
       with Lookup_error ->
-      begin try 
-          let (_, ty) = assoc nm gma.top in
-          tcm_ok (TopT nm, ty)
-        with Lookup_error -> tcm_fail (`NameNotInScope nm)
-      end
+        begin try 
+            let (_, ty) = assoc nm gma.top in
+            tcm_ok (TopT nm, ty)
+          with Lookup_error -> tcm_fail (`NameNotInScope nm)
+        end
     end
 
   | AppE (u,v) ->
-  
+
     let* (u',ut) = tcm_infer u in
     let* (a , b) = tcm_extract_pi ut in
     let* v' = tcm_check v a in
@@ -241,27 +241,14 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | CellE (tl,ty,c) ->
 
-    (* So, you could modify tcm_in_tele to progressively evaluate the
-       fibration as you do in eval_fib so that you don't evaluate
-       everybody twice ...*)
-    
     let* (tm_tl, ty_tm) =
       tcm_in_tele tl (fun tt ->
           let* tyt = tcm_check ty TypV in
-          (* let* tyv = tcm_eval tyt in *)
           tcm_ok (tt,tyt)) in 
 
-    (* let* gma = tcm_ctx in 
-     * let (val_tl , val_ty) =
-     *   eval_fib (top_lookup gma) (loc_lookup gma)
-     *     tm_tl ty_tm in  *)
-    
     let* c' = tcm_to_cmplx c in 
     let* c'' = tcm_check_cmplx tm_tl ty_tm c' in
 
-    let module DTT = ComplexTraverse(DepTermBasic) in
-    let _ = DTT.traverse_cmplx c' ~f:(fun e -> e) in 
-    
     tcm_ok (CellT (tm_tl,ty_tm,c''), TypV)
 
   | TypE -> tcm_ok (TypT , TypV)
@@ -273,8 +260,8 @@ and tcm_to_cmplx c =
   try let c' = to_cmplx c in
     let _ = validate_opetope c' in 
     tcm_ok c' 
-    with TreeExprError msg -> tcm_fail (`InvalidShape msg)
-       | ShapeError msg -> tcm_fail (`InvalidShape msg) 
+  with TreeExprError msg -> tcm_fail (`InvalidShape msg)
+     | ShapeError msg -> tcm_fail (`InvalidShape msg) 
 
 
 and tcm_check_dep_term (s : expr list) (tm_opt : expr option)
@@ -297,23 +284,24 @@ and tcm_check_dep_term (s : expr list) (tm_opt : expr option)
   (* TODO: this should be named ... *)
   | _ -> tcm_fail `InternalError
 
-
+(* TODO: should return a list of the cells which were empty 
+   at top level.... *)
 and tcm_check_cmplx (tl : term tele) (ty : term)
     (c : expr dep_term cmplx) : term dep_term cmplx tcm =
-  
+
   match c with
   | Base n ->
 
     let* gma = tcm_ctx in 
     let (val_tl , val_ty) =
       eval_fib (top_lookup gma) (loc_lookup gma) tl ty in 
-    
+
     let* n' = TcmTraverse.traverse_nst n
         ~f:(fun (es,tm_opt) ->
             let* (tl,topt) = tcm_check_dep_term (to_list es)
                 tm_opt (to_list (map_suite val_tl ~f:snd)) val_ty in
             tcm_ok (from_list tl,topt)) in 
-    
+
     tcm_ok (Base n')
 
   | Adjoin (t,n) ->
@@ -322,8 +310,15 @@ and tcm_check_cmplx (tl : term tele) (ty : term)
     let tele_args t = map_with_idx t ~f:(fun _ i -> VarT i) in 
     let dep_vars = map_suite fibs
         ~f:(fun (tys,_) -> (tele_args tys, None)) in 
-    
+
     let* t' = tcm_check_cmplx tl ty t in
+
+    (* Let's check that the top guys is full here ... *)
+    let module OA = Applicative.Of_monad(Option) in
+    let module OT = OptionTraverse in 
+    let m = OT.sequence_nst (map_nst (head_of t') ~f:snd) in
+    let _ = tcm_ensure (Option.is_some m) in 
+    
     let ts = map_cmplx t' ~f:sub_terms in
     let ntms = map_nst n ~f:(fun _ -> dep_vars) in
     let t_cmplx = Adjoin (ts,ntms) in
@@ -336,7 +331,7 @@ and tcm_check_cmplx (tl : term tele) (ty : term)
             match ST.sequence f with
             | Emp -> failwith "impossible"
             | Ext (p,q) -> 
-            
+
               let cell_tl = map_suite (zip (zip tl fibs) p)
                   ~f:(fun (((nm,_),(ltl,lty)),c) -> (nm,CellT (ltl,lty,c))) in
 
@@ -349,13 +344,13 @@ and tcm_check_cmplx (tl : term tele) (ty : term)
               tcm_ok (from_list tlst,topt)
 
           ) in 
-    
+
     tcm_ok (Adjoin (t',r))
 
-
+(* TODO: Perhaps this should return the fibration to make things more efficient ? *)
 and tcm_in_tele (tl : expr tele)
     (k : term tele -> 'a tcm) : 'a tcm =
-  
+
   match tl with
   | Emp -> k Emp
   | Ext (tl',(id,ty)) ->
