@@ -274,7 +274,6 @@ and tcm_to_cmplx c =
   with TreeExprError msg -> tcm_fail (`InvalidShape msg)
      | ShapeError msg -> tcm_fail (`InvalidShape msg) 
 
-
 and tcm_check_dep_term (s : expr list) (tm_opt : expr option)
     (tl : value list) (ty : value) : (term list * term option) tcm =
   log_msg (Fmt.str "checking dependent term: @[%a \u{22a2} %a@]"
@@ -298,99 +297,8 @@ and tcm_check_dep_term (s : expr list) (tm_opt : expr option)
   (* TODO: this should be named ... *)
   | _ -> tcm_fail (`InternalError "context mismatch in check_dep_term")
 
-(* and tcm_check_cmplx (tl : term tele) (ty : term)
- *     (c : expr dep_term cmplx) : term dep_term cmplx tcm =
- * 
- *   log_msg "starting complex check";
- *   log_val "tl" tl (pp_tele pp_term);
- *   log_val "ty" ty pp_term;
- *   
- *   match c with
- *   | Base n ->
- * 
- *     let* gma = tcm_ctx in 
- *     let (val_tl , val_ty) =
- *       eval_fib (top_lookup gma) (loc_lookup gma) tl ty in 
- * 
- *     let* n' = TcmTraverse.traverse_nst n
- *         ~f:(fun (es,tm_opt) ->
- *             let* (tl,topt) = tcm_check_dep_term (to_list es)
- *                 tm_opt (to_list (map_suite val_tl ~f:snd)) val_ty in
- *             tcm_ok (from_list tl,topt)) in 
- * 
- *     tcm_ok (Base n')
- * 
- *   | Adjoin (t,n) ->
- * 
- *     (\* bring the context into scope for debugging purposes...*\)
- *     let* gma = tcm_ctx in 
- *     let* t' = tcm_check_cmplx tl ty t in
- * 
- *     (\* Let's check that the top guys is full here ... *\)
- *     let eaddrs = empty_addrs (head_of t') in 
- *     let* _ = tcm_ensure (List.is_empty eaddrs)
- *         (`InternalError "fullness error") in 
- * 
- *     (\* Okay, now we build the next typing problem *\) 
- *     let fibs = sub_teles tl ty in
- *     log_val "fibs" fibs (pp_suite ~sep:(any " || ")
- *                            (Fmt.pair ~sep:(any " \u{22a2} ") (pp_tele pp_term) pp_term));
- *     let tele_args t = map_with_idx t ~f:(fun _ i -> VarT i) in 
- *     let dep_vars = map_suite fibs
- *         ~f:(fun (tys,_) -> (tele_args tys, None)) in 
- *     let ts = map_cmplx t' ~f:sub_terms in
- *     let ntms = map_nst n ~f:(fun _ -> dep_vars) in
- *     let t_cmplx = Adjoin (ts,ntms) in
- * 
- *     (\* We now traverse the expression nesting and try to set up 
- *      * a list of typing problems for each face *\) 
- *     let* r = TcmTraverse.traverse_nst_with_addr n
- *         ~f:(fun (es,eo) addr ->
- * 
- *             log_msg "in face problem";
- *             log_val "e" (es,eo) (pp_dep_term pp_expr);
- *             
- *             let f = face_at t_cmplx (0,addr) in
- *             match (split_cmplx f fibs (fun x _ -> x) , fibs) with
- *             | (Ext (p,q) , Ext (fibs',(qtl,qty))) -> 
- * 
- *               (\* Oh. since we've matched on one value for f, we have 
- *                  to do the same for fibs and tl I think .... *\)
- *               let cell_tl = map_suite (zip (zip tl fibs') p)
- *                   ~f:(fun (((nm,_),(ltl,lty)),c) -> (nm,CellT (ltl,lty,c))) in
- * 
- *               log_val "cell_tl" cell_tl (pp_tele pp_term);
- *               
- *               let (val_tl, val_ty) =
- *                 eval_fib (top_lookup gma) (loc_lookup gma) cell_tl (CellT (qtl,qty,q)) in
- *               let val_lst = to_list (map_suite val_tl ~f:snd) in 
- * 
- *               log_msg "calling check_dep_term";
- *               let* (tlst,topt) = tcm_check_dep_term (to_list es) eo val_lst val_ty in
- *               tcm_ok (from_list tlst,topt)
- *                 
- *             | _ -> failwith "impossible"
- * 
- *           ) in 
- * 
- *     tcm_ok (Adjoin (t',r)) *)
-
-(* TODO: Perhaps this should return the fibration to make things more efficient ? *)
-and tcm_in_tele (tl : expr tele)
-    (k : term tele -> 'a tcm) : 'a tcm =
-
-  match tl with
-  | Emp -> k Emp
-  | Ext (tl',(id,ty)) ->
-    tcm_in_tele tl' (fun tt -> 
-        let* ty_tm = tcm_check ty TypV in
-        let* ty_val = tcm_eval ty_tm in
-        let* gma = tcm_ctx in
-        tcm_in_ctx (bind gma id ty_val)
-          (k (Ext (tt,(id,ty_tm)))))
-
-and tcm_check_cmplx (tl : value tele) (ty : value)
-    (c : expr dep_term cmplx) : (term dep_term cmplx * value dep_term cmplx) tcm =
+and tcm_check_cmplx (tl : value tele) (ty : value) (c : expr dep_term cmplx)
+  : (term dep_term cmplx * value dep_term cmplx) tcm =
 
   match c with
   | Base n ->
@@ -411,73 +319,94 @@ and tcm_check_cmplx (tl : value tele) (ty : value)
 
   | Adjoin (t,n) ->
     
-    (* bring the context into scope for debugging purposes...*)
-    let* gma = tcm_ctx in 
     let* (tt,tv) = tcm_check_cmplx tl ty t in
     
     (* Let's check that the top guys is full here ... *)
     let eaddrs = empty_addrs (head_of tt) in 
     let* _ = tcm_ensure (List.is_empty eaddrs)
         (`InternalError "fullness error") in 
-    
-    (* Okay, now we build the next typing problem *) 
-    let fibs = sub_teles tl ty in
-    let tele_args t = map_with_lvl t ~f:(fun l _ -> varV (gma.lvl + l)) in 
-    let dep_vars = map_suite fibs
-        ~f:(fun (tys,_) -> (tele_args tys, None)) in 
-    let ts = map_cmplx tv ~f:sub_terms in
-    let ntms = map_nst n ~f:(fun _ -> dep_vars) in
-    let tv_cmplx = Adjoin (ts,ntms) in
 
+    let* (tm_n , val_c) = tcm_check_extension tl ty tv n in
+    tcm_ok (Adjoin (tt,tm_n) , val_c) 
 
-    let t_cmplx = map_cmplx tv_cmplx
-        ~f:(fun dep_tms -> map_with_lvl dep_tms
-               ~f:(fun l (v_suite,v_opt) ->
-                   let t_suite = map_suite v_suite ~f:(quote false (gma.lvl + l)) in
-                   let t_opt = Option.map v_opt ~f:(quote false (gma.lvl + l)) in
-                   (t_suite,t_opt)
-                 )) in
+and tcm_check_extension (tl : value tele) (ty : value) (tv : value dep_term cmplx)
+    (n : expr dep_term nst)
+  : (term dep_term nst * value dep_term cmplx) tcm =
 
-    let tm_fibs = map_with_lvl fibs
-        ~f:(fun l (v_tl,v_ty) ->
-            quote_fib false (gma.lvl + l) v_tl v_ty) in 
+  let* gma = tcm_ctx in 
 
-    (* We now traverse the expression nesting and try to set up 
-     * a list of typing problems for each face *) 
-    let* r = TcmTraverse.traverse_nst_with_addr n
-        ~f:(fun (es,eo) addr ->
-    
-            (* log_msg "in face problem";
-             * log_val "e" (es,eo) (pp_dep_term pp_expr); *)
-            
-            let f = face_at t_cmplx (0,addr) in
-            match (split_cmplx f tm_fibs (fun x _ -> x) , tm_fibs) with
-            | (Ext (p,q) , Ext (tm_fibs',(qtl,qty))) -> 
-    
-              (* Oh. since we've matched on one value for f, we have 
-                 to do the same for fibs and tl I think .... *)
-              let cell_tl = map_suite (zip (zip tl tm_fibs') p)
-                  ~f:(fun (((nm,_),(ltl,lty)),c) -> (nm,CellT (ltl,lty,c))) in
-    
-              (* log_val "cell_tl" cell_tl (pp_tele pp_term); *)
-              
-              let (val_tl, val_ty) =
-                eval_fib (top_lookup gma) (loc_lookup gma) cell_tl (CellT (qtl,qty,q)) in
-              let val_lst = to_list (map_suite val_tl ~f:snd) in 
-    
-              (* log_msg "calling check_dep_term"; *)
-              let* (tlst,topt) = tcm_check_dep_term (to_list es) eo val_lst val_ty in
+  (* Okay, now we build the next typing problem *) 
+  let fibs = sub_teles tl ty in
+  let tele_args t = map_with_lvl t ~f:(fun l _ -> varV (gma.lvl + l)) in 
+  let dep_vars = map_suite fibs
+      ~f:(fun (tys,_) -> (tele_args tys, None)) in 
+  let ts = map_cmplx tv ~f:sub_terms in
+  let ntms = map_nst n ~f:(fun _ -> dep_vars) in
+  let tv_cmplx = Adjoin (ts,ntms) in
 
-              let t_suite = from_list tlst in
-              let eval_tm = eval (top_lookup gma) (loc_lookup gma) in 
-              let val_suite = map_suite t_suite ~f:eval_tm in 
-              let val_opt = Option.map topt ~f:eval_tm in 
+  let t_cmplx = map_cmplx tv_cmplx
+      ~f:(fun dep_tms -> map_with_lvl dep_tms
+             ~f:(fun l (v_suite,v_opt) ->
+                 let t_suite = map_suite v_suite ~f:(quote false (gma.lvl + l)) in
+                 let t_opt = Option.map v_opt ~f:(quote false (gma.lvl + l)) in
+                 (t_suite,t_opt)
+               )) in
 
-              tcm_ok ((t_suite,topt),(val_suite,val_opt))
-                
-            | _ -> failwith "impossible"
-    
-          ) in 
+  let tm_fibs = map_with_lvl fibs
+      ~f:(fun l (v_tl,v_ty) ->
+          quote_fib false (gma.lvl + l) v_tl v_ty) in 
 
-    let (rt,rv) = unzip_nst r in 
-    tcm_ok (Adjoin (tt,rt) , Adjoin (tv,rv))
+  (* We now traverse the expression nesting and try to set up 
+   * a list of typing problems for each face *) 
+  let* r = TcmTraverse.traverse_nst_with_addr n
+      ~f:(fun (es,eo) addr ->
+
+          (* log_msg "in face problem";
+           * log_val "e" (es,eo) (pp_dep_term pp_expr); *)
+
+          let f = face_at t_cmplx (0,addr) in
+          match (split_cmplx f tm_fibs (fun x _ -> x) , tm_fibs) with
+          | (Ext (p,q) , Ext (tm_fibs',(qtl,qty))) -> 
+
+            (* Oh. since we've matched on one value for f, we have 
+               to do the same for fibs and tl I think .... *)
+            let cell_tl = map_suite (zip (zip tl tm_fibs') p)
+                ~f:(fun (((nm,_),(ltl,lty)),c) -> (nm,CellT (ltl,lty,c))) in
+
+            (* log_val "cell_tl" cell_tl (pp_tele pp_term); *)
+
+            let (val_tl, val_ty) =
+              eval_fib (top_lookup gma) (loc_lookup gma) cell_tl (CellT (qtl,qty,q)) in
+            let val_lst = to_list (map_suite val_tl ~f:snd) in 
+
+            (* log_msg "calling check_dep_term"; *)
+            let* (tlst,topt) = tcm_check_dep_term (to_list es) eo val_lst val_ty in
+
+            let t_suite = from_list tlst in
+            let eval_tm = eval (top_lookup gma) (loc_lookup gma) in 
+            let val_suite = map_suite t_suite ~f:eval_tm in 
+            let val_opt = Option.map topt ~f:eval_tm in 
+
+            tcm_ok ((t_suite,topt),(val_suite,val_opt))
+
+          | _ -> failwith "impossible"
+
+        ) in 
+
+  let (rt,rv) = unzip_nst r in 
+  tcm_ok (rt , Adjoin (tv,rv))
+
+(* TODO: Perhaps this should return the fibration to make things more efficient ? *)
+and tcm_in_tele (tl : expr tele)
+    (k : term tele -> 'a tcm) : 'a tcm =
+
+  match tl with
+  | Emp -> k Emp
+  | Ext (tl',(id,ty)) ->
+    tcm_in_tele tl' (fun tt -> 
+        let* ty_tm = tcm_check ty TypV in
+        let* ty_val = tcm_eval ty_tm in
+        let* gma = tcm_ctx in
+        tcm_in_ctx (bind gma id ty_val)
+          (k (Ext (tt,(id,ty_tm)))))
+
