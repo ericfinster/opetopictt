@@ -85,41 +85,6 @@ let rec sub_teles (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
     let rtl = sub_teles tl' ty' in
     Ext (rtl,(tl,ty))
 
-(* The next couple of functions let us split 
-   a complex of suites using a guide suite*)
-      
-let rec split_nst (n : 'a suite nst) (g : 'b suite)
-    (f : 'a -> 'b -> 'c) : 'c nst suite =
-  match n with
-  | Lf s -> map_simul s g (fun a b -> Lf (f a b))
-  | Nd (s,sh) -> 
-    let sh' = map_tr sh ~f:(fun v -> split_nst v g f) in
-    let sh'' = split_tr sh' g (fun v _ -> v) in 
-    map_simul (SuiteApplicative.both s g) sh''
-      (fun (a,b) v -> Nd (f a b,v))
-
-and split_tr : 'a 'b 'c . 'a suite tr
-  -> 'b suite -> ('a -> 'b -> 'c) 
-  -> 'c tr suite =
-  fun t g f -> 
-  match t with
-  | Lf _ -> map_suite g ~f:(fun _ -> Lf ())
-  | Nd (s,sh) ->
-    let sh' = map_tr sh ~f:(fun v -> split_tr v g f) in
-    let sh'' = split_tr sh' g (fun v _ -> v) in 
-    map_simul (Suite.SuiteApplicative.both s g)
-      sh'' (fun (a,b) v ->  Nd (f a b , v)) 
-
-let rec split_cmplx (c : 'a suite cmplx) (g : 'b suite)
-    (f : 'a -> 'b -> 'c) : 'c cmplx suite =
-  match c with
-  | Base n -> map_suite (split_nst n g f)
-                ~f:(fun ns -> Base ns)
-  | Adjoin (t,n) ->
-    let ts = split_cmplx t g f in
-    let ns = split_nst n g f in
-    map_simul ts ns (fun t' n' -> Adjoin (t',n'))
-
 (*****************************************************************************)
 (*                                 Telescopes                                *)
 (*****************************************************************************)
@@ -145,6 +110,51 @@ let log_msg ?idt:(i=0) (s : string) =
 let log_val ?idt:(i=0) (s : string) (a : 'a) (pp : 'a Fmt.t) =
   let indt = String.make i ' ' in 
   Fmt.pr "@[<v>%s: @[%a@]@,@]" (indt ^ s) pp a
+
+
+(*****************************************************************************)
+(*                             Splitting                                     *)
+(*****************************************************************************)
+      
+let rec split_nst
+    (n : 'a suite nst) (g : 'b suite)
+    (f : 'a -> 'b -> 'c)
+  : 'c nst suite = 
+  match n with
+    | Lf s -> map_simul s g (fun a b -> Lf (f a b)) 
+    | Nd (s,sh) ->
+      let sh' = map_tr sh ~f:(fun v -> split_nst v g f) in
+      let sh'' = split_tr sh' g (fun v _ -> v) in
+      map_simul (map_simul s g (fun a b -> (a,b))) sh''
+          (fun (a,b) v -> Nd (f a b,v)) 
+
+and split_tr : 'a 'b 'c . 'a suite tr
+  -> 'b suite -> ('a -> 'b -> 'c) 
+  -> 'c tr suite = 
+  fun t g f -> 
+  match t with
+  | Lf _ -> map_suite g ~f:(fun _ -> Lf ()) 
+  | Nd (s,sh) ->
+    let sh' = map_tr sh ~f:(fun v -> split_tr v g f) in
+    let sh'' = split_tr sh' g (fun v _ -> v) in 
+    map_simul (map_simul s g (fun a b -> (a,b)))
+        sh'' (fun (a,b) v ->  Nd (f a b , v)) 
+    
+let rec split_cmplx (c : 'a suite cmplx) (g : 'b suite)
+    (f : 'a -> 'b -> 'c)
+  : 'c cmplx suite =
+  match c with
+  | Base n -> map_suite (split_nst n g f)
+                ~f:(fun ns -> Base ns)
+  | Adjoin (t,n) ->
+    let ts = split_cmplx t g f in
+    let ns = split_nst n g f in
+    map_simul ts ns (fun t' n' -> Adjoin (t',n'))
+
+let ex_suite_cmplx : int suite cmplx =
+  map_cmplx 
+    (~> (Nd ([0;1], Nd (Lf [2;3], Lf ())))
+     |> Lf [4;5]) ~f:from_list
 
 (*****************************************************************************)
 (*                               Generic Syntax                              *)

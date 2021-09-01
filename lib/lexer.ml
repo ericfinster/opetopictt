@@ -41,6 +41,7 @@ let rec token buf =
   | "{"          -> LBR
   | "}"          -> RBR
   | ":"          -> COLON
+  | ";"          -> SEMI
   | "="          -> EQUAL
   | "."          -> DOT
   | "\\"         -> LAMBDA
