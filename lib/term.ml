@@ -107,11 +107,13 @@ let rec pp_term ppf tm =
     pf ppf "(%s : %a) \u{2192} %a" nm
       pp_term a pp_term p
       
-  | CellT (tl,ty,c) -> 
+  | CellT (tl,ty,c) ->
+    let open Opetopes.Idt.IdtConv in 
     pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
       (pp_tele pp_term) tl
       pp_term ty
-      (pp_cmplx (pp_dep_term pp_term)) c
+      (pp_suite ~sep:(any "@,| ")
+         (pp_tr_expr (pp_dep_term pp_term))) (of_cmplx c) 
                  
   | TypT -> pf ppf "U"
 
