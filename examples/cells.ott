@@ -10,7 +10,7 @@ let Eq (A : U) (a₀ : A) (a₁ : A) : U
 
 let PathOver
     (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (B : A -> U) (b₀ : B a₀) (b₁ : B a₁) : U
+    (B : A → U) (b₀ : B a₀) (b₁ : B a₁) : U
   = [ (a : A) ⊢ B a
     | nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
     | lf { p ⊢ ● }
@@ -18,21 +18,52 @@ let PathOver
 
 let PathOverOver
     (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (B : A -> U) (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A a₀ a₁ p B b₀ b₁)
-    (C : (a : A) -> (b : B a) -> U) (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
+    (B : A → U) (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A a₀ a₁ p B b₀ b₁)
+    (C : (a : A) → (b : B a) → U) (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
   = [ (a : A) (b : B a) ⊢ C a b
     | nd { a₁ ; b₁ ⊢ c₁ } (nd (lf { a₀ ; b₀ ⊢ c₀ }) (lf tt)) 
     | lf { p ; q ⊢ ● }
     ] 
 
-let Simplex (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
-    (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) (r : Eq A a₀ a₂)
-  : U
+let Simplex
+    (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
+    (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) (r : Eq A a₀ a₂) : U
   = [ ⊢ A
     | nd { ⊢ a₂ } (nd (nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt))) (lf tt))
     | nd { ⊢ r } (nd (lf { ⊢ q }) (nd (nd (lf { ⊢ p })
         (nd (lf tt) (lf tt))) (lf tt)))
     | lf { ⊢ ● }
     ]
+
+let SimplexOver
+    (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
+    (pa : Eq A a₀ a₁) (qa : Eq A a₁ a₂) (ra : Eq A a₀ a₂)
+    (σ : Simplex A a₀ a₁ a₂ pa qa ra)
+    (B : A → U) (b₀ : B a₀) (b₁ : B a₁) (b₂ : B a₂)
+    (pb : PathOver A a₀ a₁ pa B b₀ b₁)
+    (qb : PathOver A a₁ a₂ qa B b₁ b₂)
+    (rb : PathOver A a₀ a₂ ra B b₀ b₂) : U
+  = [ (a : A) ⊢ B a
+    | nd { a₂ ⊢ b₂ } (nd (nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt))) (lf tt))
+    | nd { ra ⊢ rb } (nd (lf { qa ⊢ qb }) (nd (nd (lf { pa⊢ pb })
+        (nd (lf tt) (lf tt))) (lf tt)))
+    | lf { σ ⊢ ● }
+    ]
+
+# This example shows how constant fibrations do not calculate quite as
+# nicely as one might home in the current setting ...
+
+let Square
+    (A : U) (a₀₀ : A) (a₀₁ : A) (a₁₀ : A) (a₁₁ : A)
+    (p : Eq A a₀₀ a₀₁)
+    (q : Eq A a₀₀ a₁₀)
+    (s : Eq A a₁₀ a₁₁)
+    (r : PathOver A a₀₀ a₁₀ q (λ a . A) a₀₁ a₁₁) : U
+    # Would have liked: (r : Eq A a₀₁ a₁₁)
+  = [ (a₀ : A) (a₁ : A) ⊢ Eq A a₀ a₁
+    | nd { a₁₀ ; a₁₁ ⊢ s } (nd (lf { a₀₀ ; a₀₁ ⊢ p }) (lf tt)) 
+    | lf { q ; r ⊢ ● }
+    ] 
+
 
 

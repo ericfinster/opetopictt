@@ -35,6 +35,16 @@ let init s =
   | Ext(s',_) -> s'
   | _ -> failwith "init on empty"
 
+let rec suite_eq (eq : 'a -> 'a -> bool)
+    (sa : 'a suite) (sb : 'a suite) : bool =
+  match (sa , sb) with
+  | (Emp , Emp) -> true
+  | (Ext (sa',a) , Ext(sb',b)) ->
+    if (eq a b) then
+      suite_eq eq sa' sb'
+    else false
+  | _ -> false 
+
 let rec match_init s =
   match s with
   | Emp -> failwith "match init on empty"

@@ -39,6 +39,33 @@ let map_cell_desc (c : 'a cell_desc) ~f:(f : 'a -> 'b) : 'b cell_desc =
       (map_suite tms ~f:f,
        Option.map topt ~f:f))
 
+
+(*****************************************************************************)
+(*                               Term Equality                               *)
+(*****************************************************************************)
+
+let rec term_eq s t =
+  match (s,t) with
+  | (VarT i , VarT j) -> i = j
+  | (TopT m , TopT n) -> String.equal m n
+  | (LamT (_,u) , LamT (_,v)) -> term_eq u v
+  | (AppT (u,v) , AppT (a,b)) ->
+    if (term_eq u a) then
+      term_eq v b
+    else false
+  | (PiT (_,u,v) , PiT (_,a,b)) ->
+    if (term_eq u a) then
+      term_eq v b
+    else false
+  | (CellT (tl_a,ty_a,ca), CellT (tl_b,ty_b,cb)) ->
+    if (term_eq ty_a ty_b) then
+      if (tele_sem_eq term_eq tl_a tl_b) then
+        cmplx_eq (dep_term_eq term_eq) ca cb 
+      else false
+    else false
+  | (TypT , TypT) -> true
+  | _ -> false 
+
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
 (*****************************************************************************)

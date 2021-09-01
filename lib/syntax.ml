@@ -32,6 +32,16 @@ let pp_dep_term pp_a =
     (pp_suite ~sep:(Fmt.any ";") pp_a)
     (Fmt.option pp_a)
 
+let dep_term_eq (eq : 'a -> 'a -> bool) (sa , ta) (sb , tb) =
+  if (Option.equal eq ta tb) then
+    suite_eq eq sa sb
+  else false
+
+let tele_sem_eq (eq : 'a -> 'a -> bool) :
+  'a tele -> 'a tele -> bool =
+  fun tla tlb ->
+  suite_eq (fun (_,a) (_,b) -> eq a b) tla tlb
+
 (* Not sure we're using this anymore ... *)
 module DepTermBasic =
 struct

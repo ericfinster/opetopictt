@@ -206,7 +206,7 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     let inferred_nf = quote true gma.lvl inferred in
     let expected_nf = quote true gma.lvl expected in
 
-    if (Poly.(<>) expected_nf inferred_nf)
+    if (not (term_eq expected_nf inferred_nf)) 
     then
       let exp_e = term_to_expr (names gma) expected_nf in
       let inf_e = term_to_expr (names gma) inferred_nf in
@@ -447,8 +447,8 @@ and tcm_check_cmplx (tl : value tele) (ty : value)
     let* r = TcmTraverse.traverse_nst_with_addr n
         ~f:(fun (es,eo) addr ->
     
-            log_msg "in face problem";
-            log_val "e" (es,eo) (pp_dep_term pp_expr);
+            (* log_msg "in face problem";
+             * log_val "e" (es,eo) (pp_dep_term pp_expr); *)
             
             let f = face_at t_cmplx (0,addr) in
             match (split_cmplx f tm_fibs (fun x _ -> x) , tm_fibs) with
@@ -459,13 +459,13 @@ and tcm_check_cmplx (tl : value tele) (ty : value)
               let cell_tl = map_suite (zip (zip tl tm_fibs') p)
                   ~f:(fun (((nm,_),(ltl,lty)),c) -> (nm,CellT (ltl,lty,c))) in
     
-              log_val "cell_tl" cell_tl (pp_tele pp_term);
+              (* log_val "cell_tl" cell_tl (pp_tele pp_term); *)
               
               let (val_tl, val_ty) =
                 eval_fib (top_lookup gma) (loc_lookup gma) cell_tl (CellT (qtl,qty,q)) in
               let val_lst = to_list (map_suite val_tl ~f:snd) in 
     
-              log_msg "calling check_dep_term";
+              (* log_msg "calling check_dep_term"; *)
               let* (tlst,topt) = tcm_check_dep_term (to_list es) eo val_lst val_ty in
 
               let t_suite = from_list tlst in
