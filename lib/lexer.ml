@@ -55,6 +55,7 @@ let rec token buf =
   | "|"          -> VBAR
   | 0x25cf       -> EMPTY
   | 0x22a2       -> VDASH
+  | "comp"       -> COMP 
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
   (* | number -> INT (Base.Int.of_string (Sedlexing.Utf8.lexeme buf)) *)

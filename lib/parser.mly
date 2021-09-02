@@ -9,6 +9,7 @@
 %token LET LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR LBRKT RBRKT
 %token ARROW VDASH EMPTY SEMI
+%token COMP 
 %token TYPE
 %token LF ND UNIT
 %token <string> IDENT
@@ -115,7 +116,9 @@ expr3:
   | id = IDENT
     { VarE id }
   | LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { CellE (t,e,c) } 
+    { CellE (t,e,c) }
+  | COMP LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
+    { CompE (t,e,c) } 
   | LPAR t = expr RPAR
     { t }
 

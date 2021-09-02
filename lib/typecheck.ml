@@ -248,19 +248,50 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | CellE (tl,ty,c) ->
 
-    let* (tm_tl, ty_tm) =
-      tcm_in_tele tl (fun tt ->
-          let* tyt = tcm_check ty TypV in
-          tcm_ok (tt,tyt)) in 
-
-    let* gma = tcm_ctx in 
-    let (val_tl , val_ty) =
-      eval_fib (top_lookup gma) (loc_lookup gma) tm_tl ty_tm in 
+    let* (tm_tl, tm_ty, val_tl, val_ty) =
+      tcm_check_fib tl ty in
     
     let* c' = tcm_to_cmplx c in 
     let* (c'',_) = tcm_check_cmplx val_tl val_ty c' in
 
-    tcm_ok (CellT (tm_tl,ty_tm,c''), TypV)
+    let* _ = tcm_ensure ((List.length (empty_addrs (head_of c''))) = 1)
+        (`InternalError "top dim not empty in cell") in
+    
+    tcm_ok (CellT (tm_tl,tm_ty,c''), TypV)
+
+  | CompE (tl,ty,c) ->
+
+    let* (tm_tl, tm_ty, val_tl, val_ty) =
+      tcm_check_fib tl ty in
+
+    let* c' = tcm_to_cmplx c in 
+    
+    begin match c' with
+      | Base _ -> tcm_fail (`InvalidShape "No comps for an object")
+      | Adjoin (t,n) ->
+
+        let* (tt,tv) = tcm_check_cmplx val_tl val_ty t in
+
+        begin match empty_addrs (head_of tt) with
+          | cmp_addr :: [] ->
+
+            let* (nt,_) = tcm_check_extension val_tl val_ty tv n in
+
+            let* _ = tcm_ensure ((List.length (empty_addrs nt)) = 1)
+                (`InternalError "top dim not empty in comp") in
+            
+            let cmp_face = face_at tv (0,cmp_addr) in
+            let cmp_ty = cellV val_tl val_ty cmp_face in 
+            
+            tcm_ok (CompT (tm_tl,tm_ty,Adjoin (tt,nt)) , cmp_ty)
+
+          | _ ->
+            let msg = "comp must have exactly one empty boundary position" in 
+            tcm_fail (`InvalidShape msg)
+
+        end
+
+    end
 
   | TypE -> tcm_ok (TypT , TypV)
 
@@ -322,9 +353,9 @@ and tcm_check_cmplx (tl : value tele) (ty : value) (c : expr dep_term cmplx)
     let* (tt,tv) = tcm_check_cmplx tl ty t in
     
     (* Let's check that the top guys is full here ... *)
-    (* let eaddrs = empty_addrs (head_of tt) in 
-     * let* _ = tcm_ensure (List.is_empty eaddrs)
-     *     (`InternalError "fullness error") in  *)
+    let eaddrs = empty_addrs (head_of tt) in 
+    let* _ = tcm_ensure (List.is_empty eaddrs)
+        (`InternalError "fullness error") in
 
     let* (tm_n , val_c) = tcm_check_extension tl ty tv n in
     tcm_ok (Adjoin (tt,tm_n) , val_c) 
@@ -410,3 +441,15 @@ and tcm_in_tele (tl : expr tele)
         tcm_in_ctx (bind gma id ty_val)
           (k (Ext (tt,(id,ty_tm)))))
 
+and tcm_check_fib tl ty =
+  
+    let* (tm_tl, tm_ty) =
+      tcm_in_tele tl (fun tt ->
+          let* tyt = tcm_check ty TypV in
+          tcm_ok (tt,tyt)) in 
+
+    let* gma = tcm_ctx in 
+    let (val_tl , val_ty) =
+      eval_fib (top_lookup gma) (loc_lookup gma) tm_tl tm_ty in 
+
+    tcm_ok (tm_tl, tm_ty, val_tl, val_ty) 

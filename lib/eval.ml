@@ -37,7 +37,7 @@ let rec eval top loc tm =
   | CellT (tl,ty,c) ->
     let (tl_v, ty_v, c_v) =
       eval_cell_desc top loc tl ty c in
-    CellV  (tl_v , ty_v , c_v)
+    cellV tl_v ty_v c_v
   | CompT (tl,ty,c) ->
     let (tl_v, ty_v, c_v) =
       eval_cell_desc top loc tl ty c in
@@ -71,6 +71,19 @@ and appV t u =
   | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u),appV tv u )
   | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
+
+and cellV tl ty c =
+  let open Opetopes.Complex in 
+  match c with
+  | Base (Lf (vs,_)) -> 
+    let rec app_to_fib v_lst ty =
+      begin match v_lst with
+        | [] -> ty
+        | v::vs -> app_to_fib vs (appV ty v)
+      end in
+    app_to_fib (to_list vs) ty 
+          
+  | _ -> CellV (tl,ty,c) 
 
 and runSpV v sp =
   match sp with

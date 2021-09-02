@@ -25,6 +25,13 @@ let PathOverOver
     | lf { p ; q ⊢ ● }
     ] 
 
+let Null (A : U) (a : A) (p : Eq A a a) : U
+  = [ ⊢ A
+    | lf { ⊢ a }
+    | nd { ⊢ p } (lf tt)
+    | lf { ⊢ ● }
+    ] 
+
 let Simplex
     (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
     (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) (r : Eq A a₀ a₂) : U
@@ -64,4 +71,31 @@ let Square
     | nd { a₁₀ ; a₁₁ ⊢ s } (nd (lf { a₀₀ ; a₀₁ ⊢ p }) (lf tt)) 
     | lf { q ; r ⊢ ● }
     ] 
+
+# Okay.  Interesting.  So we already need these object
+# level cell types to compute away or this as the
+# awkward fibration type ...
+
+let transport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) : B a₁ # [ (a : A) ⊢ B a | lf { a₁ ⊢ ● } ] 
+  = comp [ (a : A) ⊢ B a
+         | nd { a₁ ⊢ ● } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
+         | lf { p ⊢ ● }
+         ]
+
+let to_cell (A : U) (a : A)
+  : [ ⊢ A | lf { ⊢ ● } ]
+  = a
+
+let from_cell (A : U) (a : [ ⊢ A | lf { ⊢ ● } ]) : A
+  = a
+
+let refl (A : U) (a : A) : Eq A a a
+  = comp [ ⊢ A
+         | lf { ⊢ a }
+         | nd { ⊢ ● } (lf tt)
+         | lf { ⊢ ● }
+         ]
+
 
