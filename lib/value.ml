@@ -26,6 +26,8 @@ type value =
   | CellV of value tele * value * value dep_term cmplx
   | CompV of value tele * value * value dep_term cmplx
   | FillV of value tele * value * value dep_term cmplx
+  | KanElimV of value tele * value * value dep_term cmplx * 
+                   value * value * value * value * spine 
 
   (* The Universe *)
   | TypV
@@ -54,6 +56,7 @@ let rec pp_value ppf v =
   | CellV _ -> pf ppf "cell value"
   | CompV _ -> pf ppf "comp value"
   | FillV _ -> pf ppf "fill value"
+  | KanElimV _ -> pf ppf "kan elim value"
   | TypV -> pf ppf "U"
     
 and pp_spine ppf sp =

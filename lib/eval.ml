@@ -46,6 +46,14 @@ let rec eval top loc tm =
     let (tl_v, ty_v, c_v) =
       eval_cell_desc top loc tl ty c in
     FillV  (tl_v , ty_v , c_v)
+  | KanElimT (tl,ty,c,p,d,comp,fill) ->
+    let (tl_v, ty_v, c_v) =
+      eval_cell_desc top loc tl ty c in
+    let pv = eval top loc p in
+    let dv = eval top loc d in
+    let compv = eval top loc comp in
+    let fillv = eval top loc fill in
+    kanElimV tl_v ty_v c_v pv dv compv fillv
 
   | TypT -> TypV
 
@@ -68,7 +76,9 @@ and eval_fib top loc tl ty =
 and appV t u =
   match t with
   | RigidV (i,sp) -> RigidV (i,AppSp(sp,u))
-  | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u),appV tv u )
+  | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u), appV tv u)
+  | KanElimV (tl,ty,c,p,d,comp,fil,sp) ->
+    KanElimV (tl,ty,c,p,d,comp,fil,AppSp(sp,u))
   | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
@@ -84,6 +94,12 @@ and cellV tl ty c =
     app_to_fib (to_list vs) ty 
           
   | _ -> CellV (tl,ty,c) 
+
+and kanElimV tl ty c p d comp fill =
+  match (comp,fill) with
+  (* TODO : What kind of check do I need here? *) 
+  | (CompV (_,_,_) , FillV (_,_,_)) -> d
+  | _ -> KanElimV (tl,ty,c,p,d,comp,fill,EmpSp)
 
 and runSpV v sp =
   match sp with
@@ -113,6 +129,9 @@ and quote ufld k v =
   | FillV (tl,ty,c) ->
     let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
     FillT (tl',ty',c')
+  | KanElimV (tl,ty,c,p,d,comp,fill,sp) ->
+    let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
+    qcs (KanElimT (tl',ty',c',qc p, qc d, qc comp, qc fill)) sp 
 
   | TypV -> TypT
 

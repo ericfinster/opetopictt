@@ -31,18 +31,8 @@ type expr =
   | CellE of expr tele * expr * expr dep_term tr_expr suite
   | CompE of expr tele * expr * expr dep_term tr_expr suite
   | FillE of expr tele * expr * expr dep_term tr_expr suite
-  | CellElimE of expr tele * expr * expr dep_term tr_expr suite *
-                 name * name * expr * expr 
-
-  (* For cell elim: we have a kan situation.  Then we bind two
-     variables of the type of the missing cells.  Then we have a type
-     valid in the context with these variables bound to the
-     appropriate types.  Then we have a term of this fibration with
-     the variables substituted for the two Kan cells. *)
-
-  (* I mean, alternatively, just type the first expression as a Pi
-     type into the universe, and then the lambda can take care of
-     binding the variables.... *)
+  | KanElimE of expr tele * expr * expr dep_term tr_expr suite *
+                expr * expr * expr * expr
 
   (* The Universe *) 
   | TypE
@@ -94,7 +84,7 @@ let rec pp_expr ppf expr =
   | FillE (tl,ty,c) -> 
     pf ppf "fill %a" pp_expr_cell_desc (tl,ty,c)
                  
-  | CellElimE _ -> pf ppf "cell-elim" 
+  | KanElimE _ -> pf ppf "kan-elim" 
 
   | TypE -> pf ppf "U"
 
