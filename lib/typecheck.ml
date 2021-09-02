@@ -288,12 +288,12 @@ and tcm_infer (e : expr) : (term * value) tcm =
       tcm_check_kan tl ty c in
     
     let cmp_face = face_at val_c (1,kan_addr) in
-    let cmp_ty = CellV (val_tl, val_ty, cmp_face) in 
+    let cmp_ty = cellV val_tl val_ty cmp_face in 
 
     let fill_fib v = 
       let fill_cmplx = apply_at val_c (1,kan_addr)
           (fun (vs,_) -> vs , Some v) in
-      CellV (val_tl,val_ty,fill_cmplx) in 
+      cellV val_tl val_ty fill_cmplx in 
 
     let p_ty =
       PiV ("c", cmp_ty,

@@ -117,3 +117,13 @@ let sym (A : U) (a₀ : A) (a₁ : A)
          ]
 
 
+let blorp (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁) : U
+  = kan-elim [ ⊢ A
+             | nd { ⊢ ● } (nd (lf { ⊢ a₀ }) (lf tt)) 
+             | lf { ⊢ ● }
+             ] (λ c. λ f. U) A a₁ p 
+
+
+
+
+
