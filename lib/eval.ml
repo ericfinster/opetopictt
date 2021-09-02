@@ -33,15 +33,27 @@ let rec eval top loc tm =
   | PiT (nm,a,b) ->
     PiV (nm, eval top loc a,
          fun v -> eval top (ext_loc loc v) b)
+      
   | CellT (tl,ty,c) ->
-
-    let (tl_v , ty_v) = eval_fib top loc tl ty in 
-    let c' = map_cell_desc c ~f:(eval top loc) in 
-
-    CellV (tl_v , ty_v , c')
+    let (tl_v, ty_v, c_v) =
+      eval_cell_desc top loc tl ty c in
+    CellV  (tl_v , ty_v , c_v)
+  | CompT (tl,ty,c) ->
+    let (tl_v, ty_v, c_v) =
+      eval_cell_desc top loc tl ty c in
+    CompV  (tl_v , ty_v , c_v)
+  | FillT (tl,ty,c) ->
+    let (tl_v, ty_v, c_v) =
+      eval_cell_desc top loc tl ty c in
+    FillV  (tl_v , ty_v , c_v)
 
   | TypT -> TypV
 
+and eval_cell_desc top loc tl ty c =
+  let (tl_v , ty_v) = eval_fib top loc tl ty in 
+  let c_v = map_cell_desc_cmplx c ~f:(eval top loc) in 
+  (tl_v, ty_v, c_v)
+  
 and eval_fib top loc tl ty =
   match tl with
   | Emp -> (Emp , eval top loc ty)
@@ -78,14 +90,23 @@ and quote ufld k v =
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
   | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
   | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
+                       
   | CellV (tl,ty,c) ->
-
-    let (tl',ty') = quote_fib ufld k tl ty in
-    let c' = map_cell_desc c ~f:qc in 
-
+    let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
     CellT (tl',ty',c')
+  | CompV (tl,ty,c) ->
+    let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
+    CompT (tl',ty',c')
+  | FillV (tl,ty,c) ->
+    let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
+    FillT (tl',ty',c')
 
   | TypV -> TypT
+
+and quote_cell_desc ufld k tl ty c = 
+  let (tl',ty') = quote_fib ufld k tl ty in
+  let c' = map_cell_desc_cmplx c ~f:(quote ufld k)in
+  (tl',ty',c')
 
 and quote_fib ufld k tl ty =
   match tl with

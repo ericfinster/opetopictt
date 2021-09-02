@@ -65,5 +65,3 @@ let Square
     | lf { q ; r ⊢ ● }
     ] 
 
-
-

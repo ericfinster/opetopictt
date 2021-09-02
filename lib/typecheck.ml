@@ -322,9 +322,9 @@ and tcm_check_cmplx (tl : value tele) (ty : value) (c : expr dep_term cmplx)
     let* (tt,tv) = tcm_check_cmplx tl ty t in
     
     (* Let's check that the top guys is full here ... *)
-    let eaddrs = empty_addrs (head_of tt) in 
-    let* _ = tcm_ensure (List.is_empty eaddrs)
-        (`InternalError "fullness error") in 
+    (* let eaddrs = empty_addrs (head_of tt) in 
+     * let* _ = tcm_ensure (List.is_empty eaddrs)
+     *     (`InternalError "fullness error") in  *)
 
     let* (tm_n , val_c) = tcm_check_extension tl ty tv n in
     tcm_ok (Adjoin (tt,tm_n) , val_c) 

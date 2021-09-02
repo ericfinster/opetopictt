@@ -29,16 +29,19 @@ type term =
 
   (* Cell Types *)
   | CellT of term tele * term * term dep_term cmplx
+  | CompT of term tele * term * term dep_term cmplx
+  | FillT of term tele * term * term dep_term cmplx 
 
   | TypT
 
-type 'a cell_desc = 'a dep_term cmplx 
+(* TODO : this terminology is now superseded by that below *)
+(* type 'a cell_desc = 'a dep_term cmplx  *)
 
-let map_cell_desc (c : 'a cell_desc) ~f:(f : 'a -> 'b) : 'b cell_desc =
+let map_cell_desc_cmplx (c : 'a dep_term cmplx)
+    ~f:(f : 'a -> 'b) : 'b dep_term cmplx =
   map_cmplx c ~f:(fun (tms,topt) ->
       (map_suite tms ~f:f,
        Option.map topt ~f:f))
-
 
 (*****************************************************************************)
 (*                               Term Equality                               *)
@@ -57,15 +60,24 @@ let rec term_eq s t =
     if (term_eq u a) then
       term_eq v b
     else false
-  | (CellT (tl_a,ty_a,ca), CellT (tl_b,ty_b,cb)) ->
-    if (term_eq ty_a ty_b) then
-      if (tele_sem_eq term_eq tl_a tl_b) then
-        cmplx_eq (dep_term_eq term_eq) ca cb 
-      else false
-    else false
+      
+  | (CellT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
+    cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
+  | (CompT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
+    cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
+  | (FillT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
+    cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
+      
   | (TypT , TypT) -> true
   | _ -> false 
 
+and cell_desc_eq (tla,tya,ca) (tlb,tyb,cb) = 
+    if (term_eq tya tyb) then
+      if (tele_sem_eq term_eq tla tlb) then
+        cmplx_eq (dep_term_eq term_eq) ca cb 
+      else false
+    else false
+    
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
 (*****************************************************************************)
@@ -82,19 +94,29 @@ let rec term_to_expr nms tm =
     AppE (tte nms u, tte nms v)
   | PiT (nm,a,b) ->
     PiE (nm,tte nms a, tte (Ext (nms,nm)) b)
+      
   | CellT (tl,ty,c) ->
+    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
+    CellE (tle,tye,ce)
+  | CompT (tl,ty,c) ->
+    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
+    CompE (tle,tye,ce)
+  | FillT (tl,ty,c) ->
+    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
+    FillE (tle,tye,ce)
+      
+  | TypT -> TypE
 
+and cell_desc_to_expr nms tl ty c =
     let (etl, ety) = fold_accum_cont tl nms
         (fun (nm,typ) nms ->
            ((nm,term_to_expr nms typ),Ext (nms,nm)))
         (fun etl nms -> (etl, term_to_expr nms ty)) in
 
-    let c' = map_cell_desc c ~f:(tte nms) in 
+    let c' = map_cell_desc_cmplx c ~f:(term_to_expr nms) in
     
-    CellE (etl,ety, of_cmplx c')
-    
-  | TypT -> TypE
-
+    (etl,ety, of_cmplx c')
+  
 (*****************************************************************************)
 (*                                 Telescopes                                *)
 (*****************************************************************************)
@@ -135,14 +157,22 @@ let rec pp_term ppf tm =
       pp_term a pp_term p
       
   | CellT (tl,ty,c) ->
+    pp_term_cell_desc ppf (tl,ty,c)
+  | CompT (tl,ty,c) ->
+    pf ppf "comp %a" pp_term_cell_desc (tl,ty,c)
+  | FillT (tl,ty,c) ->
+    pf ppf "fill %a" pp_term_cell_desc (tl,ty,c)
+                 
+  | TypT -> pf ppf "U"
+
+and pp_term_cell_desc ppf (tl,ty,c) =
     let open Opetopes.Idt.IdtConv in 
     pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
       (pp_tele pp_term) tl
       pp_term ty
       (pp_suite ~sep:(any "@,| ")
          (pp_tr_expr (pp_dep_term pp_term))) (of_cmplx c) 
-                 
-  | TypT -> pf ppf "U"
+  
 
 and term_app_parens t =
   match t with

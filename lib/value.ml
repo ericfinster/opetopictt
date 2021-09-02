@@ -24,6 +24,8 @@ type value =
 
   (* Cell Types *)
   | CellV of value tele * value * value dep_term cmplx
+  | CompV of value tele * value * value dep_term cmplx
+  | FillV of value tele * value * value dep_term cmplx
 
   (* The Universe *)
   | TypV
@@ -49,7 +51,9 @@ let rec pp_value ppf v =
   | PiV (nm,a,_) ->
     pf ppf "(%s : %a) -> <closure>" nm
       pp_value a
-  | CellV _ -> pf ppf "cellvalue"
+  | CellV _ -> pf ppf "cell value"
+  | CompV _ -> pf ppf "comp value"
+  | FillV _ -> pf ppf "fill value"
   | TypV -> pf ppf "U"
     
 and pp_spine ppf sp =
