@@ -4,6 +4,8 @@
 (*                                                                           *)
 (*****************************************************************************)
 
+open Base
+    
 open Term
 open Value
 open Suite
@@ -118,7 +120,71 @@ and cellV tl ty c =
       end in
     app_to_fib (to_list vs) ty 
           
-  | _ -> CellV (tl,ty,c) 
+  | _ ->
+
+    let rec sig_src_fib t v =
+      begin match t with
+        | [] ->
+          begin match v with
+            | SigV (_,a,_) -> a
+            | _ -> failwith "ext_sig_src"
+          end 
+        | (nm,_)::tps ->
+          LamV (nm,fun x ->
+              let tps' = List.map tps ~f:(fun (nm,y) -> (nm,appV y x)) in
+              let v' = appV v x in 
+              sig_src_fib tps' v')
+
+      end in 
+
+    let rec sig_tgt_fib t v =
+      begin match t with
+        | [] ->
+          begin match v with
+            | SigV (nm,_,b) -> LamV (nm,b)
+            | _ -> failwith "ext_sig_src"
+          end 
+        | (nm,_)::tps ->
+          LamV (nm,fun x ->
+              let tps' = List.map tps ~f:(fun (nm,y) -> (nm,appV y x)) in
+              let v' = appV v x in 
+              sig_tgt_fib tps' v')
+
+      end in 
+    
+    let rec app_vars t v =
+      match t with
+      | Emp -> (v,0)
+      | Ext (t',(_,_)) ->
+        let (v',k) = app_vars t' v in 
+        (appV v' (varV k), k + 1)
+        
+    in begin match app_vars tl ty with
+      | (SigV (anm,_,_),_) ->
+        log_msg "sigma in a cell type";
+
+        let tlst = to_list tl in
+        
+        let afib = sig_src_fib tlst ty in
+        let acmplx = map_cmplx c
+            ~f:(fun (vs,vo) -> (vs,Option.map vo ~f:fstV)) in
+
+        (* TODO: names *) 
+        let bfib = sig_tgt_fib tlst ty in
+        let tgt_typ x =
+          CellV (Ext (tl,(anm,afib)),bfib,
+                 map_cmplx c
+                   ~f:(fun (vs,vo) ->
+                       match vo with
+                       | None -> (Ext (vs,x),None)
+                       | Some p -> (Ext (vs,fstV p),Some (sndV p)))) in 
+        
+        let src_typ = CellV (tl,afib,acmplx) in 
+        SigV (anm ^ "-snd",src_typ,tgt_typ)
+          
+      | _ -> CellV (tl,ty,c)
+               
+    end
 
 and kanElimV tl ty c p d comp fill =
   match (comp,fill) with
