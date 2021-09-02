@@ -57,6 +57,7 @@ let rec token buf =
   | 0x22a2       -> VDASH
   | "comp"       -> COMP
   | "fill"       -> FILL
+  | "kan-elim"   -> KANELIM 
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
   (* | number -> INT (Base.Int.of_string (Sedlexing.Utf8.lexeme buf)) *)

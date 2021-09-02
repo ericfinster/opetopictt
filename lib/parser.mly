@@ -9,7 +9,7 @@
 %token LET LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR LBRKT RBRKT
 %token ARROW VDASH EMPTY SEMI
-%token COMP FILL
+%token COMP FILL KANELIM 
 %token TYPE
 %token LF ND UNIT
 %token <string> IDENT
@@ -120,7 +120,10 @@ expr3:
   | COMP LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
     { CompE (t,e,c) } 
   | FILL LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { FillE (t,e,c) } 
+    { FillE (t,e,c) }
+  | KANELIM LBRKT tl = tele VDASH ty = expr VBAR c = cmplx(dep_term) RBRKT
+      p = expr3 d = expr3 comp = expr3 fill = expr3
+    { KanElimE (tl,ty,c,p,d,comp,fill) } 
   | LPAR t = expr RPAR
     { t }
 
