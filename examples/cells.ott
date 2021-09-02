@@ -144,4 +144,17 @@ let out_path_contr (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (λ c. λ f. Eq (out_path A a₀) (c , f) (ucomp A a₀ , ufill A a₀))
     (refl (out_path A a₀) (ucomp A a₀ , ufill A a₀)) a₁ p
 
+let path_from_refl (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq (out_path A a₀) (a₀ , refl A a₀) (a₁ , p)
+  = trans (out_path A a₀) (a₀ , refl A a₀) (ucomp A a₀ , ufill A a₀) (a₁ , p)
+      (out_path_contr A a₀ a₀ (refl A a₀))
+      (sym (out_path A a₀) (a₁ , p) (ucomp A a₀ , ufill A a₀)
+           (out_path_contr A a₀ a₁ p))
+
+
+let J (A : U) (a₀ : A) (P : out_path A a₀ → U)
+    (d : P (a₀ , refl A a₀)) (a₁ : A) (p : Eq A a₀ a₁)
+  : P (a₁ , p)
+  = transport (out_path A a₀) P
+      (a₀ , refl A a₀) (a₁ , p) (path_from_refl A a₀ a₁ p) d
 
