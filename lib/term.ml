@@ -63,9 +63,9 @@ let rec term_eq s t =
       
   | (CellT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
     cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
-  | (CompT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
+  | (CompT (tla,tya,ca), CompT (tlb,tyb,cb)) ->
     cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
-  | (FillT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
+  | (FillT (tla,tya,ca), FillT (tlb,tyb,cb)) ->
     cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
       
   | (TypT , TypT) -> true

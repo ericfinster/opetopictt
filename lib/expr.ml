@@ -88,17 +88,22 @@ let rec pp_expr ppf expr =
       ppe dom ppe cod
       
   | CellE (tl,ty,c) ->
-    pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
-      (pp_tele pp_expr) tl
-      pp_expr ty
-      (pp_suite ~sep:(any "@,| ")
-         (pp_tr_expr (pp_dep_term pp_expr))) c 
-
-  | CompE _ -> pf ppf "comp"
-  | FillE _ -> pf ppf "fill"
+    pp_expr_cell_desc ppf (tl,ty,c)
+  | CompE (tl,ty,c) ->
+    pf ppf "comp %a" pp_expr_cell_desc (tl,ty,c)
+  | FillE (tl,ty,c) -> 
+    pf ppf "fill %a" pp_expr_cell_desc (tl,ty,c)
+                 
   | CellElimE _ -> pf ppf "cell-elim" 
 
   | TypE -> pf ppf "U"
+
+and pp_expr_cell_desc ppf (tl,ty,c) =
+  pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
+    (pp_tele pp_expr) tl
+    pp_expr ty
+    (pp_suite ~sep:(any "@,| ")
+       (pp_tr_expr (pp_dep_term pp_expr))) c 
 
 and expr_app_parens e =
   match e with

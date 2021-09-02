@@ -78,7 +78,7 @@ let Square
 
 let transport (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₀ : B a₀) : B a₁ # [ (a : A) ⊢ B a | lf { a₁ ⊢ ● } ] 
+    (b₀ : B a₀) : B a₁ 
   = comp [ (a : A) ⊢ B a
          | nd { a₁ ⊢ ● } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
          | lf { p ⊢ ● }
@@ -86,6 +86,13 @@ let transport (A : U) (B : A → U)
 
 let refl (A : U) (a : A) : Eq A a a
   = comp [ ⊢ A
+         | lf { ⊢ a }
+         | nd { ⊢ ● } (lf tt)
+         | lf { ⊢ ● }
+         ]
+
+let null (A : U) (a : A) : Null A a (refl A a)
+  = fill [ ⊢ A
          | lf { ⊢ a }
          | nd { ⊢ ● } (lf tt)
          | lf { ⊢ ● }

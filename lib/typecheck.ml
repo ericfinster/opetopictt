@@ -261,38 +261,27 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | CompE (tl,ty,c) ->
 
-    let* (tm_tl, tm_ty, val_tl, val_ty) =
-      tcm_check_fib tl ty in
+    let* (tm_tl,tm_ty,tm_c,val_tl,val_ty,val_c,kan_addr) =
+      tcm_check_kan tl ty c in
 
-    let* c' = tcm_to_cmplx c in 
+    let cmp_face = face_at val_c (1,kan_addr) in
+    let cmp_ty = cellV val_tl val_ty cmp_face in 
     
-    begin match c' with
-      | Base _ -> tcm_fail (`InvalidShape "No comps for an object")
-      | Adjoin (t,n) ->
+    tcm_ok (CompT (tm_tl,tm_ty,tm_c) , cmp_ty)
 
-        let* (tt,tv) = tcm_check_cmplx val_tl val_ty t in
+  | FillE (tl,ty,c) ->
 
-        begin match empty_addrs (head_of tt) with
-          | cmp_addr :: [] ->
+    let* (tm_tl,tm_ty,tm_c,val_tl,val_ty,val_c,kan_addr) =
+      tcm_check_kan tl ty c in
 
-            let* (nt,_) = tcm_check_extension val_tl val_ty tv n in
-
-            let* _ = tcm_ensure ((List.length (empty_addrs nt)) = 1)
-                (`InternalError "top dim not empty in comp") in
-            
-            let cmp_face = face_at tv (0,cmp_addr) in
-            let cmp_ty = cellV val_tl val_ty cmp_face in 
-            
-            tcm_ok (CompT (tm_tl,tm_ty,Adjoin (tt,nt)) , cmp_ty)
-
-          | _ ->
-            let msg = "comp must have exactly one empty boundary position" in 
-            tcm_fail (`InvalidShape msg)
-
-        end
-
-    end
-
+    let cmp_tm = CompT (tm_tl,tm_ty,tm_c) in
+    let* cmp_val = tcm_eval cmp_tm in
+    let val_c' = apply_at val_c (1,kan_addr)
+        (fun (vs,_) -> vs, Some cmp_val) in
+    let fill_ty = CellV (val_tl,val_ty,val_c') in 
+    
+    tcm_ok (FillT (tm_tl,tm_ty,tm_c) , fill_ty)
+    
   | TypE -> tcm_ok (TypT , TypV)
 
   | _ -> tcm_fail (`InferrenceFailed e) 
@@ -426,6 +415,41 @@ and tcm_check_extension (tl : value tele) (ty : value) (tv : value dep_term cmpl
 
   let (rt,rv) = unzip_nst r in 
   tcm_ok (rt , Adjoin (tv,rv))
+
+
+and tcm_check_kan tl ty c = 
+
+    let* (tm_tl, tm_ty, val_tl, val_ty) =
+      tcm_check_fib tl ty in
+
+    let* c' = tcm_to_cmplx c in 
+    
+    begin match c' with
+      | Base _ -> tcm_fail (`InvalidShape "No kan conditions dim 0")
+      | Adjoin (t,n) ->
+
+        let* (tt,tv) = tcm_check_cmplx val_tl val_ty t in
+
+        begin match empty_addrs (head_of tt) with
+          | kan_addr :: [] ->
+
+            let* (nt,cv) = tcm_check_extension val_tl val_ty tv n in
+
+            let* _ = tcm_ensure ((List.length (empty_addrs nt)) = 1)
+                (`InternalError "top dim not empty in kan description") in
+
+            tcm_ok (tm_tl,tm_ty, Adjoin (tt,nt),
+                    val_tl, val_ty, cv, kan_addr)
+            
+          | _ ->
+            let msg = "comp must have exactly one empty boundary position" in 
+            tcm_fail (`InvalidShape msg)
+
+        end
+
+    end
+
+
 
 (* TODO: Perhaps this should return the fibration to make things more efficient ? *)
 and tcm_in_tele (tl : expr tele)
