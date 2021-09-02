@@ -169,7 +169,6 @@ and cellV tl ty c =
         let acmplx = map_cmplx c
             ~f:(fun (vs,vo) -> (vs,Option.map vo ~f:fstV)) in
 
-        (* TODO: names *) 
         let bfib = sig_tgt_fib tlst ty in
         let tgt_typ x =
           CellV (Ext (tl,(anm,afib)),bfib,
@@ -180,7 +179,7 @@ and cellV tl ty c =
                        | Some p -> (Ext (vs,fstV p),Some (sndV p)))) in 
         
         let src_typ = CellV (tl,afib,acmplx) in 
-        SigV (anm ^ "-snd",src_typ,tgt_typ)
+        SigV ("",src_typ,tgt_typ)
           
       | _ -> CellV (tl,ty,c)
                

@@ -113,13 +113,17 @@ and cell_desc_eq (tla,tya,ca) (tlb,tyb,cb) =
 (*                            Terms to Expressions                           *)
 (*****************************************************************************)
 
+(* So: what you can do for naming is have a flag which tags those
+   names which may have been generated.  Then, while converting back
+   to expressions, you will know which ones you need to generate. *)
+      
 let rec term_to_expr nms tm =
   let tte = term_to_expr in
   match tm with
   | VarT i ->
     let nm = db_get i nms in VarE nm
   | TopT nm -> VarE nm
-                 
+
   | LamT (nm,bdy) ->
     LamE (nm, tte (Ext (nms,nm)) bdy)
   | AppT (u,v) ->
@@ -152,18 +156,18 @@ let rec term_to_expr nms tm =
     let compe = tte nms comp in
     let fille = tte nms fill in 
     KanElimE (tle,tye,ce,pe,de,compe,fille)
-      
+
   | TypT -> TypE
 
 and cell_desc_to_expr nms tl ty c =
-    let (etl, ety) = fold_accum_cont tl nms
-        (fun (nm,typ) nms ->
-           ((nm,term_to_expr nms typ),Ext (nms,nm)))
-        (fun etl nms -> (etl, term_to_expr nms ty)) in
+  let (etl, ety) = fold_accum_cont tl nms
+      (fun (nm,typ) nms ->
+         ((nm,term_to_expr nms typ),Ext (nms,nm)))
+      (fun etl nms -> (etl, term_to_expr nms ty)) in
 
-    let c' = map_cell_desc_cmplx c ~f:(term_to_expr nms) in
-    
-    (etl,ety, of_cmplx c')
+  let c' = map_cell_desc_cmplx c ~f:(term_to_expr nms) in
+
+  (etl,ety, of_cmplx c')
   
 (*****************************************************************************)
 (*                                 Telescopes                                *)

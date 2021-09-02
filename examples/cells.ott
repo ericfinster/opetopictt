@@ -157,3 +157,27 @@ let J (A : U) (a₀ : A) (P : out_path A a₀ → U)
   = transport (out_path A a₀) P
       (a₀ , refl A a₀) (a₁ , p) (path_from_refl A a₀ a₁ p) d
 
+#
+#  Testing Cell reduction for Σ
+#
+
+let Σ-test (A : U) (B : A → U) 
+    (a₀ : A) (b₀ : B a₀)
+    (a₁ : A) (b₁ : B a₁)
+    (p : Eq A a₀ a₁) (q : PathOver A a₀ a₁ p B b₀ b₁)
+  : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
+  = p , q 
+
+# let Eq (A : U) (a₀ : A) (a₁ : A) : U
+#   = [ ⊢ A
+#     | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
+#     | lf { ⊢ ● }
+#     ] 
+
+# let PathOver
+#     (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+#     (B : A → U) (b₀ : B a₀) (b₁ : B a₁) : U
+#   = [ (a : A) ⊢ B a
+#     | nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
+#     | lf { p ⊢ ● }
+#     ] 
