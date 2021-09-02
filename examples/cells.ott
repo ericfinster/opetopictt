@@ -116,11 +116,9 @@ let sym (A : U) (a₀ : A) (a₁ : A)
          | lf { ⊢ ● }
          ]
 
-let blorp (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁) : U
-  = kan-elim [ ⊢ A
-             | nd { ⊢ ● } (nd (lf { ⊢ a₀ }) (lf tt)) 
-             | lf { ⊢ ● }
-             ] (λ c. λ f. U) A a₁ p 
+#
+#  Testing the kan eliminator
+#
 
 let ucomp (A : U) (a : A) : A
   = comp [ ⊢ A
@@ -134,7 +132,16 @@ let ufill (A : U) (a : A) : Eq A a (ucomp A a)
          | lf { ⊢ ● }
          ]
 
-let test (A : U) (a : A) : Eq U (blorp A a (ucomp A a) (ufill A a)) A
-  = refl U A 
+let out_path (A : U) (a₀ : A) : U
+  = (a₁ : A) × (Eq A a₀ a₁)
+
+let out_path_contr (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁) 
+  : Eq (out_path A a₀) (a₁ , p) (ucomp A a₀ , ufill A a₀)
+  = kan-elim [ ⊢ A
+             | nd { ⊢ ● } (nd (lf { ⊢ a₀ }) (lf tt)) 
+             | lf { ⊢ ● }
+             ]
+    (λ c. λ f. Eq (out_path A a₀) (c , f) (ucomp A a₀ , ufill A a₀))
+    (refl (out_path A a₀) (ucomp A a₀ , ufill A a₀)) a₁ p
 
 
