@@ -72,9 +72,9 @@ let Square
     | lf { q ; r ⊢ ● }
     ] 
 
-# Okay.  Interesting.  So we already need these object
-# level cell types to compute away or this as the
-# awkward fibration type ...
+#
+#  Various comp tests 
+#
 
 let transport (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
@@ -84,13 +84,6 @@ let transport (A : U) (B : A → U)
          | lf { p ⊢ ● }
          ]
 
-let to_cell (A : U) (a : A)
-  : [ ⊢ A | lf { ⊢ ● } ]
-  = a
-
-let from_cell (A : U) (a : [ ⊢ A | lf { ⊢ ● } ]) : A
-  = a
-
 let refl (A : U) (a : A) : Eq A a a
   = comp [ ⊢ A
          | lf { ⊢ a }
@@ -98,4 +91,21 @@ let refl (A : U) (a : A) : Eq A a a
          | lf { ⊢ ● }
          ]
 
+let trans (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
+    (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) : Eq A a₀ a₂
+  = comp [ ⊢ A
+         | nd { ⊢ a₂ } (nd (nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt))) (lf tt))
+         | nd { ⊢ ● } (nd (lf { ⊢ q }) (nd (nd (lf { ⊢ p })
+             (nd (lf tt) (lf tt))) (lf tt)))
+         | lf { ⊢ ● }
+         ]
+
+let sym (A : U) (a₀ : A) (a₁ : A)
+    (p : Eq A a₀ a₁) : Eq A a₁ a₀
+  = comp [ ⊢ A
+         | nd { ⊢ a₀ } (nd (nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt))) (lf tt))
+         | nd { ⊢ refl A a₀ } (nd (lf { ⊢ ● }) (nd (nd (lf { ⊢ p })
+             (nd (lf tt) (lf tt))) (lf tt)))
+         | lf { ⊢ ● }
+         ]
 
