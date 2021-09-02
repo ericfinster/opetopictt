@@ -9,7 +9,8 @@
 %token LET LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR LBRKT RBRKT
 %token ARROW VDASH EMPTY SEMI
-%token COMP FILL KANELIM 
+%token COMP FILL KANELIM
+%token TIMES COMMA FST SND
 %token TYPE
 %token LF ND UNIT
 %token <string> IDENT
@@ -95,6 +96,8 @@ dep_term:
 expr: 
   | e = expr1
     { e }
+  | u = expr1 COMMA v = expr
+    { PairE (u,v) } 
 
 expr1:
   | e = expr2
@@ -103,6 +106,8 @@ expr1:
     { LamE (id,e) }
   | hd = pi_head ARROW cod = expr1
     { let (nm,dom) = hd in PiE (nm,dom,cod) }
+  | hd = pi_head TIMES cod = expr1
+    { let (nm,dom) = hd in SigE (nm,dom,cod) } 
 
 expr2:
   | e = expr3
@@ -115,6 +120,12 @@ expr3:
     { TypE }
   | id = IDENT
     { VarE id }
+
+  | FST e = expr3
+    { FstE e }
+  | SND e = expr3
+    { SndE e }
+
   | LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
     { CellE (t,e,c) }
   | COMP LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
@@ -123,7 +134,8 @@ expr3:
     { FillE (t,e,c) }
   | KANELIM LBRKT tl = tele VDASH ty = expr VBAR c = cmplx(dep_term) RBRKT
       p = expr3 d = expr3 comp = expr3 fill = expr3
-    { KanElimE (tl,ty,c,p,d,comp,fill) } 
+    { KanElimE (tl,ty,c,p,d,comp,fill) }
+
   | LPAR t = expr RPAR
     { t }
 

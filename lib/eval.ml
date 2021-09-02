@@ -27,13 +27,24 @@ let rec eval top loc tm =
   match tm with
   | VarT i -> loc i 
   | TopT nm -> TopV (nm,EmpSp,top nm)
+                 
   | LamT (nm,u) ->
     LamV (nm,fun v -> eval top (ext_loc loc v) u)
   | AppT (u,v) -> appV (eval top loc u) (eval top loc v) 
   | PiT (nm,a,b) ->
     PiV (nm, eval top loc a,
          fun v -> eval top (ext_loc loc v) b)
-      
+
+  | PairT (u,v) ->
+    PairV (eval top loc u, eval top loc v)
+  | FstT u ->
+    fstV (eval top loc u)
+  | SndT u ->
+    sndV (eval top loc u)
+  | SigT (nm,u,v) ->
+    SigV (nm, eval top loc u,
+          fun x -> eval top (ext_loc loc x) v)
+
   | CellT (tl,ty,c) ->
     let (tl_v, ty_v, c_v) =
       eval_cell_desc top loc tl ty c in
@@ -77,10 +88,24 @@ and appV t u =
   match t with
   | RigidV (i,sp) -> RigidV (i,AppSp(sp,u))
   | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u), appV tv u)
-  | KanElimV (tl,ty,c,p,d,comp,fil,sp) ->
-    KanElimV (tl,ty,c,p,d,comp,fil,AppSp(sp,u))
+  | KanElimV (tl,ty,c,p,d,comp,fill,sp) ->
+    KanElimV (tl,ty,c,p,d,comp,fill,AppSp(sp,u))
   | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
+
+and fstV t =
+  match t with
+  | RigidV (i,sp) -> RigidV (i, FstSp sp)
+  | TopV (nm,sp,tv) -> TopV (nm, FstSp sp, fstV tv)
+  | PairV (u,_) -> u
+  | _ -> raise (Eval_error (Fmt.str "malformed first proj: %a" pp_value t))
+
+and sndV t =
+  match t with
+  | RigidV (i,sp) -> RigidV (i, SndSp sp)
+  | TopV (nm,sp,tv) -> TopV (nm, SndSp sp, sndV tv)
+  | PairV (_,v) -> v
+  | _ -> raise (Eval_error (Fmt.str "malformed second proj: %a" pp_value t))
 
 and cellV tl ty c =
   let open Opetopes.Complex in 
@@ -97,14 +122,18 @@ and cellV tl ty c =
 
 and kanElimV tl ty c p d comp fill =
   match (comp,fill) with
+  | (TopV (_,_,tv),_) ->
+    kanElimV tl ty c p d tv fill
+  | (_,TopV (_,_,tv)) ->
+    kanElimV tl ty c p d comp tv
   (* TODO : What kind of check do I need here? *) 
   | (CompV (_,_,_) , FillV (_,_,_)) -> d
   | _ -> KanElimV (tl,ty,c,p,d,comp,fill,EmpSp)
 
-and runSpV v sp =
-  match sp with
-  | EmpSp -> v
-  | AppSp (sp',u) -> appV (runSpV v sp') u
+(* and runSpV v sp =
+ *   match sp with
+ *   | EmpSp -> v
+ *   | AppSp (sp',u) -> appV (runSpV v sp') u *)
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
@@ -117,9 +146,13 @@ and quote ufld k v =
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
+                        
   | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
   | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
-                       
+
+  | PairV (u,v) -> PairT (qc u, qc v)
+  | SigV (nm,u,cl) -> SigT (nm, qc u, quote ufld (k+1) (cl (varV k)))
+
   | CellV (tl,ty,c) ->
     let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
     CellT (tl',ty',c')
@@ -144,11 +177,6 @@ and quote_fib ufld k tl ty =
   match tl with
   | Emp -> (Emp , quote ufld k ty)
   | Ext (tl',(nm,ty')) ->
-
-    (* TODO: Check the logic here.  Idea is to iteratively apply the
-       fibration to all the variables in the context and then quote.
-       But are we quoting at the right level and everything?  Have to
-       check this .... *)
     
     let rec app_vars t v =
       match t with
@@ -170,4 +198,8 @@ and quote_sp ufld k t sp =
   | EmpSp -> t
   | AppSp (sp',u) ->
     AppT (qcs t sp',qc u)
+  | FstSp sp' ->
+    FstT (qcs t sp')
+  | SndSp sp' ->
+    SndT (qcs t sp') 
 

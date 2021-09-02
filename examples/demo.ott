@@ -52,3 +52,14 @@ let succ : Nat -> Nat
 let one : Nat
   = succ (zero)
 
+let sigma (A : U) (B : A → U) : U
+  = (a : A) × B a
+
+let pair (A : U) (B : A → U) (a : A) (b : B a) : (a : A) × B a
+  = a , b
+
+let fst_tst (A : U) (B : A → U) (ab : (a : A) × B a) : A
+  = fst ab
+
+let snd_test (A : U) (B : A → U) (ab : (a : A) × B a) : B (fst ab)
+  = snd ab 

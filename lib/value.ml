@@ -22,6 +22,10 @@ type value =
   | LamV of name * (value -> value) 
   | PiV of name * value * (value -> value)
 
+  (* Sigma Types *) 
+  | PairV of value * value
+  | SigV of name * value * (value -> value)
+
   (* Cell Types *)
   | CellV of value tele * value * value dep_term cmplx
   | CompV of value tele * value * value dep_term cmplx
@@ -34,7 +38,9 @@ type value =
 
 and spine =
   | EmpSp
-  | AppSp of spine * value 
+  | AppSp of spine * value
+  | FstSp of spine
+  | SndSp of spine 
 
 let varV k = RigidV (k,EmpSp)
 
@@ -53,6 +59,11 @@ let rec pp_value ppf v =
   | PiV (nm,a,_) ->
     pf ppf "(%s : %a) -> <closure>" nm
       pp_value a
+  | PairV (u,v) ->
+    pf ppf "%a , %a" pp_value u pp_value v
+  | SigV (nm,a,_) ->
+    pf ppf "(%s : %a) \u{d7} <closure>" nm
+      pp_value a 
   | CellV _ -> pf ppf "cell value"
   | CompV _ -> pf ppf "comp value"
   | FillV _ -> pf ppf "fill value"
@@ -64,4 +75,8 @@ and pp_spine ppf sp =
   | EmpSp -> ()
   | AppSp (sp',v) ->
     pf ppf "%a %a" pp_spine sp' pp_value v
+  | FstSp sp' ->
+    pf ppf "fst %a" pp_spine sp'
+  | SndSp sp' ->
+    pf ppf "snd %a" pp_spine sp' 
 

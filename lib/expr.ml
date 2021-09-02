@@ -27,6 +27,12 @@ type expr =
   | AppE of expr * expr
   | PiE of name * expr * expr
 
+  (* Sigma Types *)
+  | PairE of expr * expr
+  | FstE of expr
+  | SndE of expr
+  | SigE of name * expr * expr 
+
   (* Cell types *) 
   | CellE of expr tele * expr * expr dep_term tr_expr suite
   | CompE of expr tele * expr * expr dep_term tr_expr suite
@@ -76,7 +82,17 @@ let rec pp_expr ppf expr =
   | PiE (nm,dom,cod) ->
     pf ppf "(%s : %a)@, \u{2192} %a" nm
       ppe dom ppe cod
-      
+
+  | PairE (u,v) ->
+    pf ppf "%a , %a" pp_expr u pp_expr v
+  | FstE u ->
+    pf ppf "fst %a" pp_expr u
+  | SndE u ->
+    pf ppf "snd %a" pp_expr u
+  | SigE (nm,a,b) ->
+    pf ppf "(%s : %a)@, \u{d7} %a"
+      nm pp_expr a pp_expr b 
+
   | CellE (tl,ty,c) ->
     pp_expr_cell_desc ppf (tl,ty,c)
   | CompE (tl,ty,c) ->
@@ -100,6 +116,13 @@ and expr_app_parens e =
   | PiE _ -> parens pp_expr
   | AppE _ -> parens pp_expr
   | LamE _ -> parens pp_expr
+  | PairE _ -> parens pp_expr
+  | FstE _ -> parens pp_expr
+  | SndE _ -> parens pp_expr
+  | SigE _ -> parens pp_expr
+  | CompE _ -> parens pp_expr
+  | FillE _ -> parens pp_expr
+  | KanElimE _ -> parens pp_expr 
   | _ -> pp_expr
 
 and expr_pi_parens e =

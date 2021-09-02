@@ -18,7 +18,7 @@ open Opetopes.Complex
 
 type term =
 
-  (* Primitives *)
+  (* Variables and Definitions *)
   | VarT of idx
   | TopT of name
 
@@ -27,6 +27,12 @@ type term =
   | AppT of term * term 
   | PiT of name * term * term
 
+  (* Sigma Types *) 
+  | PairT of term * term
+  | FstT of term
+  | SndT of term
+  | SigT of name * term * term
+            
   (* Cell Types *)
   | CellT of term tele * term * term dep_term cmplx
   | CompT of term tele * term * term dep_term cmplx
@@ -34,6 +40,7 @@ type term =
   | KanElimT of term tele * term * term dep_term cmplx *
                 term * term * term * term
 
+  (* The Universe *) 
   | TypT
 
 let map_cell_desc_cmplx (c : 'a dep_term cmplx)
@@ -50,6 +57,7 @@ let rec term_eq s t =
   match (s,t) with
   | (VarT i , VarT j) -> i = j
   | (TopT m , TopT n) -> String.equal m n
+                           
   | (LamT (_,u) , LamT (_,v)) -> term_eq u v
   | (AppT (u,v) , AppT (a,b)) ->
     if (term_eq u a) then
@@ -59,7 +67,20 @@ let rec term_eq s t =
     if (term_eq u a) then
       term_eq v b
     else false
-      
+
+  | (PairT (ua,va), PairT (ub,vb)) ->
+    if (term_eq ua ub) then
+      term_eq va vb
+    else false
+  | (FstT ua, FstT ub) ->
+    term_eq ua ub
+  | (SndT ua, SndT ub) ->
+    term_eq ua ub
+  | (SigT (_,ua,va),SigT (_,ub,vb)) ->
+    if (term_eq ua ub) then
+      term_eq va vb
+    else false
+
   | (CellT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
     cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
   | (CompT (tla,tya,ca), CompT (tlb,tyb,cb)) ->
@@ -98,13 +119,23 @@ let rec term_to_expr nms tm =
   | VarT i ->
     let nm = db_get i nms in VarE nm
   | TopT nm -> VarE nm
+                 
   | LamT (nm,bdy) ->
     LamE (nm, tte (Ext (nms,nm)) bdy)
   | AppT (u,v) ->
     AppE (tte nms u, tte nms v)
   | PiT (nm,a,b) ->
     PiE (nm,tte nms a, tte (Ext (nms,nm)) b)
-      
+
+  | PairT (u,v) ->
+    PairE (tte nms u, tte nms v)
+  | FstT u ->
+    FstE (tte nms u)
+  | SndT u ->
+    SndE (tte nms u)
+  | SigT (nm,u,v) ->
+    SigE (nm,tte nms u, tte (Ext (nms,nm)) v)
+
   | CellT (tl,ty,c) ->
     let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
     CellE (tle,tye,ce)
@@ -120,7 +151,8 @@ let rec term_to_expr nms tm =
     let de = tte nms d in
     let compe = tte nms comp in
     let fille = tte nms fill in 
-    KanElimE (tle,tye,ce,pe,de,compe,fille) 
+    KanElimE (tle,tye,ce,pe,de,compe,fille)
+      
   | TypT -> TypE
 
 and cell_desc_to_expr nms tl ty c =
@@ -164,14 +196,23 @@ let rec pp_term ppf tm =
     pf ppf "\u{03bb} %s . %a" nm pp_term t
   | AppT (u,v) ->
     pf ppf "%a %a" pp_term u (term_app_parens v) v
-      
   | PiT (nm,a,p) when Poly.(=) nm "" ->
     pf ppf "%a \u{2192} %a"
       (term_pi_parens a) a pp_term p
   | PiT (nm,a,p) ->
     pf ppf "(%s : %a) \u{2192} %a" nm
       pp_term a pp_term p
-      
+
+  | PairT (u,v) ->
+    pf ppf "%a , %a" pp_term u pp_term v
+  | FstT u ->
+    pf ppf "fst %a" pp_term u
+  | SndT u ->
+    pf ppf "snd %a" pp_term u
+  | SigT (nm,a,b) ->
+    pf ppf "(%s : %a)@, \u{d7} %a"
+      nm pp_term a pp_term b 
+
   | CellT (tl,ty,c) ->
     pp_term_cell_desc ppf (tl,ty,c)
   | CompT (tl,ty,c) ->
@@ -202,6 +243,10 @@ and term_app_parens t =
   | PiT _ -> parens pp_term
   | AppT _ -> parens pp_term
   | LamT _ -> parens pp_term
+  | PairT _ -> parens pp_term
+  | FstT _ -> parens pp_term
+  | SndT _ -> parens pp_term
+  | SigT _ -> parens pp_term
   | CompT _ -> parens pp_term
   | FillT _ -> parens pp_term
   | KanElimT _ -> parens pp_term 

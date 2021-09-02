@@ -116,14 +116,25 @@ let sym (A : U) (a₀ : A) (a₁ : A)
          | lf { ⊢ ● }
          ]
 
-
 let blorp (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁) : U
   = kan-elim [ ⊢ A
              | nd { ⊢ ● } (nd (lf { ⊢ a₀ }) (lf tt)) 
              | lf { ⊢ ● }
              ] (λ c. λ f. U) A a₁ p 
 
+let ucomp (A : U) (a : A) : A
+  = comp [ ⊢ A
+         | nd { ⊢ ● } (nd (lf { ⊢ a }) (lf tt)) 
+         | lf { ⊢ ● }
+         ] 
 
+let ufill (A : U) (a : A) : Eq A a (ucomp A a)
+  = fill [ ⊢ A
+         | nd { ⊢ ● } (nd (lf { ⊢ a }) (lf tt)) 
+         | lf { ⊢ ● }
+         ]
 
+let test (A : U) (a : A) : Eq U (blorp A a (ucomp A a) (ufill A a)) A
+  = refl U A 
 
 

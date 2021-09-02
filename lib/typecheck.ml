@@ -77,6 +77,7 @@ type typing_error = [
   | `NotImplemented of string
   | `InferrenceFailed of expr
   | `ExpectedFunction of expr
+  | `ExpectedProduct of expr 
   | `InvalidShape of string 
   | `InternalError of string 
 ]
@@ -105,6 +106,11 @@ let pp_error ppf e =
 
     Fmt.pf ppf "The expression @,@, @[%a@] @,@," pp_expr e ;
     Fmt.pf ppf "was expected to be a function but isn.t"
+
+  | `ExpectedProduct e -> 
+
+    Fmt.pf ppf "The expression @,@, @[%a@] @,@," pp_expr e ;
+    Fmt.pf ppf "was expected to be a product but isn.t"
 
   | `InvalidShape msg -> pf ppf "Shape error: %s" msg 
 
@@ -176,6 +182,15 @@ let rec tcm_extract_pi (v: value) =
     let e = term_to_expr (names gma) (quote false gma.lvl v) in 
     tcm_fail (`ExpectedFunction e) 
 
+let rec tcm_extract_sig (v: value) =
+  match v with
+  | SigV (_,a,b) -> tcm_ok (a, b)
+  | TopV (_,_,v') -> tcm_extract_sig v'
+  | _ ->
+    let* gma = tcm_ctx in 
+    let e = term_to_expr (names gma) (quote false gma.lvl v) in 
+    tcm_fail (`ExpectedProduct e) 
+
 let tcm_ensure (b : bool) (e : typing_error) : unit tcm =
   if b then tcm_ok ()
   else tcm_fail e
@@ -197,6 +212,12 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
         let* bdy = tcm_check e (b (varV gma.lvl)) in
         tcm_ok (LamT (nm,bdy))
       end
+
+  | (PairE (u,v) , SigV (_,a,b)) ->
+    let* u' = tcm_check u a in
+    let* uv = tcm_eval u' in
+    let* v' = tcm_check v (b uv) in
+    tcm_ok (PairT (u',v')) 
 
   | (e, expected) ->
 
@@ -245,6 +266,25 @@ and tcm_infer (e : expr) : (term * value) tcm =
         (tcm_check b TypV) in 
 
     tcm_ok (PiT (nm,a',b') , TypV)
+
+  | FstE u ->
+    let* (u',ut) = tcm_infer u in
+    let* (a, _) = tcm_extract_sig ut in
+    tcm_ok (FstT u', a)
+
+  | SndE u ->
+    let* (u',ut) = tcm_infer u in
+    let* (_, b) = tcm_extract_sig ut in
+    let* uv = tcm_eval u' in
+    tcm_ok (SndT u', b (fstV uv))
+
+  | SigE (nm,a,b) ->
+    let* a' = tcm_check a TypV in
+    let* av = tcm_eval a' in
+    let* b' = tcm_with_binding nm av
+        (tcm_check b TypV) in 
+
+    tcm_ok (SigT (nm,a',b') , TypV)
 
   | CellE (tl,ty,c) ->
 
@@ -315,7 +355,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
     let* fill' = tcm_check fill (fill_fib comp_val) in 
     let* fill_val = tcm_eval fill' in 
     
-    tcm_ok (KanElimT (tm_tl,tm_ty,tm_c,d',p',comp',fill'),
+    tcm_ok (KanElimT (tm_tl,tm_ty,tm_c,p',d',comp',fill'),
             appV (appV pv comp_val) fill_val)
 
   | TypE -> tcm_ok (TypT , TypV)
