@@ -84,6 +84,25 @@ let transport (A : U) (B : A → U)
          | lf { p ⊢ ● }
          ]
 
+let transport-univ (A : U) (B : U) (e : Eq U A B) (a : A) : B 
+  = comp [ (T : U) ⊢ T
+         | nd { B ⊢ ● } (nd (lf { A ⊢ a }) (lf tt)) 
+         | lf { e ⊢ ● }
+         ]
+
+# let more-transport-univ
+#   = comp [ (A : U) (B : A → U) (a : A) ⊢ B a
+#          | nd { A₁ ; B₁ ; a₁ ⊢ ● } (nd (lf { A₀ ; B₀ ; a₀ ⊢ b₀ }) (lf tt)) 
+#          | lf { E ; F ; p ⊢ ● }
+#          ]
+
+let var-cells (A : U) (B : U) (e : Eq U A B)
+    (a : A) (b : B) : U 
+  = [ (T : U) ⊢ T
+    | nd { B ⊢ b } (nd (lf { A ⊢ a }) (lf tt)) 
+    | lf { e ⊢ ● }
+    ]
+
 let refl (A : U) (a : A) : Eq A a a
   = comp [ ⊢ A
          | lf { ⊢ a }
@@ -168,16 +187,16 @@ let Σ-test (A : U) (B : A → U)
   : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
   = p , q 
 
-# let Eq (A : U) (a₀ : A) (a₁ : A) : U
-#   = [ ⊢ A
-#     | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
-#     | lf { ⊢ ● }
-#     ] 
+#
+#  Testing Cell reduction for Π
+#
 
-# let PathOver
-#     (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-#     (B : A → U) (b₀ : B a₀) (b₁ : B a₁) : U
-#   = [ (a : A) ⊢ B a
-#     | nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
-#     | lf { p ⊢ ● }
-#     ] 
+let Π-test (A : U) (B : A -> U)
+    (σ₀ : (a : A) → B a)
+    (σ₁ : (a : A) → B a)
+    (σ₀₁ : (a₀ : A) → (a₁ : A) → (a₀₁ : Eq A a₀ a₁)
+      → PathOver A a₀ a₁ a₀₁ B (σ₀ a₀) (σ₁ a₁))
+  : Eq ((a : A) → B a) σ₀ σ₁
+  = σ₀₁
+
+

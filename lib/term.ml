@@ -129,7 +129,12 @@ let rec term_to_expr nms tm =
   | AppT (u,v) ->
     AppE (tte nms u, tte nms v)
   | PiT (nm,a,b) ->
-    PiE (nm,tte nms a, tte (Ext (nms,nm)) b)
+    (* this is a heuristic but not completely safe ... *)
+    let nm' = 
+      if (String.equal nm "") then
+        "x" ^ (Int.to_string (length nms)) 
+      else nm in 
+    PiE (nm',tte nms a, tte (Ext (nms,nm)) b)
 
   | PairT (u,v) ->
     PairE (tte nms u, tte nms v)

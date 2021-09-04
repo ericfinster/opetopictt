@@ -11,8 +11,11 @@ open Value
 open Suite
 open Syntax
 
+open Opetopes.Complex
+open Opetopes.Idt
+
 (*****************************************************************************)
-(*                                 Evaluation                                *)
+(*                         Evaluation Utilities                              *)
 (*****************************************************************************)
 
 exception Eval_error of string
@@ -24,12 +27,17 @@ let ext_loc loc v i =
 let emp_loc _ =
   raise (Eval_error "Empty local environment")
 
+
+(*****************************************************************************)
+(*                                 Evaluation                                *)
+(*****************************************************************************)
+
 let rec eval top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
   match tm with
   | VarT i -> loc i 
   | TopT nm -> TopV (nm,EmpSp,top nm)
-                 
+
   | LamT (nm,u) ->
     LamV (nm,fun v -> eval top (ext_loc loc v) u)
   | AppT (u,v) -> appV (eval top loc u) (eval top loc v) 
@@ -74,7 +82,7 @@ and eval_cell_desc top loc tl ty c =
   let (tl_v , ty_v) = eval_fib top loc tl ty in 
   let c_v = map_cell_desc_cmplx c ~f:(eval top loc) in 
   (tl_v, ty_v, c_v)
-  
+
 and eval_fib top loc tl ty =
   match tl with
   | Emp -> (Emp , eval top loc ty)
@@ -110,66 +118,35 @@ and sndV t =
   | _ -> raise (Eval_error (Fmt.str "malformed second proj: %a" pp_value t))
 
 and cellV tl ty c =
-  let open Opetopes.Complex in 
   match c with
-  | Base (Lf (vs,_)) -> 
-    let rec app_to_fib v_lst ty =
-      begin match v_lst with
-        | [] -> ty
-        | v::vs -> app_to_fib vs (appV ty v)
-      end in
+  | Base (Lf (vs,_)) ->
     app_to_fib (to_list vs) ty 
-          
-  | _ ->
 
-    let rec sig_src_fib t v =
-      begin match t with
-        | [] ->
-          begin match v with
-            | SigV (_,a,_) -> a
-            | _ -> failwith "ext_sig_src"
-          end 
-        | (nm,_)::tps ->
-          LamV (nm,fun x ->
-              let tps' = List.map tps ~f:(fun (nm,y) -> (nm,appV y x)) in
-              let v' = appV v x in 
-              sig_src_fib tps' v')
+  | _ -> begin match app_vars tl ty 0 with
 
-      end in 
-
-    let rec sig_tgt_fib t v =
-      begin match t with
-        | [] ->
-          begin match v with
-            | SigV (nm,_,b) -> LamV (nm,b)
-            | _ -> failwith "ext_sig_src"
-          end 
-        | (nm,_)::tps ->
-          LamV (nm,fun x ->
-              let tps' = List.map tps ~f:(fun (nm,y) -> (nm,appV y x)) in
-              let v' = appV v x in 
-              sig_tgt_fib tps' v')
-
-      end in 
-    
-    let rec app_vars t v =
-      match t with
-      | Emp -> (v,0)
-      | Ext (t',(_,_)) ->
-        let (v',k) = app_vars t' v in 
-        (appV v' (varV k), k + 1)
-        
-    in begin match app_vars tl ty with
+      (* Cells in a Sigma type *)
       | (SigV (anm,_,_),_) ->
         log_msg "sigma in a cell type";
 
+        let ext_sig_src v =
+          begin match v with
+            | SigV (_,a,_) -> a
+            | _ -> failwith "ext_sig_src"
+          end in
+
+        let ext_sig_tgt v = 
+          begin match v with
+            | SigV (nm,_,b) -> LamV (nm,b)
+            | _ -> failwith "ext_sig_tgt"
+          end in 
+
         let tlst = to_list tl in
-        
-        let afib = sig_src_fib tlst ty in
+
+        let afib = map_fib tlst ty ext_sig_src in
         let acmplx = map_cmplx c
             ~f:(fun (vs,vo) -> (vs,Option.map vo ~f:fstV)) in
 
-        let bfib = sig_tgt_fib tlst ty in
+        let bfib = map_fib tlst ty ext_sig_tgt in
         let tgt_typ x =
           CellV (Ext (tl,(anm,afib)),bfib,
                  map_cmplx c
@@ -177,12 +154,53 @@ and cellV tl ty c =
                        match vo with
                        | None -> (Ext (vs,x),None)
                        | Some p -> (Ext (vs,fstV p),Some (sndV p)))) in 
-        
+
         let src_typ = CellV (tl,afib,acmplx) in 
         SigV ("",src_typ,tgt_typ)
-          
+
+
+      | (PiV (anm,_,_),_) ->
+        log_msg "pi in a cell type";
+
+        let ext_pi_src v =
+          begin match v with
+            | PiV (_,a,_) -> a
+            | _ -> failwith "ext_pi_src"
+          end in
+
+        let ext_pi_tgt v = 
+          begin match v with
+            | PiV (nm,_,b) -> LamV (nm,b)
+            | _ -> failwith "ext_pi_tgt"
+          end in 
+
+        let tlst = to_list tl in
+        let afib = map_fib tlst ty ext_pi_src in
+        let bfib = map_fib tlst ty ext_pi_tgt in
+
+        (* zero out the complex. don't think this is required,
+           but I'm just being cautious *)
+        let to_abst = map_cmplx c
+            ~f:(fun (vs,_) -> (vs,None)) in 
+
+        (* TODO : does the labels function put things in the right order? *)
+        let k vc =
+          let frm_c =
+            match_cmplx (face_cmplx vc) c
+              ~f:(fun f (ss,so) ->
+
+                  let args = List.map (labels f)
+                      (* we allow the exception here....*)
+                      ~f:(fun (_,aopt) -> Option.value_exn aopt) in 
+
+                  (ss,Option.map so ~f:(app_to_fib args)))
+
+          in CellV (Ext (tl,(anm,afib)) , bfib , frm_c)
+      
+        in abst_cmplx tl afib to_abst k 
+
       | _ -> CellV (tl,ty,c)
-               
+
     end
 
 and kanElimV tl ty c p d comp fill =
@@ -195,10 +213,74 @@ and kanElimV tl ty c p d comp fill =
   | (CompV (_,_,_) , FillV (_,_,_)) -> d
   | _ -> KanElimV (tl,ty,c,p,d,comp,fill,EmpSp)
 
-(* and runSpV v sp =
- *   match sp with
- *   | EmpSp -> v
- *   | AppSp (sp',u) -> appV (runSpV v sp') u *)
+(* TODO: Combine the next two functions? *)
+and app_vars t v i =
+  match t with
+  | Emp -> (v,i)
+  | Ext (t',(_,_)) ->
+    let (v',k) = app_vars t' v i in 
+    (appV v' (varV k), k + 1)
+
+and app_to_fib v_lst ty =
+  match v_lst with
+  | [] -> ty
+  | v::vs -> app_to_fib vs (appV ty v)
+
+and map_fib t v f =
+  match t with
+  | [] -> f v 
+  | (nm,_)::tps ->
+    LamV (nm,fun x ->
+        let tps' = List.map tps ~f:(fun (nm,y) -> (nm,appV y x)) in
+        let v' = appV v x in 
+        map_fib tps' v' f)
+
+(* A general routine for abstracting over the 
+   variables of a complex.  This maybe belongs elsewhere ... *)
+and abst_cmplx (tl : value tele) (ty : value)
+    (c : value dep_term cmplx)
+    (k : value dep_term cmplx -> value) : value =
+
+  let rec abst_nst nl cm =
+    begin match nl with
+      | [] -> k cm
+      | (addr,typ)::ns ->
+        PiV ("", typ, fun v ->
+            abst_nst ns (apply_at cm (0,addr)
+                           (fun (vs,_) -> (vs, Some v))))
+
+    end in
+
+  match c with
+  | Base n ->
+
+    let typ_nst = map_nst_with_addr n
+        ~f:(fun (ts,_) addr ->
+            let this_typ = app_to_fib (to_list ts) ty in
+            (addr,this_typ)) in 
+
+    abst_nst (nodes_nst typ_nst) (Base n) 
+
+
+  | Adjoin (t,n) -> 
+
+    let k' t' = 
+
+      let frm_cmplx = Adjoin (t',n) in
+
+      let typ_nst = map_nst_with_addr n
+          ~f:(fun (_,_) addr ->
+              let f = face_at frm_cmplx (0,addr) in
+              (* zero our the term position just in case ... *)
+              let f' = with_head f
+                  (map_nst (head_of f) ~f:(fun (vs,_) -> (vs,None))) in 
+              let this_typ = CellV (tl,ty,f') 
+              in (addr,this_typ))
+
+      in abst_nst (nodes_nst typ_nst) frm_cmplx 
+
+    in abst_cmplx tl ty t k' 
+
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
@@ -211,7 +293,7 @@ and quote ufld k v =
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
-                        
+
   | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
   | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
 
@@ -242,17 +324,9 @@ and quote_fib ufld k tl ty =
   match tl with
   | Emp -> (Emp , quote ufld k ty)
   | Ext (tl',(nm,ty')) ->
-    
-    let rec app_vars t v =
-      match t with
-      | Emp -> (v,k)
-      | Ext (t',(_,_)) ->
-        let (v',k') = app_vars t' v in 
-        (appV v' (varV k'), k' + 1)
-    in
 
     let (tl_tm, ty_tm) = quote_fib ufld k tl' ty' in
-    let (app_v , k') = app_vars tl ty in
+    let (app_v , k') = app_vars tl ty k in
 
     (Ext (tl_tm,(nm,ty_tm)) , quote ufld k' app_v)
 
@@ -268,3 +342,98 @@ and quote_sp ufld k t sp =
   | SndSp sp' ->
     SndT (qcs t sp') 
 
+
+       
+
+
+    
+(* let rec abst_cmplx (a : value) (c : 'a cmplx) (k : value cmplx -> value) : value =
+ *   match c with
+ *   | Base n ->
+ *     
+ *     let n' = map_nst_with_addr n
+ *         ~f:(fun _ addr -> (0,addr)) in
+ *     let dummy = map_nst n ~f:(fun _ -> a) in
+ *     
+ *     let rec abst_n nl cs = 
+ *         begin match nl with
+ *           | [] -> k cs
+ *           | fa::ns ->
+ *             PiV ("",a, fun v ->
+ *                 abst_n ns (apply_at cs fa (fun _ -> v)))
+ *         end
+ * 
+ *     in abst_n (nodes_nst n') (Base dummy)
+ *       
+ *   | Adjoin (t,n) ->
+ * 
+ *     let k' c' = 
+ * 
+ *       let addr_nst = map_nst_with_addr n 
+ *           ~f:(fun _ addr -> (0,addr)) in
+ * 
+ * 
+ * 
+ *       (\* instead of a dummy, you can calculate the types at each point of n *\)
+ * 
+ *       let dummy = map_nst n ~f:(fun _ -> TypV) in
+ *       let start_c = Adjoin (c',dummy) in
+ *       let tnst = map_nst_with_addr n
+ *           ~f:(fun _ addr ->
+ *               let f = face_at start_c (0,addr) in
+ *       
+ *       let rec abst_n nl cs =
+ *         begin match nl with
+ *           | [] -> k cs
+ *           | fa::ns ->
+ *               
+ *             (\* Now calculate the type so that we can abstract *\)
+ *             
+ *             PiV ("",0, fun v ->
+ *                 abst_n (apply_at cs fa (fun _ -> v)))
+ *               
+ *         end
+ *       in abst_n (nodes_nst addr_nst) (start_c) 
+ *       
+ *     in
+ *     
+ *     (\* fix the continuation and recurse .. *\)
+ *     abst_cmplx a t k'  *)
+      
+let rec complex_types typ cmplx =
+  let open Opetopes.Idt in 
+  let open Opetopes.Complex in 
+  match cmplx with
+  | Base n -> Base (map_nst n ~f:(fun _ -> typ))
+  | Adjoin (t,n) ->
+
+    let t' = complex_types typ t in
+    let dummy = map_nst n ~f:(fun _ -> TypV) in
+    let n' = map_nst_with_addr n
+        ~f:(fun _ addr ->
+            let f = face_at (Adjoin (t',dummy)) (0,addr) in
+
+            let tail = tail_of f in 
+            let lbls = labels (map_cmplx_with_addr tail
+                                 ~f:(fun typ addr -> (typ,addr))) in
+
+
+            (* No, this isn't right. Because we are returning the
+               *fibration* associated to a cell, but don't we want
+               it's type? Does this make sense? *)
+            
+            let rec abs_typs l cp =
+              begin match l with
+                | [] -> CellV (Emp,typ,cp) 
+                | (ty,fa)::l' ->
+                  PiV ("", ty, fun v ->
+                      abs_typs l' (apply_at cp fa
+                                     (fun _ -> (Emp,Some v))))
+
+              end in 
+
+            abs_typs lbls (map_cmplx f ~f:(fun _ -> (Emp,None))))
+
+    in 
+
+    Adjoin (t',n')

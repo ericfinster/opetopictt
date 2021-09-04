@@ -425,6 +425,10 @@ and tcm_check_cmplx (tl : value tele) (ty : value) (c : expr dep_term cmplx)
     let* (tm_n , val_c) = tcm_check_extension tl ty tv n in
     tcm_ok (Adjoin (tt,tm_n) , val_c) 
 
+(* TODO: I'm quite sure there is a version of this checking algorithm
+   which avoids all the quoting and evaluating and just works at the
+   level of values.  Would be nice to work that out ... *)
+
 and tcm_check_extension (tl : value tele) (ty : value) (tv : value dep_term cmplx)
     (n : expr dep_term nst)
   : (term dep_term nst * value dep_term cmplx) tcm =
