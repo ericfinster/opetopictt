@@ -50,33 +50,55 @@ let varV k = RigidV (k,EmpSp)
 
 let rec pp_value ppf v =
   match v with
-  | RigidV (i,EmpSp) -> pf ppf "%d" i
-  | RigidV (i,sp) -> pf ppf "%d %a" i pp_spine sp
+  | RigidV (i,sp) ->
+    pf ppf "%a" (pp_spine Fmt.int i) sp
   | TopV (nm,sp,_) ->
-    pf ppf "%s %a" nm pp_spine sp
+    let pp_nm ppf' n = pf ppf' "%s" n in 
+    pf ppf "%a" (pp_spine pp_nm nm) sp
+      
   | LamV (nm,_) ->
     pf ppf "\\%s.<closure>" nm 
   | PiV (nm,a,_) ->
     pf ppf "(%s : %a) -> <closure>" nm
       pp_value a
+      
   | PairV (u,v) ->
     pf ppf "%a , %a" pp_value u pp_value v
   | SigV (nm,a,_) ->
     pf ppf "(%s : %a) \u{d7} <closure>" nm
-      pp_value a 
-  | CellV _ -> pf ppf "cell value"
-  | CompV _ -> pf ppf "comp value"
-  | FillV _ -> pf ppf "fill value"
+      pp_value a
+
+  | CellV (tl,ty,c) ->
+    pp_value_cell_desc ppf (tl,ty,c)
+  | CompV (tl,ty,c) ->
+    pf ppf "comp %a" pp_value_cell_desc (tl,ty,c)
+  | FillV (tl,ty,c) ->
+    pf ppf "fill %a" pp_value_cell_desc (tl,ty,c)
+      
   | KanElimV _ -> pf ppf "kan elim value"
+                    
   | TypV -> pf ppf "U"
     
-and pp_spine ppf sp =
+and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
+  fun pp_a a ppf sp -> 
   match sp with
-  | EmpSp -> ()
+  | EmpSp ->
+    pf ppf "%a" pp_a a
   | AppSp (sp',v) ->
-    pf ppf "%a %a" pp_spine sp' pp_value v
+    pf ppf "%a %a" (pp_spine pp_a a) sp' pp_value v
   | FstSp sp' ->
-    pf ppf "fst %a" pp_spine sp'
+    pf ppf "fst %a" (pp_spine pp_a a) sp' 
   | SndSp sp' ->
-    pf ppf "snd %a" pp_spine sp' 
+    pf ppf "snd %a" (pp_spine pp_a a) sp' 
 
+and pp_value_cell_desc ppf (tl,ty,c) =
+  pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
+    (pp_tele pp_value) tl
+    pp_value ty pp_value_cell_frame c
+
+and pp_value_cell_frame ppf c =
+  let open Suite in
+  let open Expr in 
+  let open Opetopes.Idt.IdtConv in 
+  pf ppf "%a" (pp_suite ~sep:(any "@,| ")
+                 (pp_tr_expr (pp_dep_term pp_value))) (of_cmplx c) 

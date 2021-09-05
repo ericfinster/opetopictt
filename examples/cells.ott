@@ -194,7 +194,7 @@ let Σ-test (A : U) (B : A → U)
 let Π-test (A : U) (B : A -> U)
     (σ₀ : (a : A) → B a)
     (σ₁ : (a : A) → B a)
-    (σ₀₁ : (a₀ : A) → (a₁ : A) → (a₀₁ : Eq A a₀ a₁)
+    (σ₀₁ : (a₁ : A) → (a₀ : A) → (a₀₁ : Eq A a₀ a₁)
       → PathOver A a₀ a₁ a₀₁ B (σ₀ a₀) (σ₁ a₁))
   : Eq ((a : A) → B a) σ₀ σ₁
   = σ₀₁

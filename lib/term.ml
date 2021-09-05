@@ -134,7 +134,7 @@ let rec term_to_expr nms tm =
       if (String.equal nm "") then
         "x" ^ (Int.to_string (length nms)) 
       else nm in 
-    PiE (nm',tte nms a, tte (Ext (nms,nm)) b)
+    PiE (nm',tte nms a, tte (Ext (nms,nm')) b)
 
   | PairT (u,v) ->
     PairE (tte nms u, tte nms v)

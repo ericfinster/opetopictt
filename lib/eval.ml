@@ -185,6 +185,7 @@ and cellV tl ty c =
 
         (* TODO : does the labels function put things in the right order? *)
         let k vc =
+
           let frm_c =
             match_cmplx (face_cmplx vc) c
               ~f:(fun f (ss,so) ->
@@ -193,7 +194,10 @@ and cellV tl ty c =
                       (* we allow the exception here....*)
                       ~f:(fun (_,aopt) -> Option.value_exn aopt) in 
 
-                  (ss,Option.map so ~f:(app_to_fib args)))
+                  let top_arg =
+                    Option.value_exn (snd (base_value (head_of f))) in
+                  
+                  (Ext (ss,top_arg),Option.map so ~f:(app_to_fib args)))
 
           in CellV (Ext (tl,(anm,afib)) , bfib , frm_c)
       
@@ -261,11 +265,10 @@ and abst_cmplx (tl : value tele) (ty : value)
 
     abst_nst (nodes_nst typ_nst) (Base n) 
 
-
   | Adjoin (t,n) -> 
 
     let k' t' = 
-
+      
       let frm_cmplx = Adjoin (t',n) in
 
       let typ_nst = map_nst_with_addr n
@@ -341,10 +344,6 @@ and quote_sp ufld k t sp =
     FstT (qcs t sp')
   | SndSp sp' ->
     SndT (qcs t sp') 
-
-
-       
-
 
     
 (* let rec abst_cmplx (a : value) (c : 'a cmplx) (k : value cmplx -> value) : value =

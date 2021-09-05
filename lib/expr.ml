@@ -73,14 +73,14 @@ let rec pp_expr ppf expr =
                  
   | LamE (nm,bdy) -> pf ppf "\u{03bb} %s. %a" nm ppe bdy
   | AppE (u, v) ->
-    pf ppf "%a@, %a" ppe u
+    pf ppf "@[%a@]@, @[%a@]" ppe u
       (expr_app_parens v) v
       
   | PiE (nm,a,b) when Poly.(=) nm "" ->
-    pf ppf "%a \u{2192} %a"
+    pf ppf "@[%a@]@, \u{2192} @[%a@]"
       (expr_pi_parens a) a ppe b
   | PiE (nm,dom,cod) ->
-    pf ppf "(%s : %a)@, \u{2192} %a" nm
+    pf ppf "(%s : @[%a@])@, \u{2192} @[%a@]" nm
       ppe dom ppe cod
 
   | PairE (u,v) ->
