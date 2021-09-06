@@ -183,7 +183,6 @@ and cellV tl ty c =
         let to_abst = map_cmplx c
             ~f:(fun (vs,_) -> (vs,None)) in 
 
-        (* TODO : does the labels function put things in the right order? *)
         let k vc =
 
           let frm_c =
@@ -345,94 +344,4 @@ and quote_sp ufld k t sp =
   | SndSp sp' ->
     SndT (qcs t sp') 
 
-    
-(* let rec abst_cmplx (a : value) (c : 'a cmplx) (k : value cmplx -> value) : value =
- *   match c with
- *   | Base n ->
- *     
- *     let n' = map_nst_with_addr n
- *         ~f:(fun _ addr -> (0,addr)) in
- *     let dummy = map_nst n ~f:(fun _ -> a) in
- *     
- *     let rec abst_n nl cs = 
- *         begin match nl with
- *           | [] -> k cs
- *           | fa::ns ->
- *             PiV ("",a, fun v ->
- *                 abst_n ns (apply_at cs fa (fun _ -> v)))
- *         end
- * 
- *     in abst_n (nodes_nst n') (Base dummy)
- *       
- *   | Adjoin (t,n) ->
- * 
- *     let k' c' = 
- * 
- *       let addr_nst = map_nst_with_addr n 
- *           ~f:(fun _ addr -> (0,addr)) in
- * 
- * 
- * 
- *       (\* instead of a dummy, you can calculate the types at each point of n *\)
- * 
- *       let dummy = map_nst n ~f:(fun _ -> TypV) in
- *       let start_c = Adjoin (c',dummy) in
- *       let tnst = map_nst_with_addr n
- *           ~f:(fun _ addr ->
- *               let f = face_at start_c (0,addr) in
- *       
- *       let rec abst_n nl cs =
- *         begin match nl with
- *           | [] -> k cs
- *           | fa::ns ->
- *               
- *             (\* Now calculate the type so that we can abstract *\)
- *             
- *             PiV ("",0, fun v ->
- *                 abst_n (apply_at cs fa (fun _ -> v)))
- *               
- *         end
- *       in abst_n (nodes_nst addr_nst) (start_c) 
- *       
- *     in
- *     
- *     (\* fix the continuation and recurse .. *\)
- *     abst_cmplx a t k'  *)
-      
-let rec complex_types typ cmplx =
-  let open Opetopes.Idt in 
-  let open Opetopes.Complex in 
-  match cmplx with
-  | Base n -> Base (map_nst n ~f:(fun _ -> typ))
-  | Adjoin (t,n) ->
-
-    let t' = complex_types typ t in
-    let dummy = map_nst n ~f:(fun _ -> TypV) in
-    let n' = map_nst_with_addr n
-        ~f:(fun _ addr ->
-            let f = face_at (Adjoin (t',dummy)) (0,addr) in
-
-            let tail = tail_of f in 
-            let lbls = labels (map_cmplx_with_addr tail
-                                 ~f:(fun typ addr -> (typ,addr))) in
-
-
-            (* No, this isn't right. Because we are returning the
-               *fibration* associated to a cell, but don't we want
-               it's type? Does this make sense? *)
-            
-            let rec abs_typs l cp =
-              begin match l with
-                | [] -> CellV (Emp,typ,cp) 
-                | (ty,fa)::l' ->
-                  PiV ("", ty, fun v ->
-                      abs_typs l' (apply_at cp fa
-                                     (fun _ -> (Emp,Some v))))
-
-              end in 
-
-            abs_typs lbls (map_cmplx f ~f:(fun _ -> (Emp,None))))
-
-    in 
-
-    Adjoin (t',n')
+   

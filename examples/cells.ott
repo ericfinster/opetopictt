@@ -191,6 +191,10 @@ let Σ-test (A : U) (B : A → U)
 #  Testing Cell reduction for Π
 #
 
+# Interesting to see that the order of abstraction here is
+# really crucial.  This isn't officially a bug, but you
+# should revisit how it comes out for ergonomics ...
+
 let Π-test (A : U) (B : A -> U)
     (σ₀ : (a : A) → B a)
     (σ₁ : (a : A) → B a)
@@ -199,4 +203,12 @@ let Π-test (A : U) (B : A -> U)
   : Eq ((a : A) → B a) σ₀ σ₁
   = σ₀₁
 
+# This is doable now, but requires a couple of elims to get there ...
+# Maybe later, I'm tired now.
+
+# let funext (A : U) (B : U)
+#     (f : A → B) (g : A → B)
+#     (e : (a : A) → Eq B (f a) (g a))
+#   : Eq (A → B) f g
+#   = 
 
