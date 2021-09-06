@@ -209,6 +209,16 @@ let Π-test (A : U) (B : A -> U)
 
 let Univ-test (A : U) (B : U)
     (E : B → A → U)
+    (B-comp : B → A)
+    (B-fill : (b : B) → E b (B-comp b))
+    (B-elim : (b : B) → (P : (a : A) → E b a → U)
+      → (d : P (B-comp b) (B-fill b))
+      → (a : A) → (e : E b a) → P a e)
+    (A-comp : A → B)
+    (A-fill : (a : A) → E (A-comp a) a)
+    (A-elim : (a : A) → (P : (b : B) → E b a → U)
+      → (d : P (A-comp a) (A-fill a))
+      → (b : B) → (e : E b a) → P b e)
   : Eq U A B
   = E
 
