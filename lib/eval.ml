@@ -157,8 +157,8 @@ and cellV tl ty c =
 
         let src_typ = CellV (tl,afib,acmplx) in 
         SigV ("",src_typ,tgt_typ)
-
-
+          
+      (* Cells in a Pi type *)
       | (PiV (anm,_,_),_) ->
         log_msg "pi in a cell type";
 
@@ -202,6 +202,16 @@ and cellV tl ty c =
       
         in abst_cmplx tl afib to_abst k 
 
+      (* Cells in the universe *)
+
+
+      | (TypV,_) ->
+        log_msg "u in a cell type";
+
+        let c' = tail_of c in
+        let k _ = TypV in 
+        cell_univ c' k 
+      
       | _ -> CellV (tl,ty,c)
 
     end
@@ -283,6 +293,55 @@ and abst_cmplx (tl : value tele) (ty : value)
 
     in abst_cmplx tl ty t k' 
 
+
+and cell_univ
+    (c : value dep_term cmplx)
+    (k : value dep_term cmplx -> value) =
+
+  let rec abst_nst nl cm =
+    begin match nl with
+      | [] -> k cm
+      | (addr,typ)::ns ->
+        PiV ("", typ, fun v ->
+            abst_nst ns (apply_at cm (0,addr)
+                           (fun (vs,_) -> (vs, Some v))))
+
+    end in
+  
+  match c with
+  | Base n ->
+
+    let typ_nst = map_nst_with_addr n
+        ~f:(fun (_,topt) addr ->
+            let this_typ = Option.value_exn topt in
+            (addr,this_typ)) in 
+
+    abst_nst (nodes_nst typ_nst) (Base n)
+
+  | Adjoin (t,n) ->
+
+    let k' t' =
+
+      let frm_cmplx = Adjoin (t',n) in
+
+      let typ_nst = map_nst_with_addr n
+          ~f:(fun (_,fib_opt) addr ->
+              let fib = Option.value_exn fib_opt in
+
+              let f = face_at frm_cmplx (0,addr) in
+              let args = List.map (labels (tail_of f))
+                  ~f:(fun (_,tm_opt) ->
+                      Option.value_exn tm_opt) in
+              let this_typ = app_to_fib args fib in 
+              (addr,this_typ))
+
+      in abst_nst (nodes_nst typ_nst) frm_cmplx 
+
+
+    in cell_univ t k' 
+    
+    
+  
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
