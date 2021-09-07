@@ -41,7 +41,6 @@ let rec token buf =
   | "{"          -> LBR
   | "}"          -> RBR
   | ":"          -> COLON
-  | ";"          -> SEMI
   | "="          -> EQUAL
   | "."          -> DOT
   | "\\"         -> LAMBDA
@@ -53,11 +52,10 @@ let rec token buf =
   | "["          -> LBRKT
   | "]"          -> RBRKT
   | "|"          -> VBAR
-  | 0x25cf       -> EMPTY
   | 0x22a2       -> VDASH
   | "comp"       -> COMP
   | "fill"       -> FILL
-  | "kan-elim"   -> KANELIM
+  | 0x2205       -> EMPTY
   | 0xd7         -> TIMES
   | ","          -> COMMA
   | "fst"        -> FST

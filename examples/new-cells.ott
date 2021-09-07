@@ -1,0 +1,19 @@
+#
+#  cells.ott - demonstrations of cells
+#
+
+let Eq (A : U) (a₀ : A) (a₁ : A) : U
+  = [ ● ⊢ A
+    | nd { ∙ ⊢ a₁ } (nd (lf { ∙ ⊢ a₀ }) (lf tt)) 
+    | lf { ∙ ⊢ ∅ }
+    ] 
+
+let PathOver (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq a a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁)
+  : U
+  = [ (a : A) ⊢ B a
+    | nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
+    | lf { p ⊢ ∅ }
+    ] 
+

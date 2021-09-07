@@ -34,20 +34,16 @@ type term =
   | SigT of name * term * term
             
   (* Cell Types *)
-  | CellT of term tele * term * term dep_term cmplx
-  | CompT of term tele * term * term dep_term cmplx
-  | FillT of term tele * term * term dep_term cmplx 
-  | KanElimT of term tele * term * term dep_term cmplx *
-                term * term * term * term
+  | CellT of name * term * term * term cmplx * term option cmplx
+  | CompT of name * term * term * term cmplx * term option cmplx
+  | FillT of name * term * term * term cmplx * term option cmplx
+
+  (* The Unit Type *)
+  | UnitT 
+  | TtT
 
   (* The Universe *) 
   | TypT
-
-let map_cell_desc_cmplx (c : 'a dep_term cmplx)
-    ~f:(f : 'a -> 'b) : 'b dep_term cmplx =
-  map_cmplx c ~f:(fun (tms,topt) ->
-      (map_suite tms ~f:f,
-       Option.map topt ~f:f))
 
 (*****************************************************************************)
 (*                               Term Equality                               *)
@@ -81,31 +77,22 @@ let rec term_eq s t =
       term_eq va vb
     else false
 
-  | (CellT (tla,tya,ca), CellT (tlb,tyb,cb)) ->
-    cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
-  | (CompT (tla,tya,ca), CompT (tlb,tyb,cb)) ->
-    cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
-  | (FillT (tla,tya,ca), FillT (tlb,tyb,cb)) ->
-    cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
-  | (KanElimT (tla,tya,ca,pa,da,compa,filla),
-     KanElimT (tlb,tyb,cb,pb,db,compb,fillb)) ->
-    if (cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)) then
-      if (term_eq pa pb) then
-        if (term_eq da db) then
-          if (term_eq compa compb) then
-            term_eq filla fillb
-          else false
-        else false
-      else false
-    else false
+  | (CellT (_,ta,tb,ca,cb) , CellT (_,tc,td,cc,cd)) ->
+    cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd)
+  | (CompT (_,ta,tb,ca,cb) , CompT (_,tc,td,cc,cd)) ->
+    cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd)
+  | (FillT (_,ta,tb,ca,cb) , FillT (_,tc,td,cc,cd)) ->
+    cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd)
       
   | (TypT , TypT) -> true
   | _ -> false 
 
-and cell_desc_eq (tla,tya,ca) (tlb,tyb,cb) = 
-    if (term_eq tya tyb) then
-      if (tele_sem_eq term_eq tla tlb) then
-        cmplx_eq (dep_term_eq term_eq) ca cb 
+and cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd) = 
+    if (term_eq ta tc) then
+      if (term_eq tb td) then
+        if (cmplx_eq term_eq ca cc) then
+          cmplx_eq (Option.equal term_eq) cb cd
+        else false
       else false
     else false
     
@@ -145,34 +132,28 @@ let rec term_to_expr nms tm =
   | SigT (nm,u,v) ->
     SigE (nm,tte nms u, tte (Ext (nms,nm)) v)
 
-  | CellT (tl,ty,c) ->
-    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
-    CellE (tle,tye,ce)
-  | CompT (tl,ty,c) ->
-    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
-    CompE (tle,tye,ce)
-  | FillT (tl,ty,c) ->
-    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
-    FillE (tle,tye,ce)
-  | KanElimT (tl,ty,c,p,d,comp,fill) ->
-    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in
-    let pe = tte nms p in
-    let de = tte nms d in
-    let compe = tte nms comp in
-    let fille = tte nms fill in 
-    KanElimE (tle,tye,ce,pe,de,compe,fille)
+  | CellT (nm,ta,tb,ca,cb) ->
+    let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
+    CellE (nm,ea,eb,eab)
+  | CompT (nm,ta,tb,ca,cb) ->
+    let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
+    CompE (nm,ea,eb,eab)
+  | FillT (nm,ta,tb,ca,cb) ->
+    let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
+    FillE (nm,ea,eb,eab)
+
+  | UnitT -> UnitE
+  | TtT -> TtE 
 
   | TypT -> TypE
 
-and cell_desc_to_expr nms tl ty c =
-  let (etl, ety) = fold_accum_cont tl nms
-      (fun (nm,typ) nms ->
-         ((nm,term_to_expr nms typ),Ext (nms,nm)))
-      (fun etl nms -> (etl, term_to_expr nms ty)) in
-
-  let c' = map_cell_desc_cmplx c ~f:(term_to_expr nms) in
-
-  (etl,ety, of_cmplx c')
+and cell_desc_to_expr nms nm ta tb ca cb =
+  let ea = term_to_expr nms ta in
+  let eb = term_to_expr (Ext (nms,nm)) tb in
+  let eca = map_cmplx ca ~f:(term_to_expr nms) in
+  let ecb = map_cmplx cb ~f:(fun o -> Option.map o ~f:(term_to_expr nms)) in
+  let eab = match_cmplx eca ecb ~f:(fun a b -> (a,b)) in 
+  (ea,eb,of_cmplx eab)
   
 (*****************************************************************************)
 (*                                 Telescopes                                *)
@@ -222,29 +203,26 @@ let rec pp_term ppf tm =
     pf ppf "(%s : %a)@, \u{d7} %a"
       nm pp_term a pp_term b 
 
-  | CellT (tl,ty,c) ->
-    pp_term_cell_desc ppf (tl,ty,c)
-  | CompT (tl,ty,c) ->
-    pf ppf "comp %a" pp_term_cell_desc (tl,ty,c)
-  | FillT (tl,ty,c) ->
-    pf ppf "fill %a" pp_term_cell_desc (tl,ty,c)
-  | KanElimT (tl,ty,c,p,d,comp,fill) ->
-    pf ppf "kan-elim %a %a %a %a %a"
-      pp_term_cell_desc (tl,ty,c)
-      (term_app_parens p) p 
-      (term_app_parens d) d
-      (term_app_parens comp) comp
-      (term_app_parens fill) fill
-      
+  | CellT (nm,a,b,ca,cb) ->
+    pp_term_cell_desc ppf (nm,a,b,ca,cb)
+  | CompT (nm,a,b,ca,cb) ->
+    pf ppf "comp %a" pp_term_cell_desc (nm,a,b,ca,cb)
+  | FillT (nm,a,b,ca,cb) ->
+    pf ppf "fill %a" pp_term_cell_desc (nm,a,b,ca,cb)
+
+  | UnitT -> pf ppf "\u{25cf}"
+  | TtT -> pf ppf "\u{2219}"
+
   | TypT -> pf ppf "U"
 
-and pp_term_cell_desc ppf (tl,ty,c) =
-    let open Opetopes.Idt.IdtConv in 
-    pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
-      (pp_tele pp_term) tl
-      pp_term ty
-      (pp_suite ~sep:(any "@,| ")
-         (pp_tr_expr (pp_dep_term pp_term))) (of_cmplx c) 
+and pp_term_cell_desc ppf (nm,a,b,ca,cb) =
+  let open Opetopes.Idt.IdtConv in
+  let cab = of_cmplx (match_cmplx ca cb ~f:(fun a b -> (a,b))) in 
+    pf ppf "@[<v>[ @[(%s : %a) \u{22a2} %a@]@,| %a@,]@]"
+      nm pp_term a pp_term b
+    (pp_suite ~sep:(any "@,| ")
+       (pp_tr_expr (pair ~sep:(any "\u{22a2}")
+                      pp_term (Fmt.option ~none:(any "\u{2205}") pp_term)))) cab
   
 
 and term_app_parens t =
@@ -258,7 +236,6 @@ and term_app_parens t =
   | SigT _ -> parens pp_term
   | CompT _ -> parens pp_term
   | FillT _ -> parens pp_term
-  | KanElimT _ -> parens pp_term 
   | _ -> pp_term
 
 and term_pi_parens t =

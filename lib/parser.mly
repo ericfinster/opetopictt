@@ -8,8 +8,8 @@
 
 %token LET LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR LBRKT RBRKT
-%token ARROW VDASH EMPTY SEMI
-%token COMP FILL KANELIM
+%token ARROW VDASH 
+%token COMP FILL EMPTY
 %token TIMES COMMA FST SND
 %token TYPE
 %token LF ND UNIT
@@ -79,19 +79,11 @@ pi_head:
   | e = expr2
     { ("",e) }
 
-/* dir: */
-/*   | a = addr */
-/*     { Dir a } */
-
-/* addr: */
-/*   | LBRKT ds = separated_list(COMMA,dir) RBRKT */
-/*     { ds }  */
-
 dep_term:
-  | s = sep_suite(expr,SEMI) VDASH e = expr
-    { (s,Some e) }
-  | s = sep_suite(expr,SEMI) VDASH EMPTY
-    { (s,None) }
+  | e = expr VDASH f = expr
+    { (e,Some f) }
+  | e = expr VDASH EMPTY
+    { (e,None) }
 
 expr: 
   | e = expr1
@@ -126,16 +118,25 @@ expr3:
   | SND e = expr3
     { SndE e }
 
-  | LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { CellE (t,e,c) }
-  | COMP LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { CompE (t,e,c) } 
-  | FILL LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { FillE (t,e,c) }
-  | KANELIM LBRKT tl = tele VDASH ty = expr VBAR c = cmplx(dep_term) RBRKT
-      p = expr3 d = expr3 comp = expr3 fill = expr3
-    { KanElimE (tl,ty,c,p,d,comp,fill) }
+  | LBRKT v = var_decl VDASH b = expr VBAR c = cmplx(dep_term) RBRKT
+    { let (nm,a) = v in CellE (nm,a,b,c) }
+  | COMP LBRKT v = var_decl VDASH b = expr VBAR c = cmplx(dep_term) RBRKT
+    { let (nm,a) = v in CompE (nm,a,b,c) }
+  | FILL LBRKT v = var_decl VDASH b = expr VBAR c = cmplx(dep_term) RBRKT
+    { let (nm,a) = v in FillE (nm,a,b,c) }
+  /* | KANELIM LBRKT tl = tele VDASH ty = expr VBAR c = cmplx(dep_term) RBRKT */
+  /*     p = expr3 d = expr3 comp = expr3 fill = expr3 */
+  /*   { KanElimE (tl,ty,c,p,d,comp,fill) } */
 
   | LPAR t = expr RPAR
     { t }
 
+
+
+/* dir: */
+/*   | a = addr */
+/*     { Dir a } */
+
+/* addr: */
+/*   | LBRKT ds = separated_list(COMMA,dir) RBRKT */
+/*     { ds }  */

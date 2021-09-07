@@ -52,7 +52,7 @@ let SimplexOver
     (rb : PathOver A a₀ a₂ ra B b₀ b₂) : U
   = [ (a : A) ⊢ B a
     | nd { a₂ ⊢ b₂ } (nd (nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt))) (lf tt))
-    | nd { ra ⊢ rb } (nd (lf { qa ⊢ qb }) (nd (nd (lf { pa⊢ pb })
+    | nd { ra ⊢ rb } (nd (lf { qa ⊢ qb }) (nd (nd (lf { pa ⊢ pb })
         (nd (lf tt) (lf tt))) (lf tt)))
     | lf { σ ⊢ ● }
     ]

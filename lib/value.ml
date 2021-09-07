@@ -27,12 +27,14 @@ type value =
   | SigV of name * value * (value -> value)
 
   (* Cell Types *)
-  | CellV of value tele * value * value dep_term cmplx
-  | CompV of value tele * value * value dep_term cmplx
-  | FillV of value tele * value * value dep_term cmplx
-  | KanElimV of value tele * value * value dep_term cmplx * 
-                   value * value * value * value * spine 
+  | CellV of name * value * value cmplx * (value -> value) * value option cmplx 
+  | CompV of name * value * value cmplx * (value -> value) * value option cmplx 
+  | FillV of name * value * value cmplx * (value -> value) * value option cmplx 
 
+  (* The Unit Type *)
+  | UnitV
+  | TtV
+    
   (* The Universe *)
   | TypV
 
@@ -68,15 +70,16 @@ let rec pp_value ppf v =
     pf ppf "(%s : %a) \u{d7} <closure>" nm
       pp_value a
 
-  | CellV (tl,ty,c) ->
-    pp_value_cell_desc ppf (tl,ty,c)
-  | CompV (tl,ty,c) ->
-    pf ppf "comp %a" pp_value_cell_desc (tl,ty,c)
-  | FillV (tl,ty,c) ->
-    pf ppf "fill %a" pp_value_cell_desc (tl,ty,c)
-      
-  | KanElimV _ -> pf ppf "kan elim value"
-                    
+  | CellV (nm,a,ca,b,cb) ->
+    pp_value_cell_desc ppf (nm,a,ca,b,cb)
+  | CompV (nm,a,ca,b,cb) ->
+    pf ppf "comp %a" pp_value_cell_desc (nm,a,ca,b,cb)
+  | FillV (nm,a,ca,b,cb) ->
+    pf ppf "fill %a" pp_value_cell_desc (nm,a,ca,b,cb)
+
+  | UnitV -> pf ppf "\u{25cf}"
+  | TtV -> pf ppf "\u{2219}"
+    
   | TypV -> pf ppf "U"
     
 and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
@@ -91,10 +94,10 @@ and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
   | SndSp sp' ->
     pf ppf "snd %a" (pp_spine pp_a a) sp' 
 
-and pp_value_cell_desc ppf (tl,ty,c) =
-  pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
-    (pp_tele pp_value) tl
-    pp_value ty pp_value_cell_frame c
+and pp_value_cell_desc ppf (nm,a,ca,_,cb) =
+  let cab = match_cmplx ca cb ~f:(fun a b -> (a,b)) in 
+  pf ppf "@[<v>[ @[(%s : %a) \u{22a2} <closure>@]@,| %a@,]@]"
+    nm pp_value a (pp_cmplx (Fmt.pair pp_value (Fmt.option pp_value))) cab
 
 and pp_value_cell_frame ppf c =
   let open Suite in
