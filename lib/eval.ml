@@ -378,6 +378,29 @@ and cell_univ
 
     in cell_univ t k' 
 
+
+(*****************************************************************************)
+(*                            Complex Combinators                            *)
+(*****************************************************************************)
+
+let fst_cmplx (c : value cmplx) : value cmplx
+  = map_cmplx c ~f:fstV
+
+let snd_cmplx (c : value cmplx) : value cmplx
+  = map_cmplx c ~f:sndV 
+
+let el_cmplx (c : value cmplx) : value
+  = failwith "not done" 
+
+
+let rec pi_cmplx (a : value cmplx) (b : value cmplx -> value cmplx) : value cmplx =
+  failwith "unknown"
+
+(* Is this pointwise? Or do you insert lower-dim'l arguments? *)
+let rec app_cmplx (u : value cmplx) (v : value cmplx) : value cmplx =
+  failwith "unknonw"
+
+
 (*****************************************************************************)
 (*                                  Quoting                                  *)
 (*****************************************************************************)
