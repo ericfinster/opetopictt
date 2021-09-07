@@ -56,30 +56,28 @@ let rec eval top loc tm =
     SigV (nm, eval top loc u,
           fun x -> eval top (ext_loc loc x) v)
 
-  | CellT _ -> failwith "eval cell"
-  | CompT _ -> failwith "eval comp"
-  | FillT _ -> failwith "eval fill"
+  | CellT (nm,a,b,ca,cb) ->
+    let (av,bv,cav,cbv) = eval_cell_over top loc a b ca cb in
+    CellV (nm,av,cav,bv,cbv)
+  | CompT (nm,a,b,ca,cb) -> 
+    let (av,bv,cav,cbv) = eval_cell_over top loc a b ca cb in
+    CompV (nm,av,cav,bv,cbv)
+  | FillT (nm,a,b,ca,cb) -> 
+    let (av,bv,cav,cbv) = eval_cell_over top loc a b ca cb in
+    FillV (nm,av,cav,bv,cbv)
 
   | UnitT -> UnitV
   | TtT -> TtV
 
   | TypT -> TypV
 
-(* and eval_cell_desc top loc tl ty c =
- *   let (tl_v , ty_v) = eval_fib top loc tl ty in 
- *   let c_v = map_cell_desc_cmplx c ~f:(eval top loc) in 
- *   (tl_v, ty_v, c_v) *)
-
-(* and eval_fib top loc tl ty =
- *   match tl with
- *   | Emp -> (Emp , eval top loc ty)
- *   | Ext (tl',(nm,ty')) ->
- * 
- *     let (tl_v , ty_v) = eval_fib top loc tl' ty' in
- *     let lams = TermUtil.abstract_tele tl ty in 
- *     let this_ty_val = eval top loc lams in
- * 
- *     (Ext (tl_v,(nm,ty_v)) , this_ty_val)  *)
+and eval_cell_over top loc a b ca cb =
+  let av = eval top loc a in
+  let bv v = eval top (ext_loc loc v) b in 
+  let cav = map_cmplx ca ~f:(eval top loc) in 
+  let cbv = map_cmplx cb
+      ~f:(fun o -> Option.map o ~f:(eval top loc)) in 
+  (av,bv,cav,cbv)
 
 and appV t u =
   match t with
@@ -385,7 +383,6 @@ let snd_cmplx (c : value cmplx) : value cmplx
  * let rec app_cmplx (u : value cmplx) (v : value cmplx) : value cmplx =
  *   failwith "unknonw" *)
 
-
 (*****************************************************************************)
 (*                                  Quoting                                  *)
 (*****************************************************************************)
@@ -404,19 +401,28 @@ let rec quote ufld k v =
   | PairV (u,v) -> PairT (qc u, qc v)
   | SigV (nm,u,cl) -> SigT (nm, qc u, quote ufld (k+1) (cl (varV k)))
 
-  | CellV _ -> failwith "quote cell"
-  | CompV _ -> failwith "quote comp"
-  | FillV _ -> failwith "quote fill"
+  | CellV (nm,a,ac,b,bc) ->
+    let (at,atc,bt,btc) = quote_cell_over ufld k a ac b bc in
+    CellT (nm,at,bt,atc,btc)
+  | CompV (nm,a,ac,b,bc) -> 
+    let (at,atc,bt,btc) = quote_cell_over ufld k a ac b bc in
+    CompT (nm,at,bt,atc,btc)
+  | FillV (nm,a,ac,b,bc) -> 
+    let (at,atc,bt,btc) = quote_cell_over ufld k a ac b bc in
+    FillT (nm,at,bt,atc,btc)
 
   | UnitV -> UnitT
   | TtV -> TtT
     
   | TypV -> TypT
 
-(* and quote_cell_desc ufld k tl ty c = 
- *   let (tl',ty') = quote_fib ufld k tl ty in
- *   let c' = map_cell_desc_cmplx c ~f:(quote ufld k)in
- *   (tl',ty',c') *)
+and quote_cell_over ufld k a ac b bc =
+  let at = quote ufld k a in
+  let atc = map_cmplx ac ~f:(quote ufld k) in
+  let bt = quote ufld (k+1) (b (varV k)) in
+  let btc = map_cmplx bc
+      ~f:(fun o -> Option.map o ~f:(quote ufld k)) in 
+  (at,atc,bt,btc)
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in
