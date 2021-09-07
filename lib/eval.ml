@@ -1,3 +1,4 @@
+
 (*****************************************************************************)
 (*                                                                           *)
 (*                           Evaluation and Quoting                          *)
@@ -203,14 +204,61 @@ and cellV tl ty c =
         in abst_cmplx tl afib to_abst k 
 
       (* Cells in the universe *)
-
-
       | (TypV,_) ->
         log_msg "u in a cell type";
 
         let c' = tail_of c in
-        let k _ = TypV in 
-        cell_univ c' k 
+        let k _ = TypV in
+        let this_fib = cell_univ c' k in 
+        
+        begin match c' with
+          | Base _ ->
+
+            (* Here, we should directly have access to the source and 
+               target, and I think we just do things by hand ....
+            *)
+            failwith "arrow case not done"
+              
+          | Adjoin (t,n) ->
+
+            let k_nst t' =
+
+              let frm_cmplx = Adjoin (t',n) in 
+              
+              let typ_nst = map_nst_with_addr n
+                  ~f:(fun (_,fib_opt) addr ->
+                      let fib = Option.value_exn fib_opt in
+
+                      let f = face_at frm_cmplx (0,addr) in
+                      let args = List.map (labels (tail_of f))
+                          ~f:(fun (_,tm_opt) ->
+                              Option.value_exn tm_opt) in
+                      let this_typ = app_to_fib args fib in 
+                      Some (addr, this_typ)) in 
+
+
+              (* But here we just have fibrations abstracted
+                 over the top level.  This doesn't seem right ...*)
+              let cmp_vals = map_nst typ_nst
+                  ~f:(fun opt ->
+                      begin match opt with
+                        | Some (addr,fib) ->
+                          
+                          let kan_nst = apply_at_nst typ_nst addr
+                              (fun _ -> None) in 
+                          let kan_nds = List.filter_opt (nodes_nst kan_nst) in
+                          
+                          abst_type_lst kan_nds frm_cmplx
+                            (fun _ -> fib)
+                            
+                        | None -> failwith "impossible"
+                      end) in 
+
+              TypV 
+
+            in cell_univ t k_nst
+              
+        end 
       
       | _ -> CellV (tl,ty,c)
 
@@ -248,21 +296,20 @@ and map_fib t v f =
         let v' = appV v x in 
         map_fib tps' v' f)
 
+and abst_type_lst nl cm k =
+  match nl with
+    | [] -> k cm
+    | (addr,typ)::ns ->
+      PiV ("", typ, fun v ->
+          abst_type_lst ns
+            (apply_at cm (0,addr)
+               (fun (vs,_) -> (vs, Some v))) k)
+
 (* A general routine for abstracting over the 
    variables of a complex.  This maybe belongs elsewhere ... *)
 and abst_cmplx (tl : value tele) (ty : value)
     (c : value dep_term cmplx)
     (k : value dep_term cmplx -> value) : value =
-
-  let rec abst_nst nl cm =
-    begin match nl with
-      | [] -> k cm
-      | (addr,typ)::ns ->
-        PiV ("", typ, fun v ->
-            abst_nst ns (apply_at cm (0,addr)
-                           (fun (vs,_) -> (vs, Some v))))
-
-    end in
 
   match c with
   | Base n ->
@@ -272,7 +319,7 @@ and abst_cmplx (tl : value tele) (ty : value)
             let this_typ = app_to_fib (to_list ts) ty in
             (addr,this_typ)) in 
 
-    abst_nst (nodes_nst typ_nst) (Base n) 
+    abst_type_lst (nodes_nst typ_nst) (Base n) k 
 
   | Adjoin (t,n) -> 
 
@@ -289,24 +336,16 @@ and abst_cmplx (tl : value tele) (ty : value)
               let this_typ = CellV (tl,ty,f') 
               in (addr,this_typ))
 
-      in abst_nst (nodes_nst typ_nst) frm_cmplx 
+      in abst_type_lst (nodes_nst typ_nst) frm_cmplx k 
 
     in abst_cmplx tl ty t k' 
 
-
+(* Similar to above, but abstracts over a sequence of fibrations in 
+   the universe ...*)
+      
 and cell_univ
     (c : value dep_term cmplx)
     (k : value dep_term cmplx -> value) =
-
-  let rec abst_nst nl cm =
-    begin match nl with
-      | [] -> k cm
-      | (addr,typ)::ns ->
-        PiV ("", typ, fun v ->
-            abst_nst ns (apply_at cm (0,addr)
-                           (fun (vs,_) -> (vs, Some v))))
-
-    end in
   
   match c with
   | Base n ->
@@ -316,7 +355,7 @@ and cell_univ
             let this_typ = Option.value_exn topt in
             (addr,this_typ)) in 
 
-    abst_nst (nodes_nst typ_nst) (Base n)
+    abst_type_lst (nodes_nst typ_nst) (Base n) k
 
   | Adjoin (t,n) ->
 
@@ -335,13 +374,9 @@ and cell_univ
               let this_typ = app_to_fib args fib in 
               (addr,this_typ))
 
-      in abst_nst (nodes_nst typ_nst) frm_cmplx 
-
+      in abst_type_lst (nodes_nst typ_nst) frm_cmplx k
 
     in cell_univ t k' 
-    
-    
-  
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
