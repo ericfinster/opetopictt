@@ -69,7 +69,7 @@ let Square
     (r : PathOver A a₀₀ a₁₀ q (λ a . A) a₀₁ a₁₁) : U
     # Would have liked: (r : Eq A a₀₁ a₁₁)
   = [ (a₀ : A) (a₁ : A) ⊢ Eq A a₀ a₁
-    | nd { a₁₀ ; a₁₁ ⊢ ● } (nd (lf { a₀₀ ; a₀₁ ⊢ p }) (lf tt)) 
+    | nd { a₁₀ ; a₁₁ ⊢ s } (nd (lf { a₀₀ ; a₀₁ ⊢ p }) (lf tt)) 
     | lf { q ; r ⊢ ● }
     ] 
 

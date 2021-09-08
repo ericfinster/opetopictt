@@ -28,6 +28,11 @@ let ext_loc loc v i =
 let emp_loc _ =
   raise (Eval_error "Empty local environment")
 
+type fib_desc =
+  | SigFib of name * value * value
+  | PiFib of name * value * value
+  | TypFib
+  | NeutralFib
 
 (*****************************************************************************)
 (*                                 Evaluation                                *)
@@ -95,6 +100,51 @@ and eval_fib top loc tl ty =
 
     (Ext (tl_v,(nm,ty_v)) , this_ty_val) 
 
+and get_fib_desc tl ty =
+  match app_vars tl ty 0 with 
+  | (SigV (nm,_,_),_) ->
+
+    let ext_sig_src v =
+      begin match v with
+        | SigV (_,a,_) -> a
+        | _ -> failwith "ext_sig_src"
+      end in
+
+    let ext_sig_tgt v = 
+      begin match v with
+        | SigV (nm,_,b) -> LamV (nm,b)
+        | _ -> failwith "ext_sig_tgt"
+      end in 
+
+    let tlst = to_list tl in
+    let a = map_fib tlst ty ext_sig_src in
+    let b = map_fib tlst ty ext_sig_tgt in
+
+    SigFib (nm,a,b)
+
+  | (PiV (nm,_,_),_) ->
+
+    let ext_pi_src v =
+      begin match v with
+        | PiV (_,a,_) -> a
+        | _ -> failwith "ext_pi_src"
+      end in
+
+    let ext_pi_tgt v = 
+      begin match v with
+        | PiV (nm,_,b) -> LamV (nm,b)
+        | _ -> failwith "ext_pi_tgt"
+      end in 
+
+    let tlst = to_list tl in
+    let a = map_fib tlst ty ext_pi_src in
+    let b = map_fib tlst ty ext_pi_tgt in
+
+    PiFib (nm,a,b)
+
+  | (TypV,_) -> TypFib
+  | _ -> NeutralFib
+
 and appV t u =
   match t with
   | RigidV (i,sp) -> RigidV (i,AppSp(sp,u))
@@ -122,142 +172,75 @@ and cellV tl ty c =
   match c with
   | Base (Lf (vs,_)) ->
     app_to_fib (to_list vs) ty 
+  | _ ->
 
-  | _ -> begin match app_vars tl ty 0 with
+    begin match get_fib_desc tl ty with
 
-      (* Cells in a Sigma type *)
-      | (SigV (anm,_,_),_) ->
-        log_msg "sigma in a cell type";
+      | SigFib (nm,a,b) ->
 
-        let ext_sig_src v =
-          begin match v with
-            | SigV (_,a,_) -> a
-            | _ -> failwith "ext_sig_src"
-          end in
+        let src_typ = CellV (tl, a, fstC c) in
+        let tgt_typ x = CellV (Ext (tl,(nm,a)), b, sndC c x)
 
-        let ext_sig_tgt v = 
-          begin match v with
-            | SigV (nm,_,b) -> LamV (nm,b)
-            | _ -> failwith "ext_sig_tgt"
-          end in 
+        in SigV ("",src_typ,tgt_typ)
 
-        let tlst = to_list tl in
+      | PiFib (nm,a,b) -> 
 
-        let afib = map_fib tlst ty ext_sig_src in
-        let acmplx = map_cmplx c
-            ~f:(fun (vs,vo) -> (vs,Option.map vo ~f:fstV)) in
+        let a_cell = cellC tl a (map_cmplx c ~f:fst) in
+        piC a_cell (fun args ->
+            CellV (Ext (tl, (nm, a)), b, appC c args))
 
-        let bfib = map_fib tlst ty ext_sig_tgt in
-        let tgt_typ x =
-          CellV (Ext (tl,(anm,afib)),bfib,
-                 map_cmplx c
-                   ~f:(fun (vs,vo) ->
-                       match vo with
-                       | None -> (Ext (vs,x),None)
-                       | Some p -> (Ext (vs,fstV p),Some (sndV p)))) in 
-
-        let src_typ = CellV (tl,afib,acmplx) in 
-        SigV ("",src_typ,tgt_typ)
-          
-      (* Cells in a Pi type *)
-      | (PiV (anm,_,_),_) ->
-        log_msg "pi in a cell type";
-
-        let ext_pi_src v =
-          begin match v with
-            | PiV (_,a,_) -> a
-            | _ -> failwith "ext_pi_src"
-          end in
-
-        let ext_pi_tgt v = 
-          begin match v with
-            | PiV (nm,_,b) -> LamV (nm,b)
-            | _ -> failwith "ext_pi_tgt"
-          end in 
-
-        let tlst = to_list tl in
-        let afib = map_fib tlst ty ext_pi_src in
-        let bfib = map_fib tlst ty ext_pi_tgt in
-
-        (* zero out the complex. don't think this is required,
-           but I'm just being cautious *)
-        let to_abst = map_cmplx c
-            ~f:(fun (vs,_) -> (vs,None)) in 
-
-        let k vc =
-
-          let frm_c =
-            match_cmplx (face_cmplx vc) c
-              ~f:(fun f (ss,so) ->
-
-                  let args = List.map (labels f)
-                      (* we allow the exception here....*)
-                      ~f:(fun (_,aopt) -> Option.value_exn aopt) in 
-
-                  let top_arg =
-                    Option.value_exn (snd (base_value (head_of f))) in
-                  
-                  (Ext (ss,top_arg),Option.map so ~f:(app_to_fib args)))
-
-          in CellV (Ext (tl,(anm,afib)) , bfib , frm_c)
-      
-        in abst_cmplx tl afib to_abst k 
-
-      (* Cells in the universe *)
-      | (TypV,_) ->
-        log_msg "u in a cell type";
-      
+      | TypFib ->
         let c' = tail_of c in
         let k _ = TypV in
         cell_univ c' k 
-        
-        (* begin match c' with
-         *   | Base _ ->
-         * 
-         *     (\* Here, we should directly have access to the source and 
-         *        target, and I think we just do things by hand ....
-         *     *\)
-         *     failwith "arrow case not done"
-         *       
-         *   | Adjoin (t,n) ->
-         * 
-         *     let k_nst t' =
-         * 
-         *       let frm_cmplx = Adjoin (t',n) in 
-         *       
-         *       let typ_nst = map_nst_with_addr n
-         *           ~f:(fun (_,fib_opt) addr ->
-         *               let fib = Option.value_exn fib_opt in
-         * 
-         *               let f = face_at frm_cmplx (0,addr) in
-         *               let args = List.map (labels (tail_of f))
-         *                   ~f:(fun (_,tm_opt) ->
-         *                       Option.value_exn tm_opt) in
-         *               let this_typ = app_to_fib args fib in 
-         *               Some (addr, this_typ)) in 
-         * 
-         * 
-         *       (\* But here we just have fibrations abstracted
-         *          over the top level.  This doesn't seem right ...*\)
-         *       let cmp_vals = map_nst typ_nst
-         *           ~f:(fun opt ->
-         *               begin match opt with
-         *                 | Some (addr,fib) ->
-         *                   
-         *                   let kan_nst = apply_at_nst typ_nst addr
-         *                       (fun _ -> None) in 
-         *                   let kan_nds = List.filter_opt (nodes_nst kan_nst) in
-         *                   
-         *                   abst_type_lst kan_nds frm_cmplx
-         *                     (fun _ -> fib)
-         *                     
-         *                 | None -> failwith "impossible"
-         *               end) in 
-         * 
-         *       TypV 
-         * 
-         *     in cell_univ t k_nst *)
-      
+
+      (* begin match c' with
+       *   | Base _ ->
+       * 
+       *     (\* Here, we should directly have access to the source and 
+       *        target, and I think we just do things by hand ....
+       *     *\)
+       *     failwith "arrow case not done"
+       *       
+       *   | Adjoin (t,n) ->
+       * 
+       *     let k_nst t' =
+       * 
+       *       let frm_cmplx = Adjoin (t',n) in 
+       *       
+       *       let typ_nst = map_nst_with_addr n
+       *           ~f:(fun (_,fib_opt) addr ->
+       *               let fib = Option.value_exn fib_opt in
+       * 
+       *               let f = face_at frm_cmplx (0,addr) in
+       *               let args = List.map (labels (tail_of f))
+       *                   ~f:(fun (_,tm_opt) ->
+       *                       Option.value_exn tm_opt) in
+       *               let this_typ = app_to_fib args fib in 
+       *               Some (addr, this_typ)) in 
+       * 
+       * 
+       *       (\* But here we just have fibrations abstracted
+       *          over the top level.  This doesn't seem right ...*\)
+       *       let cmp_vals = map_nst typ_nst
+       *           ~f:(fun opt ->
+       *               begin match opt with
+       *                 | Some (addr,fib) ->
+       *                   
+       *                   let kan_nst = apply_at_nst typ_nst addr
+       *                       (fun _ -> None) in 
+       *                   let kan_nds = List.filter_opt (nodes_nst kan_nst) in
+       *                   
+       *                   abst_type_lst kan_nds frm_cmplx
+       *                     (fun _ -> fib)
+       *                     
+       *                 | None -> failwith "impossible"
+       *               end) in 
+       * 
+       *       TypV 
+       * 
+       *     in cell_univ t k_nst *)
+
       | _ -> CellV (tl,ty,c)
 
     end
@@ -296,12 +279,12 @@ and map_fib t v f =
 
 and abst_type_lst nl cm k =
   match nl with
-    | [] -> k cm
-    | (addr,typ)::ns ->
-      PiV ("", typ, fun v ->
-          abst_type_lst ns
-            (apply_at cm (0,addr)
-               (fun (vs,_) -> (vs, Some v))) k)
+  | [] -> k cm
+  | (addr,typ)::ns ->
+    PiV ("", typ, fun v ->
+        abst_type_lst ns
+          (apply_at cm (0,addr)
+             (fun (vs,_) -> (vs, Some v))) k)
 
 (* A general routine for abstracting over the 
    variables of a complex.  This maybe belongs elsewhere ... *)
@@ -322,7 +305,7 @@ and abst_cmplx (tl : value tele) (ty : value)
   | Adjoin (t,n) -> 
 
     let k' t' = 
-      
+
       let frm_cmplx = Adjoin (t',n) in
 
       let typ_nst = map_nst_with_addr n
@@ -340,11 +323,11 @@ and abst_cmplx (tl : value tele) (ty : value)
 
 (* Similar to above, but abstracts over a sequence of fibrations in 
    the universe ...*)
-      
+
 and cell_univ
     (c : value dep_term cmplx)
     (k : value dep_term cmplx -> value) =
-  
+
   match c with
   | Base n ->
 
@@ -381,23 +364,111 @@ and cell_univ
 (*                            Complex Combinators                            *)
 (*****************************************************************************)
 
-(* let fst_cmplx (c : value cmplx) : value cmplx
- *   = map_cmplx c ~f:fstV
- * 
- * let snd_cmplx (c : value cmplx) : value cmplx
- *   = map_cmplx c ~f:sndV 
- * 
- * let el_cmplx (c : value cmplx) : value
- *   = failwith "not done" 
- * 
- * 
- * let rec pi_cmplx (a : value cmplx) (b : value cmplx -> value cmplx) : value cmplx =
- *   failwith "unknown"
- * 
- * (\* Is this pointwise? Or do you insert lower-dim'l arguments? *\)
- * let rec app_cmplx (u : value cmplx) (v : value cmplx) : value cmplx =
- *   failwith "unknonw" *)
+and fstC (c : value dep_term cmplx) : value dep_term cmplx
+  = map_cmplx c
+    ~f:(fun (vs,vo) -> (vs,Option.map vo ~f:fstV))
 
+and sndC (c : value dep_term cmplx) (v : value) : value dep_term cmplx
+  = map_cmplx c
+    ~f:(fun (vs,vo) ->
+        match vo with
+        | None -> (Ext (vs,v),None)
+        | Some p -> (Ext (vs,fstV p),Some (sndV p)))
+
+(* This one is debateable.  Probably we should rather 
+   adjoin the argument to the dep_term as a separate step ...*)
+and appC (c : value dep_term cmplx) (arg_c : value cmplx) = 
+  match_cmplx (face_cmplx arg_c) c
+    ~f:(fun f (ss,so) ->
+        let args = labels f in
+        let top_arg = base_value (head_of f) in
+        (Ext (ss,top_arg), Option.map so ~f:(app_to_fib args)))
+
+(* Abstract over all the positions in a given complex and pass
+   the abstracted values in complex form to the function b. *)
+and lamC (a : 'a cmplx) (b : value cmplx -> value) : value =
+
+  let rec do_lams nl cm =
+    match nl with
+    | [] -> b cm
+    | addr::addrs ->
+      LamV ("", fun v -> 
+          do_lams addrs (replace_at cm (0,addr) v))
+
+  in match a with
+  | Base n ->
+    let n' = map_nst_with_addr n
+        ~f:(fun _ addr -> addr) in
+    let nv = map_nst n ~f:(fun _ -> TypV) in 
+    do_lams (nodes_nst n') (Base nv)
+  | Adjoin (t,n) ->
+    let n' = map_nst_with_addr n
+        ~f:(fun _ addr -> addr) in 
+    let nv = map_nst n ~f:(fun _ -> TypV) in 
+    lamC t (fun vc -> do_lams (nodes_nst n') (Adjoin (vc,nv)))
+
+(* Given the fibration a and a collection of cell values for the 
+   telescopes, return the value cmplx whose cells are decorated 
+   by the cell fibrations generated by a *)
+and cellC (tl : value tele) (a : value) (args : value suite cmplx) : value cmplx =
+
+  match args with
+  | Base n ->
+
+    let n' = map_nst n ~f:(fun vs -> app_to_fib (to_list vs) a) 
+    in Base n'
+
+  | Adjoin (t,n) ->
+
+    let t' = cellC tl a t in
+
+    let n' = map_nst_with_addr n
+        ~f:(fun _ addr ->
+            let f = face_at args (0,addr) in
+            let f_tl = tail_of f in 
+            let cell_fib = lamC f_tl (fun vc ->
+                let dtc = match_cmplx vc f_tl
+                    ~f:(fun v vs -> (vs,Some v)) in
+                let hd = map_nst (head_of f)
+                    ~f:(fun vs -> (vs,None)) in 
+                CellV (tl,a, Adjoin (dtc,hd))) in
+            cell_fib) in 
+
+    Adjoin (t',n')
+
+(* Given a "complex dependent type", extract the space 
+   of sections of it with respect to the complex indexed 
+   fibration b *)
+and piC (a : value cmplx) (b : value cmplx -> value) : value =
+
+  let rec do_pis nl cm =
+    match nl with
+    | [] -> b cm
+    | (addr,typ)::ns ->
+      PiV ("", typ, fun v ->
+          do_pis ns (replace_at cm (0,addr) v))
+
+  in match a with
+  | Base n ->
+
+    let n' = map_nst_with_addr n
+        ~f:(fun typ addr -> (addr,typ)) in
+    do_pis (nodes_nst n') a
+
+  | Adjoin (t,n) ->
+
+    piC t (fun vc ->
+
+        let n' = map_nst_with_addr n
+            ~f:(fun fib addr ->
+                let f = face_at (Adjoin (vc,n)) (0,addr) in
+                let f_tl = tail_of f in
+                let typ = app_to_fib (labels f_tl) fib in 
+                (addr,typ)) in
+
+        do_pis (nodes_nst n') (Adjoin (vc,n))
+
+      )
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
@@ -459,4 +530,4 @@ and quote_sp ufld k t sp =
   | SndSp sp' ->
     SndT (qcs t sp') 
 
-   
+
