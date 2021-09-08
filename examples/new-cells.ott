@@ -3,7 +3,7 @@
 #
 
 let Eq (A : U) (a₀ : A) (a₁ : A) : U
-  = [ ● ⊢ A
+  = [ ∙ ⊢ A
     | nd { ∙ ⊢ a₁ } (nd (lf { ∙ ⊢ a₀ }) (lf tt)) 
     | lf { ∙ ⊢ ∅ }
     ] 

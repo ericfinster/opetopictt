@@ -34,9 +34,9 @@ type term =
   | SigT of name * term * term
             
   (* Cell Types *)
-  | CellT of name * term * term * term cmplx * term option cmplx
-  | CompT of name * term * term * term cmplx * term option cmplx
-  | FillT of name * term * term * term cmplx * term option cmplx
+  | CellT of (name * term * term cmplx) option * term * term option cmplx
+  | CompT of (name * term * term cmplx) option * term * term option cmplx
+  | FillT of (name * term * term cmplx) option * term * term option cmplx
 
   (* The Unit Type *)
   | UnitT 
@@ -77,25 +77,27 @@ let rec term_eq s t =
       term_eq va vb
     else false
 
-  | (CellT (_,ta,tb,ca,cb) , CellT (_,tc,td,cc,cd)) ->
-    cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd)
-  | (CompT (_,ta,tb,ca,cb) , CompT (_,tc,td,cc,cd)) ->
-    cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd)
-  | (FillT (_,ta,tb,ca,cb) , FillT (_,tc,td,cc,cd)) ->
-    cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd)
+  | (CellT (a,b,bc) , CellT (u,v,vc)) ->
+    cell_desc_eq (a,b,bc) (u,v,vc)
+  | (CompT (a,b,bc) , CompT (u,v,vc)) ->
+    cell_desc_eq (a,b,bc) (u,v,vc)
+  | (FillT (a,b,bc) , FillT (u,v,vc)) ->
+    cell_desc_eq (a,b,bc) (u,v,vc)
       
   | (TypT , TypT) -> true
   | _ -> false 
 
-and cell_desc_eq (ta,tb,ca,cb) (tc,td,cc,cd) = 
-    if (term_eq ta tc) then
-      if (term_eq tb td) then
-        if (cmplx_eq term_eq ca cc) then
-          cmplx_eq (Option.equal term_eq) cb cd
-        else false
-      else false
+and cell_desc_eq (a,b,bc) (u,v,vc) =
+  let base_eq (_,a,ac) (_,b,bc) =
+    if (term_eq a b) then
+      cmplx_eq term_eq ac bc
     else false
-    
+  in if (Option.equal base_eq a u) then
+    if (term_eq b v) then
+      cmplx_eq (Option.equal term_eq) bc vc 
+    else false
+  else false
+  
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
 (*****************************************************************************)
@@ -132,28 +134,39 @@ let rec term_to_expr nms tm =
   | SigT (nm,u,v) ->
     SigE (nm,tte nms u, tte (Ext (nms,nm)) v)
 
-  | CellT (nm,ta,tb,ca,cb) ->
-    let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
-    CellE (nm,ea,eb,eab)
-  | CompT (nm,ta,tb,ca,cb) ->
-    let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
-    CompE (nm,ea,eb,eab)
-  | FillT (nm,ta,tb,ca,cb) ->
-    let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
-    FillE (nm,ea,eb,eab)
+  | CellT (a,b,bc) ->
+    let (ea,eb,eab) = cell_desc_to_expr nms a b bc in 
+    CellE (ea,eb,eab)
+  (* | CompT (nm,ta,tb,ca,cb) ->
+   *   let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
+   *   CompE (nm,ea,eb,eab)
+   * | FillT (nm,ta,tb,ca,cb) ->
+   *   let (ea,eb,eab) = cell_desc_to_expr nms nm ta tb ca cb in 
+   *   FillE (nm,ea,eb,eab) *)
 
   | UnitT -> UnitE
   | TtT -> TtE 
 
   | TypT -> TypE
 
-and cell_desc_to_expr nms nm ta tb ca cb =
-  let ea = term_to_expr nms ta in
-  let eb = term_to_expr (Ext (nms,nm)) tb in
-  let eca = map_cmplx ca ~f:(term_to_expr nms) in
-  let ecb = map_cmplx cb ~f:(fun o -> Option.map o ~f:(term_to_expr nms)) in
-  let eab = match_cmplx eca ecb ~f:(fun a b -> (a,b)) in 
-  (ea,eb,of_cmplx eab)
+and cell_desc_to_expr nms a b bc =
+  match a with
+  | None ->
+    let eb = term_to_expr nms b in
+    let eab = map_cmplx bc
+        ~f:(fun topt -> (None,Option.map topt ~f:(term_to_expr nms))) in
+    (None,eb,of_cmplx eab)
+  | Some _ ->
+    
+
+    failwith ""
+  
+  (* let ea = term_to_expr nms ta in
+   * let eb = term_to_expr (Ext (nms,nm)) tb in
+   * let eca = map_cmplx ca ~f:(term_to_expr nms) in
+   * let ecb = map_cmplx cb ~f:(fun o -> Option.map o ~f:(term_to_expr nms)) in
+   * let eab = match_cmplx eca ecb ~f:(fun a b -> (a,b)) in 
+   * (ea,eb,of_cmplx eab) *)
   
 (*****************************************************************************)
 (*                                 Telescopes                                *)

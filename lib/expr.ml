@@ -34,9 +34,9 @@ type expr =
   | SigE of name * expr * expr 
 
   (* Cell types *) 
-  | CellE of name * expr * expr * (expr * expr option) tr_expr suite
-  | CompE of name * expr * expr * (expr * expr option) tr_expr suite
-  | FillE of name * expr * expr * (expr * expr option) tr_expr suite
+  | CellE of (name * expr) option * expr * (expr option * expr option) tr_expr suite
+  | CompE of (name * expr) option * expr * (expr option * expr option) tr_expr suite
+  | FillE of (name * expr) option * expr * (expr option * expr option) tr_expr suite
 
   (* Unit Type *)
   | UnitE
@@ -92,24 +92,29 @@ let rec pp_expr ppf expr =
     pf ppf "(%s : %a)@, \u{d7} %a"
       nm pp_expr a pp_expr b 
 
-  | CellE (nm,a,b,cab) ->
-    pp_expr_cell_desc ppf (nm,a,b,cab) 
-  | CompE (nm,a,b,cab) -> 
-    pf ppf "comp %a" pp_expr_cell_desc (nm,a,b,cab)
-  | FillE (nm,a,b,cab) -> 
-    pf ppf "fill %a" pp_expr_cell_desc (nm,a,b,cab)
+  | CellE (a,b,cab) ->
+    pp_expr_cell_desc ppf (a,b,cab) 
+  | CompE (a,b,cab) -> 
+    pf ppf "comp %a" pp_expr_cell_desc (a,b,cab)
+  | FillE (a,b,cab) -> 
+    pf ppf "fill %a" pp_expr_cell_desc (a,b,cab)
 
   | UnitE -> pf ppf "\u{25cf}"
   | TtE -> pf ppf "\u{2219}"
 
   | TypE -> pf ppf "U"
 
-and pp_expr_cell_desc ppf (nm,a,b,cab) =
-  pf ppf "@[<v>[ @[(%s : %a) \u{22a2} %a@]@,| %a@,]@]"
-    nm pp_expr a pp_expr b 
+and pp_expr_cell_desc ppf (a,b,cab) =
+  let pp_aopt ppf aopt =
+    match aopt with
+    | None -> pf ppf "\u{2219}"
+    | Some (nm,a) -> pf ppf "(%s : %a)" nm pp_expr a
+  in pf ppf "@[<v>[ @[ %a \u{22a2} %a@]@,| %a@,]@]"
+    pp_aopt a pp_expr b 
     (pp_suite ~sep:(any "@,| ")
        (pp_tr_expr (pair ~sep:(any "\u{22a2}")
-                      pp_expr (Fmt.option ~none:(any "\u{2205}") pp_expr)))) cab
+                      (Fmt.option ~none:(any "\u{2219}") pp_expr)
+                      (Fmt.option ~none:(any "\u{2205}") pp_expr)))) cab
 
 and expr_app_parens e =
   match e with

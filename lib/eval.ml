@@ -383,6 +383,24 @@ let snd_cmplx (c : value cmplx) : value cmplx
  * let rec app_cmplx (u : value cmplx) (v : value cmplx) : value cmplx =
  *   failwith "unknonw" *)
 
+open Opetopes.Idt
+
+(* let lam_cmplx (c : 'a cmplx) (k : value cmplx -> value) : value =
+ *   match c with
+ *   | Base n -> 
+ *     
+ *   | Adjoin _ -> failwith "not done"
+ *            
+ * let rec expand (c : 'a cmplx) (typ : value) : value cmplx =
+ *   match c with
+ *   | Base n ->
+ *     Base (map_nst n ~f:(fun _ -> typ))
+ *   | Adjoin (t,n) ->
+ *     let tv = expand t typ in
+ *     let nv = map_nst_with_addr n
+ *         ~f:(fun _ _ -> TypV) in
+ *     Adjoin (tv,nv) *)
+    
 (*****************************************************************************)
 (*                                  Quoting                                  *)
 (*****************************************************************************)
