@@ -206,59 +206,57 @@ and cellV tl ty c =
       (* Cells in the universe *)
       | (TypV,_) ->
         log_msg "u in a cell type";
-
+      
         let c' = tail_of c in
         let k _ = TypV in
-        let this_fib = cell_univ c' k in 
+        cell_univ c' k 
         
-        begin match c' with
-          | Base _ ->
-
-            (* Here, we should directly have access to the source and 
-               target, and I think we just do things by hand ....
-            *)
-            failwith "arrow case not done"
-              
-          | Adjoin (t,n) ->
-
-            let k_nst t' =
-
-              let frm_cmplx = Adjoin (t',n) in 
-              
-              let typ_nst = map_nst_with_addr n
-                  ~f:(fun (_,fib_opt) addr ->
-                      let fib = Option.value_exn fib_opt in
-
-                      let f = face_at frm_cmplx (0,addr) in
-                      let args = List.map (labels (tail_of f))
-                          ~f:(fun (_,tm_opt) ->
-                              Option.value_exn tm_opt) in
-                      let this_typ = app_to_fib args fib in 
-                      Some (addr, this_typ)) in 
-
-
-              (* But here we just have fibrations abstracted
-                 over the top level.  This doesn't seem right ...*)
-              let cmp_vals = map_nst typ_nst
-                  ~f:(fun opt ->
-                      begin match opt with
-                        | Some (addr,fib) ->
-                          
-                          let kan_nst = apply_at_nst typ_nst addr
-                              (fun _ -> None) in 
-                          let kan_nds = List.filter_opt (nodes_nst kan_nst) in
-                          
-                          abst_type_lst kan_nds frm_cmplx
-                            (fun _ -> fib)
-                            
-                        | None -> failwith "impossible"
-                      end) in 
-
-              TypV 
-
-            in cell_univ t k_nst
-              
-        end 
+        (* begin match c' with
+         *   | Base _ ->
+         * 
+         *     (\* Here, we should directly have access to the source and 
+         *        target, and I think we just do things by hand ....
+         *     *\)
+         *     failwith "arrow case not done"
+         *       
+         *   | Adjoin (t,n) ->
+         * 
+         *     let k_nst t' =
+         * 
+         *       let frm_cmplx = Adjoin (t',n) in 
+         *       
+         *       let typ_nst = map_nst_with_addr n
+         *           ~f:(fun (_,fib_opt) addr ->
+         *               let fib = Option.value_exn fib_opt in
+         * 
+         *               let f = face_at frm_cmplx (0,addr) in
+         *               let args = List.map (labels (tail_of f))
+         *                   ~f:(fun (_,tm_opt) ->
+         *                       Option.value_exn tm_opt) in
+         *               let this_typ = app_to_fib args fib in 
+         *               Some (addr, this_typ)) in 
+         * 
+         * 
+         *       (\* But here we just have fibrations abstracted
+         *          over the top level.  This doesn't seem right ...*\)
+         *       let cmp_vals = map_nst typ_nst
+         *           ~f:(fun opt ->
+         *               begin match opt with
+         *                 | Some (addr,fib) ->
+         *                   
+         *                   let kan_nst = apply_at_nst typ_nst addr
+         *                       (fun _ -> None) in 
+         *                   let kan_nds = List.filter_opt (nodes_nst kan_nst) in
+         *                   
+         *                   abst_type_lst kan_nds frm_cmplx
+         *                     (fun _ -> fib)
+         *                     
+         *                 | None -> failwith "impossible"
+         *               end) in 
+         * 
+         *       TypV 
+         * 
+         *     in cell_univ t k_nst *)
       
       | _ -> CellV (tl,ty,c)
 
@@ -383,22 +381,22 @@ and cell_univ
 (*                            Complex Combinators                            *)
 (*****************************************************************************)
 
-let fst_cmplx (c : value cmplx) : value cmplx
-  = map_cmplx c ~f:fstV
-
-let snd_cmplx (c : value cmplx) : value cmplx
-  = map_cmplx c ~f:sndV 
-
-let el_cmplx (c : value cmplx) : value
-  = failwith "not done" 
-
-
-let rec pi_cmplx (a : value cmplx) (b : value cmplx -> value cmplx) : value cmplx =
-  failwith "unknown"
-
-(* Is this pointwise? Or do you insert lower-dim'l arguments? *)
-let rec app_cmplx (u : value cmplx) (v : value cmplx) : value cmplx =
-  failwith "unknonw"
+(* let fst_cmplx (c : value cmplx) : value cmplx
+ *   = map_cmplx c ~f:fstV
+ * 
+ * let snd_cmplx (c : value cmplx) : value cmplx
+ *   = map_cmplx c ~f:sndV 
+ * 
+ * let el_cmplx (c : value cmplx) : value
+ *   = failwith "not done" 
+ * 
+ * 
+ * let rec pi_cmplx (a : value cmplx) (b : value cmplx -> value cmplx) : value cmplx =
+ *   failwith "unknown"
+ * 
+ * (\* Is this pointwise? Or do you insert lower-dim'l arguments? *\)
+ * let rec app_cmplx (u : value cmplx) (v : value cmplx) : value cmplx =
+ *   failwith "unknonw" *)
 
 
 (*****************************************************************************)

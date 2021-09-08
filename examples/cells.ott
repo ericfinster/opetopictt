@@ -2,6 +2,7 @@
 #  cells.ott - demonstrations of cells
 #
 
+
 let Eq (A : U) (a₀ : A) (a₁ : A) : U
   = [ ⊢ A
     | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
@@ -68,7 +69,7 @@ let Square
     (r : PathOver A a₀₀ a₁₀ q (λ a . A) a₀₁ a₁₁) : U
     # Would have liked: (r : Eq A a₀₁ a₁₁)
   = [ (a₀ : A) (a₁ : A) ⊢ Eq A a₀ a₁
-    | nd { a₁₀ ; a₁₁ ⊢ s } (nd (lf { a₀₀ ; a₀₁ ⊢ p }) (lf tt)) 
+    | nd { a₁₀ ; a₁₁ ⊢ ● } (nd (lf { a₀₀ ; a₀₁ ⊢ p }) (lf tt)) 
     | lf { q ; r ⊢ ● }
     ] 
 
@@ -160,6 +161,7 @@ let out_path_contr (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
              | nd { ⊢ ● } (nd (lf { ⊢ a₀ }) (lf tt)) 
              | lf { ⊢ ● }
              ]
+
     (λ c. λ f. Eq (out_path A a₀) (c , f) (ucomp A a₀ , ufill A a₀))
     (refl (out_path A a₀) (ucomp A a₀ , ufill A a₀)) a₁ p
 
@@ -220,14 +222,35 @@ let Univ-test (A : U) (B : U)
       → (d : P (A-comp a) (A-fill a))
       → (b : B) → (e : E b a) → P b e)
   : Eq U A B
-b  = E
+  = E
 
-let Univ-test2 (A : U) (B : U) (C : U)
-    (E : B → A → U)
-    (F : C → B → U)
-    (G : C → A → U)
-    (H : (c : C) → (b : B) → (a : A)
-      → (g : G c a) → (f : F c b) → (e : E b a) → U)
-  : Simplex U A B C E F G
-  = H
+# let Univ-test2 (A : U) (B : U) (C : U)
+#     (E : B → A → U)
+#     (F : C → B → U)
+#     (G : C → A → U)
+#     (H : (c : C) → (b : B) → (a : A)
+#       → (g : G c a) → (f : F c b) → (e : E b a) → U)
+#   : Simplex U A B C E F G
+#   = H
 
+
+#
+#  Example of pattern matching for HITs
+#
+
+# circle: base, loop
+
+# P : Circle -> Type
+
+# section : (s : Circle) → P s
+# section base = x
+# section [ 
+#         | nd { ⊢ base } (nd (lf { ⊢ base }) (lf tt)) 
+#         | lf { ⊢ loop }
+#         ] = p
+
+# where p has type
+#   Pathover [ (s : Circle) ⊢ P s
+#            | nd { base ⊢ x } (nd (lf { base ⊢ x }) (lf tt)) 
+#            | lf { loop ⊢ ● }
+#            ]
