@@ -105,12 +105,12 @@ let pp_error ppf e =
   | `ExpectedFunction e -> 
 
     Fmt.pf ppf "The expression @,@, @[%a@] @,@," pp_expr e ;
-    Fmt.pf ppf "was expected to be a function but isn.t"
+    Fmt.pf ppf "was expected to be a function but isn't"
 
   | `ExpectedProduct e -> 
 
     Fmt.pf ppf "The expression @,@, @[%a@] @,@," pp_expr e ;
-    Fmt.pf ppf "was expected to be a product but isn.t"
+    Fmt.pf ppf "was expected to be a product but isn't"
 
   | `InvalidShape msg -> pf ppf "Shape error: %s" msg 
 

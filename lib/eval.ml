@@ -28,13 +28,6 @@ let ext_loc loc v i =
 let emp_loc _ =
   raise (Eval_error "Empty local environment")
 
-type fib_desc =
-  | SigFib of name * value * value
-  | PiFib of name * value * value
-  | TypFib
-  | NeutralFib
-
-
 (*****************************************************************************)
 (*                                Eliminators                                *)
 (*****************************************************************************)
@@ -74,7 +67,6 @@ let rec sndV t =
   | TopV (nm,sp,tv) -> TopV (nm, SndSp sp, sndV tv)
   | PairV (_,v) -> v
   | _ -> raise (Eval_error (Fmt.str "malformed second proj: %a" pp_value t))
-
 
 (*****************************************************************************)
 (*                            Complex Combinators                            *)
@@ -152,24 +144,28 @@ let rec cellC (tl : value tele) (a : value) (args : value suite cmplx) : value c
 
     Adjoin (t',n')
 
+
+(* Abstract a list of types, putting the abstracted 
+   value at the appropriate address in the provided complex *)
+      
+let rec do_pis nl cm b =
+  match nl with
+  | [] -> b cm
+  | (addr,typ)::ns ->
+    PiV ("", typ, fun v ->
+        do_pis ns (replace_at cm (0,addr) v) b)
+
 (* Given a "complex dependent type", extract the space 
    of sections of it with respect to the complex indexed 
    fibration b *)
 let rec piC (a : value cmplx) (b : value cmplx -> value) : value =
-
-  let rec do_pis nl cm =
-    match nl with
-    | [] -> b cm
-    | (addr,typ)::ns ->
-      PiV ("", typ, fun v ->
-          do_pis ns (replace_at cm (0,addr) v))
-
-  in match a with
+  
+  match a with
   | Base n ->
 
     let n' = map_nst_with_addr n
         ~f:(fun typ addr -> (addr,typ)) in
-    do_pis (nodes_nst n') a
+    do_pis (nodes_nst n') a b
 
   | Adjoin (t,n) ->
 
@@ -182,13 +178,46 @@ let rec piC (a : value cmplx) (b : value cmplx -> value) : value =
                 let typ = app_to_fib (labels f_tl) fib in 
                 (addr,typ)) in
 
-        do_pis (nodes_nst n') (Adjoin (vc,n))
+        do_pis (nodes_nst n') (Adjoin (vc,n)) b
 
       )
 
+(* b takes just the frame, leaving out the top cell ... *)
+let piKanC (addr : addr) (a : value cmplx) (b : value cmplx -> value) : value =
+  
+  match a with
+  | Base _ -> failwith "Base in Kan abstraction"
+  | Adjoin (Base k , _) ->
+
+    let k' = map_nst_with_addr k
+        ~f:(fun typ addr -> (addr,typ)) in
+    do_pis (nodes_nst_except k' addr) (Base k) b
+
+  | Adjoin (Adjoin (t,k),_) ->
+
+    piC t (fun vc ->
+
+        let k' = map_nst_with_addr k
+            ~f:(fun fib addr ->
+                let f = face_at (Adjoin (vc,k)) (0,addr) in
+                let f_tl = tail_of f in
+                let typ = app_to_fib (labels f_tl) fib in 
+                (addr,typ)) in
+
+        do_pis (nodes_nst_except k' addr)
+          (Adjoin (vc,k)) b
+
+      )
+  
 (*****************************************************************************)
 (*                           Fibration Inspection                            *)
 (*****************************************************************************)
+
+type fib_desc =
+  | SigFib of name * value * value
+  | PiFib of name * value * value
+  | TypFib
+  | NeutralFib
 
 let rec map_fib t v f =
   match t with
@@ -199,7 +228,7 @@ let rec map_fib t v f =
         let v' = appV v x in 
         map_fib tps' v' f)
 
-let describe_fib tl ty =
+let rec describe_fib tl ty =
   match app_vars tl ty 0 with 
   | (SigV (nm,_,_),_) ->
 
@@ -208,7 +237,7 @@ let describe_fib tl ty =
         (function
           | SigV (_,a,_) -> a
           | _ -> failwith "ext_sig_src") in 
-    
+
     let b = map_fib tlst ty
         (function
           | SigV (nm,_,b) -> LamV (nm,b)
@@ -223,7 +252,7 @@ let describe_fib tl ty =
         (function
           | PiV (_,a,_) -> a
           | _ -> failwith "ext_pi_src") in 
-    
+
     let b = map_fib tlst ty
         (function
           | PiV (nm,_,b) -> LamV (nm,b)
@@ -232,14 +261,21 @@ let describe_fib tl ty =
     PiFib (nm,a,b)
 
   | (TypV,_) -> TypFib
-  | _ -> NeutralFib
+    
+  (* TODO: This won't quite work to unfold top-levels
+     since the routines just after the recursive call will *also*
+     hit a top-level and need to unfold it.  So they have to be
+     corrected *)
+  | (TopV (_,_,tv),_) ->
+    describe_fib Emp tv
 
+  | _ -> NeutralFib
 
 (*****************************************************************************)
 (*                           Cell Type Calculation                           *)
 (*****************************************************************************)
 
-let rec cellV tl ty c =
+let cellV tl ty c =
   match c with
   | Base (Lf (vs,_)) ->
     app_to_fib (to_list vs) ty 
@@ -261,108 +297,91 @@ let rec cellV tl ty c =
             CellV (Ext (tl, (nm, a)), b, appC c args))
 
       | TypFib ->
-        let c' = tail_of c in
-        let k _ = TypV in
-        cell_univ c' k 
+        
+        let c_dim = dim_cmplx c in
+        let c_tl = tail_of c in
+        
+        let frm_fibs = map_cmplx_with_addr c_tl 
+            ~f:(fun (_,vo) (codim,_) ->
+                if (codim = c_dim - 1) then
+                  Option.value_exn vo
+                else
+                  fstV (Option.value_exn vo)
+              ) in
 
-      (* begin match c' with
-       *   | Base _ ->
-       * 
-       *     (\* Here, we should directly have access to the source and 
-       *        target, and I think we just do things by hand ....
-       *     *\)
-       *     failwith "arrow case not done"
-       *       
-       *   | Adjoin (t,n) ->
-       * 
-       *     let k_nst t' =
-       * 
-       *       let frm_cmplx = Adjoin (t',n) in 
-       *       
-       *       let typ_nst = map_nst_with_addr n
-       *           ~f:(fun (_,fib_opt) addr ->
-       *               let fib = Option.value_exn fib_opt in
-       * 
-       *               let f = face_at frm_cmplx (0,addr) in
-       *               let args = List.map (labels (tail_of f))
-       *                   ~f:(fun (_,tm_opt) ->
-       *                       Option.value_exn tm_opt) in
-       *               let this_typ = app_to_fib args fib in 
-       *               Some (addr, this_typ)) in 
-       * 
-       * 
-       *       (\* But here we just have fibrations abstracted
-       *          over the top level.  This doesn't seem right ...*\)
-       *       let cmp_vals = map_nst typ_nst
-       *           ~f:(fun opt ->
-       *               begin match opt with
-       *                 | Some (addr,fib) ->
-       *                   
-       *                   let kan_nst = apply_at_nst typ_nst addr
-       *                       (fun _ -> None) in 
-       *                   let kan_nds = List.filter_opt (nodes_nst kan_nst) in
-       *                   
-       *                   abst_type_lst kan_nds frm_cmplx
-       *                     (fun _ -> fib)
-       *                     
-       *                 | None -> failwith "impossible"
-       *               end) in 
-       * 
-       *       TypV 
-       * 
-       *     in cell_univ t k_nst *)
+        SigV ("", piC frm_fibs (fun _ -> TypV),
+              fun fill_fib -> 
 
+                let all_fibs = Adjoin (frm_fibs, Lf fill_fib) in 
+                let k = head_of c_tl in 
+                let ktyps = map_nst_with_addr k
+                    ~f:(fun (_,fopt) addr ->
+                        
+                        piKanC addr all_fibs
+                          (fun kc ->
+
+                             let comp_fib = Option.value_exn fopt in 
+                             if (c_dim = 1) then
+                               comp_fib
+                             else
+                               let f_args = face_at kc (0,addr) in
+                               app_to_fib (labels (tail_of f_args)) (fstV comp_fib)
+
+                          )) in 
+
+                prod (nodes_nst ktyps))
+                
       | _ -> CellV (tl,ty,c)
 
     end
 
 
-and abst_type_lst nl cm k =
-  match nl with
-  | [] -> k cm
-  | (addr,typ)::ns ->
-    PiV ("", typ, fun v ->
-        abst_type_lst ns
-          (apply_at cm (0,addr)
-             (fun (vs,_) -> (vs, Some v))) k)
+(* and abst_type_lst nl cm k =
+ *   match nl with
+ *   | [] -> k cm
+ *   | (addr,typ)::ns ->
+ *     PiV ("", typ, fun v ->
+ *         abst_type_lst ns
+ *           (apply_at cm (0,addr)
+ *              (fun (vs,_) -> (vs, Some v))) k) *)
 
 (* Similar to above, but abstracts over a sequence of fibrations in 
    the universe ...*)
 
-and cell_univ
-    (c : value dep_term cmplx)
-    (k : value dep_term cmplx -> value) =
-
-  match c with
-  | Base n ->
-
-    let typ_nst = map_nst_with_addr n
-        ~f:(fun (_,topt) addr ->
-            let this_typ = Option.value_exn topt in
-            (addr,this_typ)) in 
-
-    abst_type_lst (nodes_nst typ_nst) (Base n) k
-
-  | Adjoin (t,n) ->
-
-    let k' t' =
-
-      let frm_cmplx = Adjoin (t',n) in
-
-      let typ_nst = map_nst_with_addr n
-          ~f:(fun (_,fib_opt) addr ->
-              let fib = Option.value_exn fib_opt in
-
-              let f = face_at frm_cmplx (0,addr) in
-              let args = List.map (labels (tail_of f))
-                  ~f:(fun (_,tm_opt) ->
-                      Option.value_exn tm_opt) in
-              let this_typ = app_to_fib args fib in 
-              (addr,this_typ))
-
-      in abst_type_lst (nodes_nst typ_nst) frm_cmplx k
-
-    in cell_univ t k' 
+(* and cell_univ
+ *     (c : value dep_term cmplx)
+ *     (k : value dep_term cmplx -> value) =
+ * 
+ *   match c with
+ *   | Base n ->
+ * 
+ *     let typ_nst = map_nst_with_addr n
+ *         ~f:(fun (_,topt) addr ->
+ *             let this_typ = Option.value_exn topt in
+ *             (addr,this_typ)) in 
+ * 
+ *     abst_type_lst (nodes_nst typ_nst) (Base n) k
+ * 
+ *   | Adjoin (t,n) ->
+ * 
+ *     let k' t' =
+ * 
+ *       let frm_cmplx = Adjoin (t',n) in
+ * 
+ *       let typ_nst = map_nst_with_addr n
+ *           ~f:(fun (_,fib_opt) addr ->
+ *               let fib = Option.value_exn fib_opt in
+ * 
+ *               let f = face_at frm_cmplx (0,addr) in
+ *               let args = List.map (labels (tail_of f))
+ *                   ~f:(fun (_,tm_opt) ->
+ *                       Option.value_exn tm_opt) in
+ *               let this_typ = app_to_fib args fib in 
+ *               (addr,this_typ))
+ * 
+ *       in abst_type_lst (nodes_nst typ_nst) frm_cmplx k
+ * 
+ *     in cell_univ t k'  *)
 
 (*****************************************************************************)
 (*                              Kan Calculation                              *)

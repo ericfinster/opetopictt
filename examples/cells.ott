@@ -222,16 +222,30 @@ let Univ-test (A : U) (B : U)
       → (d : P (A-comp a) (A-fill a))
       → (b : B) → (e : E b a) → P b e)
   : Eq U A B
-  = E
+  = (E , A-comp , B-comp)
 
-# let Univ-test2 (A : U) (B : U) (C : U)
-#     (E : B → A → U)
-#     (F : C → B → U)
-#     (G : C → A → U)
-#     (H : (c : C) → (b : B) → (a : A)
-#       → (g : G c a) → (f : F c b) → (e : E b a) → U)
-#   : Simplex U A B C E F G
-#   = H
+let Univ-test2 (A : U) (B : U) (C : U)
+    (E : Eq U A B)
+    (F : Eq U B C)
+    (G : Eq U A C)
+    (H : (c : C) → (b : B) → (a : A)
+      → (g : (fst G) c a)
+      → (f : (fst F) c b)
+      → (e : (fst E) b a) → U)
+    (G-comp : (c : C) → (b : B) → (a : A)
+      → (f : (fst F) c b)
+      → (e : (fst E) b a)
+      → (fst G) c a)
+    (F-comp : (c : C) → (b : B) → (a : A)
+      → (g : (fst G) c a)
+      → (e : (fst E) b a)
+      → (fst F) c b)
+    (E-comp : (c : C) → (b : B) → (a : A)
+      → (g : (fst G) c a)
+      → (f : (fst F) c b)
+      → (fst E) b a)
+  : Simplex U A B C E F G
+  = (H , G-comp , F-comp , E-comp)
 
 
 #

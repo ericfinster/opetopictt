@@ -44,6 +44,14 @@ and spine =
 
 let varV k = RigidV (k,EmpSp)
 
+(* Take the non-dependent product of a list of type values *)
+let rec prod tys =
+  match tys with
+  | [] -> failwith "empty product"
+  | ty :: [] -> ty
+  | ty :: tys' -> 
+    SigV ("",ty,fun _ -> prod tys')
+
 (*****************************************************************************)
 (*                              Pretty Printing                              *)
 (*****************************************************************************)

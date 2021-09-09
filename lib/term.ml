@@ -143,7 +143,11 @@ let rec term_to_expr nms tm =
   | SndT u ->
     SndE (tte nms u)
   | SigT (nm,u,v) ->
-    SigE (nm,tte nms u, tte (Ext (nms,nm)) v)
+    let nm' = 
+      if (String.equal nm "") then
+        "x" ^ (Int.to_string (length nms)) 
+      else nm in 
+    SigE (nm',tte nms u, tte (Ext (nms,nm')) v)
 
   | CellT (tl,ty,c) ->
     let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
