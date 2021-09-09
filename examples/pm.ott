@@ -1,0 +1,20 @@
+#
+#  Example of pattern matching for HITs
+#
+
+circle: base, loop
+
+P : Circle -> Type
+
+section : (s : Circle) → P s
+section base = x
+section [ 
+        | nd { ⊢ base } (nd (lf { ⊢ base }) (lf tt)) 
+        | lf { ⊢ loop }
+        ] = p
+
+where p has type
+  Pathover [ (s : Circle) ⊢ P s
+           | nd { base ⊢ x } (nd (lf { base ⊢ x }) (lf tt)) 
+           | lf { loop ⊢ ● }
+           ]

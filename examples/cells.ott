@@ -118,6 +118,15 @@ let null (A : U) (a : A) : Null A a (refl A a)
          | lf { ⊢ ● }
          ]
 
+let refl-over (A : U) (B : A → U) (a : A) (b : B a)
+  : PathOver A a a (refl A a) B b b
+  = comp [ (a : A) ⊢ B a
+         | lf { a ⊢ b }
+         | nd { refl A a ⊢ ● } (lf tt)
+         | lf { null A a ⊢ ● }
+         ]
+
+
 let trans (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
     (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) : Eq A a₀ a₂
   = comp [ ⊢ A
@@ -260,23 +269,25 @@ let Univ-test2 (A : U) (B : U) (C : U)
   = (H, (G-comp, G-fill), (F-comp, F-fill) , (E-comp, E-fill))
 
 
-#
-#  Example of pattern matching for HITs
-#
+let id (A : U) : A → A
+  = λ a . a
 
-# circle: base, loop
+# Equality is refl in the universe
+let Univ-refl (A : U) : Eq U A A
+  = (Eq A , (id A , refl A) , (id A , refl A))
 
-# P : Circle -> Type
+# And it's null homotopy is null!
+let Univ-null (A : U) : Null U A (Univ-refl A)
+  = (Null A , (refl A , null A))
 
-# section : (s : Circle) → P s
-# section base = x
-# section [ 
-#         | nd { ⊢ base } (nd (lf { ⊢ base }) (lf tt)) 
-#         | lf { ⊢ loop }
-#         ] = p
+let pi-refl-test (A : U) (B : A → U) (σ : (a : A) → B a)
+  : (a₁ : A) → (a₀ : A)
+     → (p : Eq A a₀ a₁)
+     → PathOver A a₀ a₁ p B (σ a₀) (σ a₁)
+  = refl ((a : A) → B a) σ
 
-# where p has type
-#   Pathover [ (s : Circle) ⊢ P s
-#            | nd { base ⊢ x } (nd (lf { base ⊢ x }) (lf tt)) 
-#            | lf { loop ⊢ ● }
-#            ]
+let pi-refl-def (A : U) (B : A → U) (σ : (a : A) → B a) (a₀ : A) 
+  (a₁ : A) (p : Eq A a₀ a₁) : PathOver A a₀ a₁ p B (σ a₀) (σ a₁)
+  = J A a₀ (λ op . PathOver A a₀ (fst op) (snd op) B (σ a₀) (σ (fst op)))
+    (refl-over A B a₀ (σ a₀)) a₁ p 
+
