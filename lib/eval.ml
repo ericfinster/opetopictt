@@ -317,17 +317,42 @@ let cellV tl ty c =
                 let ktyps = map_nst_with_addr k
                     ~f:(fun (_,fopt) addr ->
                         
-                        piKanC addr all_fibs
-                          (fun kc ->
+                        let comp_typ = piKanC addr all_fibs
+                            (fun kc ->
 
-                             let comp_fib = Option.value_exn fopt in 
-                             if (c_dim = 1) then
-                               comp_fib
-                             else
-                               let f_args = face_at kc (0,addr) in
-                               app_to_fib (labels (tail_of f_args)) (fstV comp_fib)
+                               let comp_fib = Option.value_exn fopt in 
+                               if (c_dim = 1) then
+                                 comp_fib
+                               else
+                                 let f_args = face_at kc (0,addr) in
+                                 app_to_fib (labels (tail_of f_args)) (fstV comp_fib)
 
-                          )) in 
+                            ) in
+
+                        SigV ("", comp_typ,
+                              fun comp ->
+
+                                let fill_typ = piKanC addr all_fibs
+                                    (fun kc ->
+
+                                       let comp_args =
+                                         begin match kc with
+                                           | Base n -> nodes_nst_except n addr
+                                           | Adjoin (t,n) ->
+                                             List.append (labels t)
+                                               (nodes_nst_except n addr) 
+                                         end in
+                                                                                    
+                                       let kc' = replace_at kc (0,addr)
+                                           (app_to_fib comp_args comp) in
+                                       
+                                       app_to_fib (labels kc') fill_fib
+                                     
+                                    )
+                                    
+                                in fill_typ)
+
+                      ) in 
 
                 prod (nodes_nst ktyps))
                 
