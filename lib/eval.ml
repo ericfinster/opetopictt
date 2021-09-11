@@ -360,54 +360,6 @@ let cellV tl ty c =
 
     end
 
-
-(* and abst_type_lst nl cm k =
- *   match nl with
- *   | [] -> k cm
- *   | (addr,typ)::ns ->
- *     PiV ("", typ, fun v ->
- *         abst_type_lst ns
- *           (apply_at cm (0,addr)
- *              (fun (vs,_) -> (vs, Some v))) k) *)
-
-(* Similar to above, but abstracts over a sequence of fibrations in 
-   the universe ...*)
-
-(* and cell_univ
- *     (c : value dep_term cmplx)
- *     (k : value dep_term cmplx -> value) =
- * 
- *   match c with
- *   | Base n ->
- * 
- *     let typ_nst = map_nst_with_addr n
- *         ~f:(fun (_,topt) addr ->
- *             let this_typ = Option.value_exn topt in
- *             (addr,this_typ)) in 
- * 
- *     abst_type_lst (nodes_nst typ_nst) (Base n) k
- * 
- *   | Adjoin (t,n) ->
- * 
- *     let k' t' =
- * 
- *       let frm_cmplx = Adjoin (t',n) in
- * 
- *       let typ_nst = map_nst_with_addr n
- *           ~f:(fun (_,fib_opt) addr ->
- *               let fib = Option.value_exn fib_opt in
- * 
- *               let f = face_at frm_cmplx (0,addr) in
- *               let args = List.map (labels (tail_of f))
- *                   ~f:(fun (_,tm_opt) ->
- *                       Option.value_exn tm_opt) in
- *               let this_typ = app_to_fib args fib in 
- *               (addr,this_typ))
- * 
- *       in abst_type_lst (nodes_nst typ_nst) frm_cmplx k
- * 
- *     in cell_univ t k'  *)
-
 (*****************************************************************************)
 (*                              Kan Calculation                              *)
 (*****************************************************************************)
