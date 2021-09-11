@@ -58,7 +58,7 @@ let SimplexOver
     ]
 
 # This example shows how constant fibrations do not calculate quite as
-# nicely as one might home in the current setting ...
+# nicely as one might hope in the current setting ...
 
 let Square
     (A : U) (a₀₀ : A) (a₀₁ : A) (a₁₀ : A) (a₁₁ : A)

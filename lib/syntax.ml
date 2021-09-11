@@ -161,10 +161,9 @@ let rec split_cmplx (c : 'a suite cmplx) (g : 'b suite)
     let ns = split_nst n g f in
     map_simul ts ns (fun t' n' -> Adjoin (t',n'))
 
-let ex_suite_cmplx : int suite cmplx =
-  map_cmplx 
-    (~> (Nd ([0;1], Nd (Lf [2;3], Lf ())))
-     |> Lf [4;5]) ~f:from_list
+let arr_cmplx src tgt arr =
+  (~> (Nd (tgt, Nd (Lf src, Lf ())))
+   |> Lf arr) 
 
 (*****************************************************************************)
 (*                               Generic Syntax                              *)

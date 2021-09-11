@@ -301,26 +301,61 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | CompE (tl,ty,c) ->
 
-    let* (tm_tl,tm_ty,tm_c,val_tl,val_ty,val_c,kan_addr) =
+    let* (tm_tl,tm_ty,tm_c,cmp_ty,_) = 
       tcm_check_kan tl ty c in
-
-    let cmp_face = face_at val_c (1,kan_addr) in
-    let cmp_ty = cellV val_tl val_ty cmp_face in 
     
     tcm_ok (CompT (tm_tl,tm_ty,tm_c) , cmp_ty)
 
   | FillE (tl,ty,c) ->
 
-    let* (tm_tl,tm_ty,tm_c,val_tl,val_ty,val_c,kan_addr) =
+    let* (tm_tl,tm_ty,tm_c,_,fill_fib) = 
       tcm_check_kan tl ty c in
-
-    let cmp_tm = CompT (tm_tl,tm_ty,tm_c) in
-    let* cmp_val = tcm_eval cmp_tm in
-    let val_c' = apply_at val_c (1,kan_addr)
-        (fun (vs,_) -> vs, Some cmp_val) in
-    let fill_ty = CellV (val_tl,val_ty,val_c') in 
+    let* cmp_val = tcm_eval (CompT (tm_tl,tm_ty,tm_c)) in
     
-    tcm_ok (FillT (tm_tl,tm_ty,tm_c) , fill_ty)
+    tcm_ok (FillT (tm_tl,tm_ty,tm_c) , appV fill_fib cmp_val)
+
+  | CompUE (tl,ty,k,c,f) ->
+  
+    let* (tm_tl,tm_ty,tm_c,cmp_ty,fill_fib) = 
+      tcm_check_kan tl ty k in
+
+    let* c' = tcm_check c cmp_ty in
+    let* cv = tcm_eval c' in
+    let* f' = tcm_check f (appV fill_fib cv) in
+
+    let* cmp_v = tcm_eval (CompT (tm_tl,tm_ty,tm_c)) in 
+
+    let eq_cell = arr_cmplx
+      (Emp,Some cmp_v) (Emp,Some cv) (Emp,None) in
+    let eq_val = CellV (Emp,cmp_ty,eq_cell) in 
+    
+    tcm_ok (CompUT (tm_tl,tm_ty,tm_c,c',f'), eq_val)
+
+  | FillUE (tl,ty,k,c,f) ->
+  
+    let* (tm_tl,tm_ty,tm_c,cmp_ty,fill_fib) = 
+      tcm_check_kan tl ty k in
+
+    let* c' = tcm_check c cmp_ty in
+    let* cv = tcm_eval c' in
+    let* f' = tcm_check f (appV fill_fib cv) in
+    let* fv = tcm_eval f' in 
+    
+    let* cmp_v = tcm_eval (CompT (tm_tl,tm_ty,tm_c)) in 
+    let* fill_v = tcm_eval (FillT (tm_tl,tm_ty,tm_c)) in 
+
+    let* compUV = tcm_eval (CompUT (tm_tl,tm_ty,tm_c,c',f')) in 
+    
+    let po_cmplx = arr_cmplx
+        (Ext (Emp,cmp_v),Some fill_v)
+        (Ext (Emp,cv),Some fv)
+        (Ext (Emp,compUV),None) in
+    
+    let po_val = CellV (Ext (Emp,("",cmp_ty)),
+                        fill_fib,
+                        po_cmplx) in 
+
+    tcm_ok (FillUT (tm_tl,tm_ty,tm_c,c',f'), po_val)
 
   | TypE -> tcm_ok (TypT , TypV)
 
@@ -475,15 +510,22 @@ and tcm_check_kan tl ty c =
         let* (tt,tv) = tcm_check_cmplx val_tl val_ty t in
 
         begin match empty_addrs (head_of tt) with
-          | kan_addr :: [] ->
+          | [] :: [] ->
 
-            let* (nt,cv) = tcm_check_extension val_tl val_ty tv n in
+            let* (nt,val_c) = tcm_check_extension val_tl val_ty tv n in
 
             let* _ = tcm_ensure ((List.length (empty_addrs nt)) = 1)
                 (`InternalError "top dim not empty in kan description") in
 
-            tcm_ok (tm_tl,tm_ty, Adjoin (tt,nt),
-                    val_tl, val_ty, cv, kan_addr)
+            let tm_c = Adjoin (tt,nt) in 
+            let cmp_face = face_at val_c (1,[]) in
+            let cmp_ty = cellV val_tl val_ty cmp_face in 
+
+            let fill_fib = LamV ("", fun c ->
+                CellV (val_tl,val_ty,
+                       apply_at val_c (1,[]) (fun (vs,_) -> vs , Some c))) in 
+            
+            tcm_ok (tm_tl,tm_ty,tm_c,cmp_ty,fill_fib) 
             
           | _ ->
             let msg = "comp must have exactly one empty boundary position" in 
@@ -492,8 +534,6 @@ and tcm_check_kan tl ty c =
         end
 
     end
-
-
 
 (* TODO: Perhaps this should return the fibration to make things more efficient ? *)
 and tcm_in_tele (tl : expr tele)
