@@ -2,6 +2,10 @@
 #  Testing new composition setup
 #
 
+#
+#  Basic Shapes 
+#
+
 let Eq (A : U) (a₀ : A) (a₁ : A) : U
   = [ ⊢ A
     | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
@@ -23,6 +27,18 @@ let PathOver
     | lf { p ⊢ ● }
     ] 
 
+let transport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) : B a₁ 
+  = comp [ (a : A) ⊢ B a
+         | nd { a₁ ⊢ ● } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
+         | lf { p ⊢ ● }
+         ]
+
+#
+#  Refl, Null and their Uniqueness
+#
+
 let refl (A : U) (a : A) : Eq A a a
   = comp [ ⊢ A
          | lf { ⊢ a }
@@ -37,10 +53,6 @@ let null (A : U) (a : A) : Null A a (refl A a)
          | lf { ⊢ ● }
          ]
 
-#
-#  Using the uniqueness terms on refl and null ...
-#
-
 let reflU (A : U) (a : A) (p : Eq A a a) (n : Null A a p)
   : Eq (Eq A a a) (refl A a) p
   = compu
@@ -52,7 +64,7 @@ let reflU (A : U) (a : A) (p : Eq A a a) (n : Null A a p)
 
 let nullU (A : U) (a : A) (p : Eq A a a) (n : Null A a p)
   : PathOver (Eq A a a) (refl A a) p (reflU A a p n)
-             (λ e . Null A a e) (null A a) n
+             (Null A a) (null A a) n
   = fillu 
     [ ⊢ A
     | lf { ⊢ a }
@@ -60,4 +72,17 @@ let nullU (A : U) (a : A) (p : Eq A a a) (n : Null A a p)
     | lf { ⊢ ● }
     ] p n
 
+#
+#  Opetopic J for Refl and Null
+#
+
+let refl-J (A : U) (a : A)
+    (P : (p : Eq A a a) → (n : Null A a p) → U)
+    (d : P (refl A a) (null A a))
+    (p : Eq A a a) (n : Null A a p) 
+  : P p n
+  = comp [ (x : Eq A a a) (y : Null A a x) ⊢ P x y
+         | nd { p ; n ⊢ ● } (nd (lf { refl A a ; null A a ⊢ d }) (lf tt)) 
+         | lf { reflU A a p n ; nullU A a p n ⊢ ● }
+         ]
 
