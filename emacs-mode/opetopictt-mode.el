@@ -67,12 +67,12 @@
 
 (defconst opetopictt-mode-tree-sitter-patterns
   [ ;; Keywords
-   (comment) @comment
+   
    [ "let" "comp" "fill" ] @keyword
-   [ ":" "=" "(" ")" ] @punctuation
+   [ ":" "=" "(" ")" "," ] @punctuation
    [ "[" "]" "{" "}" "|" "⊢" "●" ] @punctuation.special
    [ "lf" "nd" "tt" ] @label
-   [ "U" ] @constant
+   [ "U" "fst" "snd" ] @constant
 
    (var_declaration variable: (identifier) @variable)
    
@@ -80,7 +80,22 @@
     name: (identifier) @function)
 
    (identifier) @function
-   ])
+   (comment) @comment
+   
+  ])
+
+
+;; (var_declaration
+;;  variable: (identifier) @variable)
+
+;; (let_command
+;;  name: (identifier) @function)
+
+;; ((identifier) @function
+;;  (#is-not? local))
+
+;; (comment) @comment
+
 
 ;;;###autoload
 (define-derived-mode opetopictt-mode prog-mode "Opetopictt"

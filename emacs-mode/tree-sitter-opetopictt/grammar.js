@@ -69,21 +69,33 @@ module.exports = grammar({
 	cell_config: $ => seq(
 	    '[',optional($.telescope),'\u{22a2}',$.expression,'|',$.cmplx,']'
 	),
+
+	pi_type: $ => prec(2,seq(
+	    $.pi_head,$.arrow,$.expression
+	)),
+
+	sig_type: $ => prec(2,seq(
+	    $.pi_head,$.times,$.expression
+	)),
 	
 	expression: $ => choice(
+
+	    prec.right(1, seq($.expression,",",$.expression)),
 	    
-	    prec(1, seq($.lambda,$.identifier,'.',$.expression)),
-	    prec(1, seq($.lambda,'{',$.identifier,'}',$.expression)),
-	    prec(1, seq($.pi_head,$.arrow,$.expression)),
+	    prec(2, seq($.lambda,$.identifier,'.',$.expression)),
+	    $.pi_type,
+	    $.sig_type,
 	    
-	    prec.left(2,seq($.expression, $.expression)),
+	    prec.left(3,seq($.expression, $.expression)),
 	    
-	    prec(3, 'U'),
-	    prec(3, $.identifier),
-	    prec(3, seq('(',$.expression,')')),
-	    prec(3, $.cell_config),
-	    prec(3, seq('comp',$.cell_config)),
-	    prec(3, seq('fill',$.cell_config))
+	    prec(4, 'U'),
+	    prec(4, $.identifier),
+	    prec(4, seq('(',$.expression,')')),
+	    prec(4, $.cell_config),
+	    prec(4, seq('fst',$.expression)),
+	    prec(4, seq('snd',$.expression)),
+	    prec(4, seq('comp',$.cell_config)),
+	    prec(4, seq('fill',$.cell_config))
 	    
 	),
 	
@@ -93,6 +105,7 @@ module.exports = grammar({
 	
 	lambda: $ => token(choice('\\', '\u{03BB}')),
 	arrow: $ => token(choice('->', '\u{2192}')),
+	times: $ => '\u{d7}',
 	
 	identifier: $ => {
 
@@ -133,5 +146,3 @@ function sepSeq1(sep,rule) {
 function sepSeq(sep,rule) {
     return optional(sepSeq1(sep,rule));
 }
-
-
