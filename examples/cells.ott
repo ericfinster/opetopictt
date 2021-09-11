@@ -53,7 +53,7 @@ let SimplexOver
     (rb : PathOver A a₀ a₂ ra B b₀ b₂) : U
   = [ (a : A) ⊢ B a
     | nd { a₂ ⊢ b₂ } (nd (nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt))) (lf tt))
-    | nd { ra ⊢ rb } (nd (lf { qa ⊢ qb }) (nd (nd (lf { pa⊢ pb })
+    | nd { ra ⊢ rb } (nd (lf { qa ⊢ qb }) (nd (nd (lf { pa ⊢ pb })
         (nd (lf tt) (lf tt))) (lf tt)))
     | lf { σ ⊢ ● }
     ]
@@ -91,11 +91,7 @@ let transport-univ (A : U) (B : U) (e : Eq U A B) (a : A) : B
          | lf { e ⊢ ● }
          ]
 
-# let more-transport-univ
-#   = comp [ (A : U) (B : A → U) (a : A) ⊢ B a
-#          | nd { A₁ ; B₁ ; a₁ ⊢ ● } (nd (lf { A₀ ; B₀ ; a₀ ⊢ b₀ }) (lf tt)) 
-#          | lf { E ; F ; p ⊢ ● }
-#          ]
+let test (A : U) (B : U) : U = A 
 
 let var-cells (A : U) (B : U) (e : Eq U A B)
     (a : A) (b : B) : U 

@@ -68,11 +68,18 @@
 (defconst opetopictt-mode-tree-sitter-patterns
   [ ;; Keywords
    (comment) @comment
-   [ "let" ] @keyword
+   [ "let" "comp" "fill" ] @keyword
+   [ ":" "=" "(" ")" ] @punctuation
+   [ "[" "]" "{" "}" "|" "⊢" "●" ] @punctuation.special
+   [ "lf" "nd" "tt" ] @label
+   [ "U" ] @constant
+
+   (var_declaration variable: (identifier) @variable)
    
    (let_command
-    name: (identifier) @function
-    type: (expression) @type)
+    name: (identifier) @function)
+
+   (identifier) @function
    ])
 
 ;;;###autoload

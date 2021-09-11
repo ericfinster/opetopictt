@@ -37,7 +37,7 @@ module.exports = grammar({
 	// 
 	
 	var_declaration: $ => choice(
-	    seq('(', $.identifier, ':', $.expression, ')')
+	    seq('(', field("variable",$.identifier), ':', field("type",$.expression), ')')
 	),
 
 	telescope: $ => repeat1($.var_declaration),
