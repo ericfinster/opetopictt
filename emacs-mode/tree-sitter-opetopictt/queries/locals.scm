@@ -1,0 +1,3 @@
+; locals
+
+(identifier) @local.reference

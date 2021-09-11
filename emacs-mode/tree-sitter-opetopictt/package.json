@@ -1,29 +1,23 @@
 {
     "name": "tree-sitter-opetopictt",
-    "version": "0.0.1",
-    "description": "opetopictt grammar for tree-sitter",
+    "version": "1.0.0",
+    "description": "tree sitter parser for opetopictt",
     "main": "bindings/node",
-    "keywords": [
-	"parsing",
-	"incremental",
-	"opetopictt"
-    ],
-    "dependencies": {
-	"nan": "^2.12.1"
-    },
-    "devDependencies": {
-	"tree-sitter-cli": "^0.19.5"
-    },
     "scripts": {
-	"test": "tree-sitter test"
-    }
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "tree-sitter",
+        "opetopictt"
+    ],
     "tree-sitter": [
         {
-            "scope": "source.ett",
+            "scope": "source.ott",
             "file-types": [
-                "ett"
+                "ott"
             ]
         }
     ],
-    "author": "Eric Finster"
+    "author": "Eric Finster",
+    "license": "ISC"
 }
