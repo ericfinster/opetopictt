@@ -79,14 +79,6 @@ pi_head:
   | e = expr2
     { ("",e) }
 
-/* dir: */
-/*   | a = addr */
-/*     { Dir a } */
-
-/* addr: */
-/*   | LBRKT ds = separated_list(COMMA,dir) RBRKT */
-/*     { ds }  */
-
 dep_term:
   | s = sep_suite(expr,SEMI) VDASH e = expr
     { (s,Some e) }

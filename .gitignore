@@ -2,5 +2,4 @@ _build/
 emacs-mode/tree-sitter-opetopictt/Cargo.toml
 emacs-mode/tree-sitter-opetopictt/binding.gyp
 emacs-mode/tree-sitter-opetopictt/bindings/
-emacs-mode/tree-sitter-opetopictt/package.json
 emacs-mode/tree-sitter-opetopictt/src/

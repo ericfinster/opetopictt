@@ -36,7 +36,6 @@
 	     (node (car (cdr caps))))
     (message "First return: %s" (tsc-node-to-sexp node))))
     
-
 ;; (defun opetopictt-next-meta ()
 ;;   "Skip to the next meta"
 ;;   (interactive)
@@ -97,8 +96,11 @@
   (tree-sitter-mode)
   (tree-sitter-hl-mode))
 
-(add-to-list 'tree-sitter-major-mode-language-alist '(opetopictt-mode . opetopictt))
-(add-to-list 'auto-mode-alist '("\\.ott\\'" . opetopictt-mode))
+(add-to-list 'tree-sitter-major-mode-language-alist
+	     '(opetopictt-mode . opetopictt))
+
+(add-to-list 'auto-mode-alist
+	     '("\\.ott\\'" . opetopictt-mode))
 
 (provide 'opetopictt-mode)
 
