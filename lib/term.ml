@@ -37,8 +37,8 @@ type term =
   | CellT of term tele * term * term dep_term cmplx
   | CompT of term tele * term * term dep_term cmplx
   | FillT of term tele * term * term dep_term cmplx 
-  | KanElimT of term tele * term * term dep_term cmplx *
-                term * term * term * term
+  | CompUT of term tele * term * term dep_term cmplx * term * term
+  | FillUT of term tele * term * term dep_term cmplx * term * term
 
   (* The Universe *) 
   | TypT
@@ -87,18 +87,20 @@ let rec term_eq s t =
     cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
   | (FillT (tla,tya,ca), FillT (tlb,tyb,cb)) ->
     cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)
-  | (KanElimT (tla,tya,ca,pa,da,compa,filla),
-     KanElimT (tlb,tyb,cb,pb,db,compb,fillb)) ->
-    if (cell_desc_eq (tla,tya,ca) (tlb,tyb,cb)) then
-      if (term_eq pa pb) then
-        if (term_eq da db) then
-          if (term_eq compa compb) then
-            term_eq filla fillb
-          else false
-        else false
+  | (CompUT (tla,tya,ka,ca,fa), CompUT (tlb,tyb,kb,cb,fb)) ->
+    if cell_desc_eq (tla,tya,ka) (tlb,tyb,kb) then
+      if (term_eq ca cb) then
+        term_eq fa fb
       else false
     else false
-      
+  | (FillUT (tla,tya,ka,ca,fa), FillUT (tlb,tyb,kb,cb,fb)) ->
+    if cell_desc_eq (tla,tya,ka) (tlb,tyb,kb) then
+      if (term_eq ca cb) then
+        term_eq fa fb
+      else false
+    else false
+
+
   | (TypT , TypT) -> true
   | _ -> false 
 
@@ -158,13 +160,12 @@ let rec term_to_expr nms tm =
   | FillT (tl,ty,c) ->
     let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in 
     FillE (tle,tye,ce)
-  | KanElimT (tl,ty,c,p,d,comp,fill) ->
-    let (tle,tye,ce) = cell_desc_to_expr nms tl ty c in
-    let pe = tte nms p in
-    let de = tte nms d in
-    let compe = tte nms comp in
-    let fille = tte nms fill in 
-    KanElimE (tle,tye,ce,pe,de,compe,fille)
+  | CompUT (tl,ty,k,c,f) ->
+    let (tle,tye,ke) = cell_desc_to_expr nms tl ty k in 
+    CompUE (tle,tye,ke,tte nms c,tte nms f)
+  | FillUT (tl,ty,k,c,f) ->
+    let (tle,tye,ke) = cell_desc_to_expr nms tl ty k in 
+    FillUE (tle,tye,ke,tte nms c,tte nms f)
 
   | TypT -> TypE
 
@@ -232,14 +233,13 @@ let rec pp_term ppf tm =
     pf ppf "comp %a" pp_term_cell_desc (tl,ty,c)
   | FillT (tl,ty,c) ->
     pf ppf "fill %a" pp_term_cell_desc (tl,ty,c)
-  | KanElimT (tl,ty,c,p,d,comp,fill) ->
-    pf ppf "kan-elim %a %a %a %a %a"
-      pp_term_cell_desc (tl,ty,c)
-      (term_app_parens p) p 
-      (term_app_parens d) d
-      (term_app_parens comp) comp
-      (term_app_parens fill) fill
-      
+  | CompUT (tl,ty,k,c,f) ->
+    pf ppf "comp-unique %a %a %a" pp_term_cell_desc (tl,ty,k)
+      pp_term c pp_term f
+  | FillUT (tl,ty,k,c,f) ->
+    pf ppf "fill-unique %a %a %a" pp_term_cell_desc (tl,ty,k)
+      pp_term c pp_term f
+
   | TypT -> pf ppf "U"
 
 and pp_term_cell_desc ppf (tl,ty,c) =
@@ -262,7 +262,6 @@ and term_app_parens t =
   | SigT _ -> parens pp_term
   | CompT _ -> parens pp_term
   | FillT _ -> parens pp_term
-  | KanElimT _ -> parens pp_term 
   | _ -> pp_term
 
 and term_pi_parens t =

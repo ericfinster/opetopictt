@@ -322,42 +322,6 @@ and tcm_infer (e : expr) : (term * value) tcm =
     
     tcm_ok (FillT (tm_tl,tm_ty,tm_c) , fill_ty)
 
-  | KanElimE (tl,ty,c,p,d,comp,fill) ->
-
-    let* (tm_tl,tm_ty,tm_c,val_tl,val_ty,val_c,kan_addr) =
-      tcm_check_kan tl ty c in
-    
-    let cmp_face = face_at val_c (1,kan_addr) in
-    let cmp_ty = cellV val_tl val_ty cmp_face in 
-
-    let fill_fib v = 
-      let fill_cmplx = apply_at val_c (1,kan_addr)
-          (fun (vs,_) -> vs , Some v) in
-      cellV val_tl val_ty fill_cmplx in 
-
-    let p_ty =
-      PiV ("c", cmp_ty,
-           fun c ->
-             PiV ("f", fill_fib c, fun _ -> TypV)) in
-    
-    let* p' = tcm_check p p_ty in
-    let* pv = tcm_eval p' in
-
-    let canon_comp_val = CompV (val_tl,val_ty,val_c) in
-    let canon_fill_val = FillV (val_tl,val_ty,val_c) in
-
-    let* d' = tcm_check d (appV (appV pv canon_comp_val)
-                             canon_fill_val) in
-
-    let* comp' = tcm_check comp cmp_ty in
-    let* comp_val = tcm_eval comp' in 
-    
-    let* fill' = tcm_check fill (fill_fib comp_val) in 
-    let* fill_val = tcm_eval fill' in 
-    
-    tcm_ok (KanElimT (tm_tl,tm_ty,tm_c,p',d',comp',fill'),
-            appV (appV pv comp_val) fill_val)
-
   | TypE -> tcm_ok (TypT , TypV)
 
   | _ -> tcm_fail (`InferrenceFailed e) 

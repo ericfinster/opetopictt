@@ -57,7 +57,8 @@ let rec token buf =
   | 0x22a2       -> VDASH
   | "comp"       -> COMP
   | "fill"       -> FILL
-  | "kan-elim"   -> KANELIM
+  | "comp-unique" -> COMPU
+  | "fill-unique" -> FILLU
   | 0xd7         -> TIMES
   | ","          -> COMMA
   | "fst"        -> FST

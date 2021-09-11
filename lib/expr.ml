@@ -37,8 +37,8 @@ type expr =
   | CellE of expr tele * expr * expr dep_term tr_expr suite
   | CompE of expr tele * expr * expr dep_term tr_expr suite
   | FillE of expr tele * expr * expr dep_term tr_expr suite
-  | KanElimE of expr tele * expr * expr dep_term tr_expr suite *
-                expr * expr * expr * expr
+  | CompUE of expr tele * expr * expr dep_term tr_expr suite * expr * expr
+  | FillUE of expr tele * expr * expr dep_term tr_expr suite * expr * expr
 
   (* The Universe *) 
   | TypE
@@ -99,8 +99,14 @@ let rec pp_expr ppf expr =
     pf ppf "comp %a" pp_expr_cell_desc (tl,ty,c)
   | FillE (tl,ty,c) -> 
     pf ppf "fill %a" pp_expr_cell_desc (tl,ty,c)
-                 
-  | KanElimE _ -> pf ppf "kan-elim" 
+  | CompUE (tl,ty,k,c,f) ->
+    pf ppf "comp-unique %a %a %a"
+      pp_expr_cell_desc (tl,ty,k)
+      pp_expr c pp_expr f
+  | FillUE (tl,ty,k,c,f) -> 
+    pf ppf "fill-unique %a %a %a" 
+      pp_expr_cell_desc (tl,ty,k)
+      pp_expr c pp_expr f
 
   | TypE -> pf ppf "U"
 
@@ -122,7 +128,8 @@ and expr_app_parens e =
   | SigE _ -> parens pp_expr
   | CompE _ -> parens pp_expr
   | FillE _ -> parens pp_expr
-  | KanElimE _ -> parens pp_expr 
+  | CompUE _ -> parens pp_expr
+  | FillUE _ -> parens pp_expr
   | _ -> pp_expr
 
 and expr_pi_parens e =

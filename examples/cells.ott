@@ -2,7 +2,6 @@
 #  cells.ott - demonstrations of cells
 #
 
-
 let Eq (A : U) (a₀ : A) (a₁ : A) : U
   = [ ⊢ A
     | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
@@ -73,6 +72,13 @@ let Square
     | lf { q ; r ⊢ ● }
     ] 
 
+
+#
+#  Testing my hypothesis
+#
+
+let test (A : U) (B : A → U) 
+
 #
 #  Various comp tests 
 #
@@ -91,7 +97,6 @@ let transport-univ (A : U) (B : U) (e : Eq U A B) (a : A) : B
          | lf { e ⊢ ● }
          ]
 
-let test (A : U) (B : U) : U = A 
 
 let var-cells (A : U) (B : U) (e : Eq U A B)
     (a : A) (b : B) : U 
@@ -139,6 +144,8 @@ let sym (A : U) (a₀ : A) (a₁ : A)
              (nd (lf tt) (lf tt))) (lf tt)))
          | lf { ⊢ ● }
          ]
+
+
 
 #
 #  Testing the kan eliminator

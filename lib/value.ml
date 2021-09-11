@@ -30,8 +30,8 @@ type value =
   | CellV of value tele * value * value dep_term cmplx
   | CompV of value tele * value * value dep_term cmplx
   | FillV of value tele * value * value dep_term cmplx
-  | KanElimV of value tele * value * value dep_term cmplx * 
-                   value * value * value * value * spine 
+  | CompUV of value tele * value * value dep_term cmplx * value * value
+  | FillUV of value tele * value * value dep_term cmplx * value * value 
 
   (* The Universe *)
   | TypV
@@ -82,8 +82,12 @@ let rec pp_value ppf v =
     pf ppf "comp %a" pp_value_cell_desc (tl,ty,c)
   | FillV (tl,ty,c) ->
     pf ppf "fill %a" pp_value_cell_desc (tl,ty,c)
-      
-  | KanElimV _ -> pf ppf "kan elim value"
+  | CompUV (tl,ty,k,c,f) ->
+    pf ppf "comp-unique %a %a %a" pp_value_cell_desc (tl,ty,k)
+      pp_value c pp_value f
+  | FillUV (tl,ty,k,c,f) ->
+    pf ppf "fill-unique %a %a %a" pp_value_cell_desc (tl,ty,k)
+      pp_value c pp_value f
                     
   | TypV -> pf ppf "U"
     

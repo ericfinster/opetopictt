@@ -36,8 +36,6 @@ let rec appV t u =
   match t with
   | RigidV (i,sp) -> RigidV (i,AppSp(sp,u))
   | TopV (nm,sp,tv) -> TopV (nm,AppSp(sp,u), appV tv u)
-  | KanElimV (tl,ty,c,p,d,comp,fill,sp) ->
-    KanElimV (tl,ty,c,p,d,comp,fill,AppSp(sp,u))
   | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
@@ -364,15 +362,15 @@ let cellV tl ty c =
 (*                              Kan Calculation                              *)
 (*****************************************************************************)
 
-let rec kanElimV tl ty c p d comp fill =
-  match (comp,fill) with
-  | (TopV (_,_,tv),_) ->
-    kanElimV tl ty c p d tv fill
-  | (_,TopV (_,_,tv)) ->
-    kanElimV tl ty c p d comp tv
-  (* TODO : What kind of check do I need here? *) 
-  | (CompV (_,_,_) , FillV (_,_,_)) -> d
-  | _ -> KanElimV (tl,ty,c,p,d,comp,fill,EmpSp)
+(* let rec kanElimV tl ty c p d comp fill =
+ *   match (comp,fill) with
+ *   | (TopV (_,_,tv),_) ->
+ *     kanElimV tl ty c p d tv fill
+ *   | (_,TopV (_,_,tv)) ->
+ *     kanElimV tl ty c p d comp tv
+ *   (\* TODO : What kind of check do I need here? *\) 
+ *   | (CompV (_,_,_) , FillV (_,_,_)) -> d
+ *   | _ -> KanElimV (tl,ty,c,p,d,comp,fill,EmpSp) *)
 
 
 (*****************************************************************************)
@@ -414,14 +412,19 @@ let rec eval top loc tm =
     let (tl_v, ty_v, c_v) =
       eval_cell_desc top loc tl ty c in
     FillV  (tl_v , ty_v , c_v)
-  | KanElimT (tl,ty,c,p,d,comp,fill) ->
+  | CompUT (tl,ty,k,c,f) ->
     let (tl_v, ty_v, c_v) =
-      eval_cell_desc top loc tl ty c in
-    let pv = eval top loc p in
-    let dv = eval top loc d in
-    let compv = eval top loc comp in
-    let fillv = eval top loc fill in
-    kanElimV tl_v ty_v c_v pv dv compv fillv
+      eval_cell_desc top loc tl ty k in
+    CompUV  (tl_v , ty_v , c_v ,
+             eval top loc c,
+             eval top loc f)
+  | FillUT (tl,ty,k,c,f) ->
+    let (tl_v, ty_v, c_v) =
+      eval_cell_desc top loc tl ty k in
+    FillUV  (tl_v , ty_v , c_v ,
+             eval top loc c,
+             eval top loc f)
+
 
   | TypT -> TypV
 
@@ -469,9 +472,12 @@ and quote ufld k v =
   | FillV (tl,ty,c) ->
     let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
     FillT (tl',ty',c')
-  | KanElimV (tl,ty,c,p,d,comp,fill,sp) ->
-    let (tl',ty',c') = quote_cell_desc ufld k tl ty c in
-    qcs (KanElimT (tl',ty',c',qc p, qc d, qc comp, qc fill)) sp 
+  | CompUV (tl,ty,kn,c,f) ->
+    let (tl',ty',kn') = quote_cell_desc ufld k tl ty kn in
+    CompUT (tl',ty',kn',qc c,qc f)
+  | FillUV (tl,ty,kn,c,f) ->
+    let (tl',ty',kn') = quote_cell_desc ufld k tl ty kn in
+    FillUT (tl',ty',kn',qc c,qc f)
 
   | TypV -> TypT
 
