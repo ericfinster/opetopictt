@@ -74,12 +74,6 @@ let Square
 
 
 #
-#  Testing my hypothesis
-#
-
-let test (A : U) (B : A → U) 
-
-#
 #  Various comp tests 
 #
 

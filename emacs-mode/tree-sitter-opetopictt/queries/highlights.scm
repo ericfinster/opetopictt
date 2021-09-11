@@ -4,6 +4,8 @@
 "let"  @keyword
 "comp" @keyword
 "fill" @keyword
+"compu" @keyword
+"fillu" @keyword
 
 ":" @punctuation
 "=" @punctuation

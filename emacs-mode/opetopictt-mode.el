@@ -64,6 +64,7 @@
     table))
 
 (define-key opetopictt-mode-map (kbd "C-c C-n") `opetopictt-show-node-at-point)
+(define-key opetopictt-mode-map (kbd "C-c C-c") `compile)
 
 (defconst opetopictt-mode-tree-sitter-patterns
   [ ;; Keywords
@@ -71,7 +72,7 @@
    [ "let" ] @keyword
    [ ":" "=" "(" ")" "," "⊢" "●" ] @punctuation
    [ "[" "]" "{" "}" "|" "lf" "nd" "tt" ] @punctuation.special
-   [ "U" "fst" "snd" "comp" "fill" ] @constant
+   [ "U" "fst" "snd" "comp" "fill" "compu" "fillu" ] @constant
 
    (var_declaration variable: (identifier) @variable.parameter)
    
@@ -114,6 +115,10 @@
   (setq-local comment-start "#")
   (setq-local comment-start-skip "#+\\s-*")
 
+  ;; Compiling
+  (set (make-local-variable 'compile-command)
+       (concat "opetopictt " (shell-quote-argument buffer-file-name)))
+  
   (tree-sitter-mode)
   (tree-sitter-hl-mode))
 

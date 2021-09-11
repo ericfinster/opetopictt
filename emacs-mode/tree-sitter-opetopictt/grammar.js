@@ -95,7 +95,9 @@ module.exports = grammar({
 	    prec(4, seq('fst',$.expression)),
 	    prec(4, seq('snd',$.expression)),
 	    prec(4, seq('comp',$.cell_config)),
-	    prec(4, seq('fill',$.cell_config))
+	    prec(4, seq('fill',$.cell_config)),
+	    prec(4, seq('compu',$.cell_config,$.expression,$.expression)),
+	    prec(4, seq('fillu',$.cell_config,$.expression,$.expression))
 	    
 	),
 	

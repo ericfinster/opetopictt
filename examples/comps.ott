@@ -1,0 +1,63 @@
+#
+#  Testing new composition setup
+#
+
+let Eq (A : U) (a₀ : A) (a₁ : A) : U
+  = [ ⊢ A
+    | nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt)) 
+    | lf { ⊢ ● }
+    ] 
+
+let Null (A : U) (a : A) (p : Eq A a a) : U
+  = [ ⊢ A
+    | lf { ⊢ a }
+    | nd { ⊢ p } (lf tt)
+    | lf { ⊢ ● }
+    ] 
+
+let PathOver
+    (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (B : A → U) (b₀ : B a₀) (b₁ : B a₁) : U
+  = [ (a : A) ⊢ B a
+    | nd { a₁ ⊢ b₁ } (nd (lf { a₀ ⊢ b₀ }) (lf tt)) 
+    | lf { p ⊢ ● }
+    ] 
+
+let refl (A : U) (a : A) : Eq A a a
+  = comp [ ⊢ A
+         | lf { ⊢ a }
+         | nd { ⊢ ● } (lf tt)
+         | lf { ⊢ ● }
+         ]
+
+let null (A : U) (a : A) : Null A a (refl A a)
+  = fill [ ⊢ A
+         | lf { ⊢ a }
+         | nd { ⊢ ● } (lf tt)
+         | lf { ⊢ ● }
+         ]
+
+#
+#  Using the uniqueness terms on refl and null ...
+#
+
+let reflU (A : U) (a : A) (p : Eq A a a) (n : Null A a p)
+  : Eq (Eq A a a) (refl A a) p
+  = compu
+    [ ⊢ A
+    | lf { ⊢ a }
+    | nd { ⊢ ● } (lf tt)
+    | lf { ⊢ ● }
+    ] p n
+
+let nullU (A : U) (a : A) (p : Eq A a a) (n : Null A a p)
+  : PathOver (Eq A a a) (refl A a) p (reflU A a p n)
+             (λ e . Null A a e) (null A a) n
+  = fillu 
+    [ ⊢ A
+    | lf { ⊢ a }
+    | nd { ⊢ ● } (lf tt)
+    | lf { ⊢ ● }
+    ] p n
+
+

@@ -55,10 +55,10 @@ let rec token buf =
   | "|"          -> VBAR
   | 0x25cf       -> EMPTY
   | 0x22a2       -> VDASH
+  | "compu"      -> COMPU
+  | "fillu"      -> FILLU
   | "comp"       -> COMP
   | "fill"       -> FILL
-  | "comp-unique" -> COMPU
-  | "fill-unique" -> FILLU
   | 0xd7         -> TIMES
   | ","          -> COMMA
   | "fst"        -> FST
