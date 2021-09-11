@@ -47,22 +47,44 @@ module.exports = grammar({
 	    $.expression
 	),
 
+	term_seq: $ => seq(
+	    sepSeq(';',$.expression),
+	    '\u{22a2}',
+	    choice(
+		'\u{25cf}',
+		$.expression
+	    )
+	),
 
-	// dep_term:
-	//     | s = sep_suite(expr,SEMI) VDASH e = expr
-	// { (s,Some e) }
-	//     | s = sep_suite(expr,SEMI) VDASH EMPTY
-	// { (s,None) }
+	tr_expr: $ => choice(
+	    'tt',
+	    seq('{',$.term_seq,'}'),
+	    seq('lf',$.tr_expr),
+	    seq('nd',$.tr_expr,$.tr_expr),
+	    seq('(',$.tr_expr,')')
+	),
 
+	cmplx: $ => sepSeq1('|',$.tr_expr),
+
+	cell_config: $ => seq(
+	    '[',optional($.telescope),'\u{22a2}',$.expression,'|',$.cmplx,']'
+	),
 	
 	expression: $ => choice(
+	    
 	    prec(1, seq($.lambda,$.identifier,'.',$.expression)),
 	    prec(1, seq($.lambda,'{',$.identifier,'}',$.expression)),
 	    prec(1, seq($.pi_head,$.arrow,$.expression)),
+	    
 	    prec.left(2,seq($.expression, $.expression)),
+	    
 	    prec(3, 'U'),
 	    prec(3, $.identifier),
-	    prec(3, seq('(',$.expression,')'))
+	    prec(3, seq('(',$.expression,')')),
+	    prec(3, $.cell_config),
+	    prec(3, seq('comp',$.cell_config)),
+	    prec(3, seq('fill',$.cell_config))
+	    
 	),
 	
 	//
@@ -102,4 +124,14 @@ module.exports = grammar({
     }
 
 });
+
+
+function sepSeq1(sep,rule) {
+    return seq(rule, repeat(seq(sep, rule)));
+}
+
+function sepSeq(sep,rule) {
+    return optional(sepSeq1(sep,rule));
+}
+
 
