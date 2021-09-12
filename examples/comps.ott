@@ -86,3 +86,114 @@ let refl-J (A : U) (a : A)
          | lf { reflU A a p n ; nullU A a p n ⊢ ● }
          ]
 
+
+#
+#  Singletons and J 
+#
+
+let singleton (A : U) (a₀ : A) : U
+  = (a₁ : A) × Eq A a₀ a₁ 
+
+let ucomp (A : U) (a : A) : A
+  = comp [ ⊢ A
+         | nd { ⊢ ● } (nd (lf { ⊢ a }) (lf tt)) 
+         | lf { ⊢ ● }
+         ] 
+
+let ufill (A : U) (a : A) : Eq A a (ucomp A a)
+  = fill [ ⊢ A
+         | nd { ⊢ ● } (nd (lf { ⊢ a }) (lf tt)) 
+         | lf { ⊢ ● }
+         ]
+
+let ucomp-unique (A : U) (a : A) (s : singleton A a)
+  : Eq A (ucomp A a) (fst s) 
+  = compu [ ⊢ A
+          | nd { ⊢ ● } (nd (lf { ⊢ a }) (lf tt)) 
+          | lf { ⊢ ● }
+          ] (fst s) (snd s) 
+
+let ufill-unique (A : U) (a : A) (s : singleton A a) 
+  : PathOver A (ucomp A a) (fst s) (ucomp-unique A a s)
+             (Eq A a) (ufill A a) (snd s) 
+  = fillu [ ⊢ A
+          | nd { ⊢ ● } (nd (lf { ⊢ a }) (lf tt)) 
+          | lf { ⊢ ● }
+          ] (fst s) (snd s) 
+
+let singleton-to (A : U) (a : A) (s : singleton A a)
+  : Eq (singleton A a) (ucomp A a , ufill A a) s 
+  = (ucomp-unique A a s , ufill-unique A a s)
+
+let arrow-J (A : U) (a₀ : A)
+    (P : (a₁ : A) → (p : Eq A a₀ a₁) → U)
+    (d : P (ucomp A a₀) (ufill A a₀))
+    (a₁ : A) (p : Eq A a₀ a₁)
+  : P a₁ p
+  = comp [ (x : A) (y : Eq A a₀ x) ⊢ P x y
+         | nd { a₁ ; p ⊢ ● } (nd (lf { ucomp A a₀ ; ufill A a₀ ⊢ d }) (lf tt)) 
+         | lf { ucomp-unique A a₀ (a₁ , p) ; ufill-unique A a₀ (a₁ , p) ⊢ ● }
+         ]
+
+let singleton-from (A : U) (a : A) (s : singleton A a)
+  : Eq (singleton A a) s (ucomp A a , ufill A a) 
+  = arrow-J A a (λ a₁ . λ p . Eq (singleton A a) (a₁ , p) (ucomp A a , ufill A a))
+    (refl (singleton A a) (ucomp A a , ufill A a)) (fst s) (snd s) 
+
+#
+#  Testing Cell reduction for Σ
+#
+
+let Σ-test (A : U) (B : A → U) 
+    (a₀ : A) (b₀ : B a₀)
+    (a₁ : A) (b₁ : B a₁)
+    (p : Eq A a₀ a₁) (q : PathOver A a₀ a₁ p B b₀ b₁)
+  : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
+  = p , q 
+
+#
+#  Testing Cell reduction for Π
+#
+
+# Interesting to see that the order of abstraction here is
+# really crucial.  This isn't officially a bug, but you
+# should revisit how it comes out for ergonomics ...
+
+let Π-test (A : U) (B : A -> U)
+    (σ₀ : (a : A) → B a)
+    (σ₁ : (a : A) → B a)
+    (σ₀₁ : (a₁ : A) → (a₀ : A) → (a₀₁ : Eq A a₀ a₁)
+      → PathOver A a₀ a₁ a₀₁ B (σ₀ a₀) (σ₁ a₁))
+  : Eq ((a : A) → B a) σ₀ σ₁
+  = σ₀₁
+
+
+#
+#  Testing Cell reduction for 𝕌 
+#
+
+let Univ-test (A : U) (B : U)
+    (E : B → A → U)
+    (B-comp : B → A)
+    (B-fill : (b : B) → E b (B-comp b))
+    (B-elim : (b : B) → (P : (a : A) → E b a → U)
+      → (d : P (B-comp b) (B-fill b))
+      → (a : A) → (e : E b a) → P a e)
+    (A-comp : A → B)
+    (A-fill : (a : A) → E (A-comp a) a)
+    (A-elim : (a : A) → (P : (b : B) → E b a → U)
+      → (d : P (A-comp a) (A-fill a))
+      → (b : B) → (e : E b a) → P b e)
+  : Eq U A B
+  = (E , (A-comp , A-fill) , (B-comp , B-fill))
+
+let id (A : U) : A → A
+  = λ a . a
+
+# Equality is refl in the universe
+let Univ-refl (A : U) : Eq U A A
+  = (Eq A , (id A , refl A) , (id A , refl A))
+
+# And it's null homotopy is null!
+let Univ-null (A : U) : Null U A (Univ-refl A)
+  = (Null A , (refl A , null A))
