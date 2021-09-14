@@ -6,7 +6,8 @@
        
 %} 
 
-%token LET LAMBDA COLON EQUAL DOT VBAR
+%token LET NORMALIZE
+%token LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR LBRKT RBRKT
 %token ARROW VDASH EMPTY SEMI
 %token COMP FILL COMPU FILLU
@@ -64,6 +65,8 @@ prog:
 cmd:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
     { Let (id,tl,ty,tm) }
+  | NORMALIZE tl = tele COLON ty = expr VBAR tm = expr
+    { Normalize (tl,ty,tm) } 
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR

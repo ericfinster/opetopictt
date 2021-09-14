@@ -34,6 +34,7 @@ let rec token buf =
   match%sedlex buf with
 
   | "let"        -> LET
+  | "normalize"  -> NORMALIZE
   | 0x2192       -> ARROW
   | "->"         -> ARROW
   | "("          -> LPAR

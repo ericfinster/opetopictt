@@ -163,9 +163,9 @@ let tcm_eval (t : term) : value tcm =
   tcm_ok (eval (top_lookup gma)
             (loc_lookup gma) t)
 
-let tcm_quote (v : value) : term tcm =
+let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
-  tcm_ok (quote false gma.lvl v)
+  tcm_ok (quote ufld gma.lvl v)
 
 let tcm_in_ctx g m _ = m g 
 
@@ -536,9 +536,11 @@ and tcm_check_kan tl ty c =
     end
 
 (* TODO: Perhaps this should return the fibration to make things more efficient ? *)
-and tcm_in_tele (tl : expr tele)
-    (k : term tele -> 'a tcm) : 'a tcm =
 
+and tcm_in_tele : 'a. expr tele
+  -> (term tele -> 'a tcm)
+  -> 'a tcm = 
+  fun tl k -> 
   match tl with
   | Emp -> k Emp
   | Ext (tl',(id,ty)) ->

@@ -277,6 +277,7 @@ let Univ-test2 (A : U) (B : U) (C : U)
 let id (A : U) : A → A
   = λ a . a
 
+
 # Equality is refl in the universe
 let Univ-refl (A : U) : Eq U A A
   = (Eq A , (id A , refl A) , (id A , refl A))

@@ -27,6 +27,17 @@ let PathOver
     | lf { p ⊢ ● }
     ] 
 
+
+let Simplex
+    (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
+    (p : Eq A a₀ a₁) (q : Eq A a₁ a₂) (r : Eq A a₀ a₂) : U
+  = [ ⊢ A
+    | nd { ⊢ a₂ } (nd (nd { ⊢ a₁ } (nd (lf { ⊢ a₀ }) (lf tt))) (lf tt))
+    | nd { ⊢ r } (nd (lf { ⊢ q }) (nd (nd (lf { ⊢ p })
+        (nd (lf tt) (lf tt))) (lf tt)))
+    | lf { ⊢ ● }
+    ]
+
 let transport (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) : B a₁ 
@@ -140,6 +151,13 @@ let singleton-from (A : U) (a : A) (s : singleton A a)
   = arrow-J A a (λ a₁ . λ p . Eq (singleton A a) (a₁ , p) (ucomp A a , ufill A a))
     (refl (singleton A a) (ucomp A a , ufill A a)) (fst s) (snd s) 
 
+
+# let J (A : U) (a₀ : A) (P : out_path A a₀ → U)
+#     (d : P (a₀ , refl A a₀)) (a₁ : A) (p : Eq A a₀ a₁)
+#   : P (a₁ , p)
+#   = transport (out_path A a₀) P
+#       (a₀ , refl A a₀) (a₁ , p) (path_from_refl A a₀ a₁ p) d
+
 #
 #  Testing Cell reduction for Σ
 #
@@ -162,7 +180,7 @@ let Σ-test (A : U) (B : A → U)
 let Π-test (A : U) (B : A -> U)
     (σ₀ : (a : A) → B a)
     (σ₁ : (a : A) → B a)
-    (σ₀₁ : (a₁ : A) → (a₀ : A) → (a₀₁ : Eq A a₀ a₁)
+    (σ₀₁ : (a₀ : A) → (a₁ : A) → (a₀₁ : Eq A a₀ a₁)
       → PathOver A a₀ a₁ a₀₁ B (σ₀ a₀) (σ₁ a₁))
   : Eq ((a : A) → B a) σ₀ σ₁
   = σ₀₁
@@ -173,27 +191,68 @@ let Π-test (A : U) (B : A -> U)
 #
 
 let Univ-test (A : U) (B : U)
-    (E : B → A → U)
-    (B-comp : B → A)
-    (B-fill : (b : B) → E b (B-comp b))
-    (B-elim : (b : B) → (P : (a : A) → E b a → U)
-      → (d : P (B-comp b) (B-fill b))
-      → (a : A) → (e : E b a) → P a e)
+    (E : A → B → U)
+    # (B-comp : B → A)
+    # (B-fill : (b : B) → E b (B-comp b))
     (A-comp : A → B)
-    (A-fill : (a : A) → E (A-comp a) a)
-    (A-elim : (a : A) → (P : (b : B) → E b a → U)
-      → (d : P (A-comp a) (A-fill a))
-      → (b : B) → (e : E b a) → P b e)
+    (A-fill : (a : A) → E a (A-comp a))
+    (A-compu : (a : A) → (b : B) → (p : E a b)
+      → Eq B (A-comp a) b)
+    (A-fillu : (a : A) → (b : B) → (p : E a b)
+      → PathOver B (A-comp a) b (A-compu a b p)
+          (E a) (A-fill a) p)
   : Eq U A B
-  = (E , (A-comp , A-fill) , (B-comp , B-fill))
+  = (E , A-comp, A-fill, A-compu, A-fillu)
 
-let id (A : U) : A → A
-  = λ a . a
 
-# Equality is refl in the universe
-let Univ-refl (A : U) : Eq U A A
-  = (Eq A , (id A , refl A) , (id A , refl A))
+let Univ-test2 (A : U) (B : U) (C : U)
+    (E : Eq U A B)
+    (F : Eq U B C)
+    (G : Eq U A C)
+    (H : (a : A) → (b : B) → (c : C)
+      → (e : (fst E) a b)
+      → (f : (fst F) b c)
+      → (g : (fst G) a c) → U)
+    (H-comp : (a : A) → (b : B) → (c : C)
+      → (e : (fst E) a b)
+      → (f : (fst F) b c)
+      → (fst G) a c)
+    (H-fill : (a : A) → (b : B) → (c : C)
+      → (e : (fst E) a b)
+      → (f : (fst F) b c)
+      → H a b c e f (H-comp a b c e f))
+    (H-compu : (a : A) → (b : B) → (c : C)
+      → (e : (fst E) a b)
+      → (f : (fst F) b c)
+      → (g : (fst G) a c)
+      → (h : H a b c e f g)
+      → Eq ((fst G) a c) (H-comp a b c e f) g)
+    (H-fillu : (a : A) → (b : B) → (c : C)
+      → (e : (fst E) a b)
+      → (f : (fst F) b c)
+      → (g : (fst G) a c)
+      → (h : H a b c e f g)
+      → PathOver ((fst G) a c) (H-comp a b c e f) g
+          (H-compu a b c e f g h)
+          (H a b c e f) (H-fill a b c e f) h)
+  : Simplex U A B C E F G
+  = (H, H-comp, H-fill, H-compu, H-fillu)
 
-# And it's null homotopy is null!
-let Univ-null (A : U) : Null U A (Univ-refl A)
-  = (Null A , (refl A , null A))
+# let id (A : U) : A → A
+#   = λ a . a
+
+# normalize (A : U) (a : A) : A 
+#   | id A a 
+
+# normalize (A : U) (B : U)
+#     (E : Eq U A B) (F : Eq U A B) : U 
+#   | Eq (Eq U A B) E F 
+
+# # Equality is refl in the universe
+# let Univ-refl (A : U) : Eq U A A
+#   = (Eq A , (id A , refl A) , (id A , refl A))
+
+# # And it's null homotopy is null!
+# let Univ-null (A : U) : Null U A (Univ-refl A)
+#   = (Null A , (refl A , null A))
+

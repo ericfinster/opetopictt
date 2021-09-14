@@ -2,6 +2,7 @@
 
 
 "let"  @keyword
+"normalize" @keyword
 "comp" @keyword
 "fill" @keyword
 "compu" @keyword

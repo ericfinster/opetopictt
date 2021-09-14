@@ -273,7 +273,7 @@ let rec describe_fib tl ty =
 (*                           Cell Type Calculation                           *)
 (*****************************************************************************)
 
-let cellV tl ty c =
+let rec cellV tl ty c =
   match c with
   | Base (Lf (vs,_)) ->
     app_to_fib (to_list vs) ty 
@@ -283,8 +283,8 @@ let cellV tl ty c =
 
       | SigFib (nm,a,b) ->
 
-        let src_typ = CellV (tl, a, fstC c) in
-        let tgt_typ x = CellV (Ext (tl,(nm,a)), b, sndC c x)
+        let src_typ = cellV tl a (fstC c) in
+        let tgt_typ x = cellV (Ext (tl,(nm,a))) b (sndC c x)
 
         in SigV ("",src_typ,tgt_typ)
 
@@ -292,7 +292,7 @@ let cellV tl ty c =
 
         let a_cell = cellC tl a (map_cmplx c ~f:fst) in
         piC a_cell (fun args ->
-            CellV (Ext (tl, (nm, a)), b, appC c args))
+            cellV (Ext (tl, (nm, a))) b (appC c args))
 
       | TypFib ->
         
@@ -307,71 +307,132 @@ let cellV tl ty c =
                   fstV (Option.value_exn vo)
               ) in
 
-        SigV ("", piC frm_fibs (fun _ -> TypV),
-              fun fill_fib -> 
+        let comp_fib = base_value (head_of frm_fibs) in
 
-                let all_fibs = Adjoin (frm_fibs, Lf fill_fib) in 
-                let k = head_of c_tl in 
-                let ktyps = map_nst_with_addr k
-                    ~f:(fun (_,fopt) addr ->
-                        
-                        let comp_typ = piKanC addr all_fibs
-                            (fun kc ->
+        let fillu_typ fill_fib comp_op fill_op compu_op =
 
-                               let comp_fib = Option.value_exn fopt in 
-                               if (c_dim = 1) then
-                                 comp_fib
-                               else
-                                 let f_args = face_at kc (0,addr) in
-                                 app_to_fib (labels (tail_of f_args)) (fstV comp_fib)
+          let all_fibs = Adjoin (frm_fibs, Lf fill_fib) in
 
-                            ) in
+          piC all_fibs (fun arg_c ->
 
-                        SigV ("", comp_typ,
-                              fun comp ->
+              let f = face_at arg_c (1,[]) in
+              let cmp_args =
+                begin match f with
+                  | Base n -> nodes_nst_except n []
+                  | Adjoin (t,n) ->
+                    List.append (labels t)
+                      (nodes_nst_except n []) 
+                end in
+              
+              let cmp_typ = app_to_fib cmp_args comp_fib in
 
-                                let fill_typ = piKanC addr all_fibs
-                                    (fun kc ->
+              
+              let op_args =
+                begin match arg_c with
+                  | Base _ -> failwith "impossible"
+                  | Adjoin (Base n,_) ->
+                    nodes_nst_except n [] 
+                  | Adjoin (Adjoin(t,k),_) ->
+                    List.append (labels t) (nodes_nst_except k [])
+                end in
+              
+              let fil_typ = app_to_fib op_args fill_fib in
 
-                                       let comp_args =
-                                         begin match kc with
-                                           | Base n -> nodes_nst_except n addr
-                                           | Adjoin (t,n) ->
-                                             List.append (labels t)
-                                               (nodes_nst_except n addr) 
-                                         end in
-                                                                                    
-                                       let kc' = replace_at kc (0,addr)
-                                           (app_to_fib comp_args comp) in
-                                       
-                                       app_to_fib (labels kc') fill_fib
-                                     
-                                    )
-                                    
-                                in fill_typ)
+              let po_cmplx = arr_cmplx
+                  (Ext (Emp, app_to_fib op_args comp_op), Some (app_to_fib op_args fill_op))
+                  (Ext (Emp, base_value (head_of f)), Some (base_value (head_of arg_c)))
+                  (Ext (Emp, app_to_fib (labels arg_c) compu_op), None) 
+              in 
 
-                      ) in 
+              CellV (Ext (Emp,("",cmp_typ)),fil_typ,po_cmplx)) in 
+        
+        let compu_typ fill_fib comp_op fill_op = 
+          
+          let all_fibs = Adjoin (frm_fibs, Lf fill_fib) in
 
-                prod (nodes_nst ktyps))
+          let p = piC all_fibs (fun arg_c ->
+              
+              let f = face_at arg_c (1,[]) in
+              let cmp_args =
+                begin match f with
+                  | Base n -> nodes_nst_except n []
+                  | Adjoin (t,n) ->
+                    List.append (labels t)
+                      (nodes_nst_except n []) 
+                end in
+              
+              let cmp_typ = app_to_fib cmp_args comp_fib in
+
+              let op_args =
+                begin match arg_c with
+                  | Base _ -> failwith "impossible"
+                  | Adjoin (Base n,_) ->
+                    nodes_nst_except n [] 
+                  | Adjoin (Adjoin(t,k),_) ->
+                    List.append (labels t) (nodes_nst_except k [])
+                end in 
+              
+              let eq_cell = arr_cmplx
+                (Emp, Some (app_to_fib op_args comp_op))
+                (Emp, Some (base_value (head_of f)))
+                (Emp, None) 
+              in 
+              
+              CellV (Emp,cmp_typ,eq_cell)
+
+            )
+
+          in SigV ("", p, fillu_typ fill_fib comp_op fill_op) 
+
+        in 
+
+        
+        let fill_typ fill_fib comp_op =
+
+          let p = piKanC [] (Adjoin (frm_fibs, Lf fill_fib))
+            (fun kc ->
+
+               let comp_args =
+                 begin match kc with
+                   | Base n -> nodes_nst_except n []
+                   | Adjoin (t,n) ->
+                     List.append (labels t)
+                       (nodes_nst_except n []) 
+                 end in
+
+               let kc' = replace_at kc (0,[])
+                   (app_to_fib comp_args comp_op) in
+
+               app_to_fib (labels kc') fill_fib
+
+            ) in
+
+          SigV ("", p, compu_typ fill_fib comp_op)
+          
+        in
+
+        let comp_typ fill_fib =
+          let all_fibs = Adjoin (frm_fibs, Lf fill_fib) in
+          let p = piKanC [] all_fibs
+              (fun kc ->
+
+                 if (c_dim = 1) then
+                   comp_fib
+                 else
+                   let f_args = face_at kc (0,[]) in
+                   app_to_fib (labels (tail_of f_args)) comp_fib
+
+              ) in
+
+          SigV ("", p, fill_typ fill_fib)
+          
+        in
+        
+        SigV ("", piC frm_fibs (fun _ -> TypV), comp_typ)
                 
       | _ -> CellV (tl,ty,c)
 
     end
-
-(*****************************************************************************)
-(*                              Kan Calculation                              *)
-(*****************************************************************************)
-
-(* let rec kanElimV tl ty c p d comp fill =
- *   match (comp,fill) with
- *   | (TopV (_,_,tv),_) ->
- *     kanElimV tl ty c p d tv fill
- *   | (_,TopV (_,_,tv)) ->
- *     kanElimV tl ty c p d comp tv
- *   (\* TODO : What kind of check do I need here? *\) 
- *   | (CompV (_,_,_) , FillV (_,_,_)) -> d
- *   | _ -> KanElimV (tl,ty,c,p,d,comp,fill,EmpSp) *)
-
 
 (*****************************************************************************)
 (*                                 Evaluation                                *)

@@ -5,13 +5,14 @@
 (*****************************************************************************)
 
 open Expr
+open Term
 open Syntax
 open Typecheck
 
 type cmd =
   | Let of name * expr tele * expr * expr
-  (* | Normalize of expr tele * expr  * expr
-   * | Infer of expr tele * expr  *)
+  | Normalize of expr tele * expr  * expr
+  (* | Infer of expr tele * expr *)
 
 let rec run_cmds cmds =
   
@@ -36,19 +37,22 @@ let rec run_cmds cmds =
     tcm_in_ctx (define gma id tm_val ty_val)
       (run_cmds cs)
       
-  (* | (Normalize (tl,ty,tm))::cs ->
-   *   Fmt.pr "----------------@,";
-   *   Fmt.pr "Normalizing: @[%a@]@," pp_expr tm;
-   *   let* _ = with_tele gma tl (fun gma' _ _ ->
-   *       let* ty' = check gma' ty TypV in
-   *       let ty_v = eval gma'.top gma'.loc ty' in
-   *       let* tm' = check gma' tm ty_v in
-   *       let t_nf = normalize gma' tm' ty_v in 
-   *       let t_nf_expr = term_to_expr (names gma') t_nf in
-   *       Fmt.pr "Result: @[%a@]@," pp_expr t_nf_expr; 
-   *       Ok ()) in  
-   *   run_cmds gma cs 
-   * | (Infer (tl,tm))::cs ->
+  | (Normalize (tl,ty,tm))::cs ->
+    Fmt.pr "----------------@,";
+    Fmt.pr "Normalizing: @[%a@]@," pp_expr tm;
+    let* _ = tcm_in_tele tl (fun _ ->
+        let* ty' = tcm_check ty TypV in
+        let* ty_v = tcm_eval ty' in
+        let* tm' = tcm_check tm ty_v in
+        let* tm_v = tcm_eval tm' in
+        let* tm_nf = tcm_quote tm_v true in
+        let* gma = tcm_ctx in 
+        let t_nf_expr = term_to_expr (names gma) tm_nf in
+        Fmt.pr "Result: @[%a@]@," pp_expr t_nf_expr; 
+        tcm_ok ()) in
+    run_cmds cs
+      
+  (* | (Infer (tl,tm))::cs ->
    *   Fmt.pr "----------------@,";
    *   Fmt.pr "Infering the type of: @[%a@]@," pp_expr tm;
    *   let* _ = with_tele gma tl (fun gma' _ _ ->
@@ -57,4 +61,4 @@ let rec run_cmds cmds =
    *       let ty_expr = term_to_expr (names gma') ty_nf in 
    *       Fmt.pr "Result type: @[%a@]@," pp_expr ty_expr; 
    *       Ok ()) in  
-   *   run_cmds gma cs  *)
+   *   run_cmds gma cs *)

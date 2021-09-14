@@ -172,7 +172,11 @@ let rec term_to_expr nms tm =
 and cell_desc_to_expr nms tl ty c =
   let (etl, ety) = fold_accum_cont tl nms
       (fun (nm,typ) nms ->
-         ((nm,term_to_expr nms typ),Ext (nms,nm)))
+         let nm' = 
+           if (String.equal nm "") then
+             "x" ^ (Int.to_string (length nms)) 
+           else nm in 
+         ((nm',term_to_expr nms typ),Ext (nms,nm')))
       (fun etl nms -> (etl, term_to_expr nms ty)) in
 
   let c' = map_cell_desc_cmplx c ~f:(term_to_expr nms) in

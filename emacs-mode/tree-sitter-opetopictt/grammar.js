@@ -19,7 +19,8 @@ module.exports = grammar({
 	//
 	
 	_command: $ => choice(
-	    $.let_command
+	    $.let_command,
+	    $.normalize_command
 	),
 
 	let_command: $ => seq(
@@ -31,6 +32,15 @@ module.exports = grammar({
 	    '=',
 	    field("body", $.expression)
 	),
+
+	normalize_command: $ => seq(
+	    'normalize',
+	    field("context", optional($.telescope)),	    
+	    ':',
+	    field("type", $.expression), 
+	    '|',
+	    field("term", $.expression)
+	), 
 
 	//
 	//  Expressions 
