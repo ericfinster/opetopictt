@@ -309,6 +309,12 @@ let rec cellV tl ty c =
 
         let comp_fib = base_value (head_of frm_fibs) in
 
+        (* These fibrations have to appear in reverse order *)
+        
+        (* 
+         * FILLU - uniqueness of the filling cell 
+         *)
+        
         let fillu_typ fill_fib comp_op fill_op compu_op =
 
           let all_fibs = Adjoin (frm_fibs, Lf fill_fib) in
@@ -345,6 +351,10 @@ let rec cellV tl ty c =
               in 
 
               CellV (Ext (Emp,("",cmp_typ)),fil_typ,po_cmplx)) in 
+
+        (*
+         * COMPU - composite uniqueness
+         *)
         
         let compu_typ fill_fib comp_op fill_op = 
           
@@ -386,6 +396,9 @@ let rec cellV tl ty c =
 
         in 
 
+        (*
+         *  FILL - the filling cell
+         *)
         
         let fill_typ fill_fib comp_op =
 
@@ -411,6 +424,10 @@ let rec cellV tl ty c =
           
         in
 
+        (*
+         *  COMP - the composite cell 
+         *)
+        
         let comp_typ fill_fib =
           let all_fibs = Adjoin (frm_fibs, Lf fill_fib) in
           let p = piKanC [] all_fibs

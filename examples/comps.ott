@@ -190,7 +190,7 @@ let Π-test (A : U) (B : A -> U)
 #  Testing Cell reduction for 𝕌 
 #
 
-let Univ-test (A : U) (B : U)
+let EqUniv (A : U) (B : U)
     (E : A → B → U)
     # (B-comp : B → A)
     # (B-fill : (b : B) → E b (B-comp b))
@@ -204,8 +204,7 @@ let Univ-test (A : U) (B : U)
   : Eq U A B
   = (E , A-comp, A-fill, A-compu, A-fillu)
 
-
-let Univ-test2 (A : U) (B : U) (C : U)
+let SimplexUniv (A : U) (B : U) (C : U)
     (E : Eq U A B)
     (F : Eq U B C)
     (G : Eq U A C)
@@ -240,9 +239,6 @@ let Univ-test2 (A : U) (B : U) (C : U)
 
 # let id (A : U) : A → A
 #   = λ a . a
-
-# normalize (A : U) (a : A) : A 
-#   | id A a 
 
 # normalize (A : U) (B : U)
 #     (E : Eq U A B) (F : Eq U A B) : U 
