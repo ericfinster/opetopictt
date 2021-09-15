@@ -27,6 +27,14 @@ let PathOver
     | lf { p ⊢ ● }
     ] 
 
+let PathOverOver
+    (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (B : A → U) (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A a₀ a₁ p B b₀ b₁)
+    (C : (a : A) → (b : B a) → U) (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
+  = [ (a : A) (b : B a) ⊢ C a b
+    | nd { a₁ ; b₁ ⊢ c₁ } (nd (lf { a₀ ; b₀ ⊢ c₀ }) (lf tt)) 
+    | lf { p ; q ⊢ ● }
+    ] 
 
 let Simplex
     (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
@@ -169,6 +177,13 @@ let Σ-test (A : U) (B : A → U)
   : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
   = p , q 
 
+let Σ-over-test (A : U) (B : A → U) (C : (a : A) → B a → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A a₀ a₁ p B b₀ b₁)
+    (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) (r : PathOverOver A a₀ a₁ p B b₀ b₁ q C c₀ c₁)
+  : PathOver A a₀ a₁ p (λ a . (b : B a) × C a b) (b₀ , c₀) (b₁ , c₁)
+  = q , r
+
 #
 #  Testing Cell reduction for Π
 #
@@ -237,18 +252,64 @@ let SimplexUniv (A : U) (B : U) (C : U)
   : Simplex U A B C E F G
   = (H, H-comp, H-fill, H-compu, H-fillu)
 
-# let id (A : U) : A → A
-#   = λ a . a
+let id (A : U) : A → A
+  = λ a . a
 
 # normalize (A : U) (B : U)
 #     (E : Eq U A B) (F : Eq U A B) : U 
 #   | Eq (Eq U A B) E F 
 
-# # Equality is refl in the universe
-# let Univ-refl (A : U) : Eq U A A
-#   = (Eq A , (id A , refl A) , (id A , refl A))
+# Equality is refl in the universe
+let Univ-refl (A : U)
+    (fu : (a₀ : A) → (a₁ : A) → (p : Eq A a₀ a₁)
+          → PathOver A a₀ a₁ p (Eq A a₀) (refl A a₀) p)
+  : Eq U A A
+  = (Eq A , id A , refl A ,
+      λ a₀ . λ a₁ . λ p . p ,
+      fu)
 
-# # And it's null homotopy is null!
-# let Univ-null (A : U) : Null U A (Univ-refl A)
-#   = (Null A , (refl A , null A))
+#
+#  Another version using comp 
+#
 
+let ucomp-unique-split (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq A (ucomp A a₀) a₁ 
+  = compu [ ⊢ A
+          | nd { ⊢ ● } (nd (lf { ⊢ a₀ }) (lf tt)) 
+          | lf { ⊢ ● }
+          ] a₁ p 
+
+let ufill-unique-split (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : PathOver A (ucomp A a₀) a₁ (ucomp-unique-split A a₀ a₁ p)
+             (Eq A a₀) (ufill A a₀) p 
+  = fillu [ ⊢ A
+          | nd { ⊢ ● } (nd (lf { ⊢ a₀ }) (lf tt)) 
+          | lf { ⊢ ● }
+          ] a₁ p
+
+#
+#  Okay, suppose we take this guy as the value of comp.
+#
+
+let Univ-ucomp (A : U) : U
+  = A
+  
+let Univ-ufill (A : U)
+  : Eq U A A
+  = (Eq A , ucomp A , ufill A , ucomp-unique-split A , ufill-unique-split A)
+
+let Univ-ucompu (A : U) (B : U) (E : Eq U A B)
+  : Eq U A B
+  = E
+
+normalize (A : U) (B : U) (C : U)
+    (E : Eq U A B)
+    (F : Eq U A C)
+    (G : Eq U B C) : U
+  | PathOver U B C G
+      (Eq U A) E F
+
+# let Univ-ufillu (A : U) (B : U) (E : Eq U A B)
+#   : PathOver U A B E 
+#      (Eq U A) (Univ-ufill A) E
+#   = A 

@@ -227,9 +227,14 @@ let rec map_fib t v f =
         map_fib tps' v' f)
 
 let rec describe_fib tl ty =
-  match app_vars tl ty 0 with 
+  log_msg "in describe_fib";
+  log_val "tl (df)" tl (pp_tele pp_value);
+  (* Okay.  This is a bug.  We must be capturing here somehow ...*)
+  match app_vars tl ty 50 with 
   | (SigV (nm,_,_),_) ->
 
+    log_msg "found a sigma";
+    log_val "tl (sig)" tl (pp_tele pp_value);
     let tlst = to_list tl in
     let a = map_fib tlst ty
         (function
@@ -274,6 +279,11 @@ let rec describe_fib tl ty =
 (*****************************************************************************)
 
 let rec cellV tl ty c =
+  log_msg "in cellV";
+  log_val "tl" tl (pp_tele pp_value);
+  (* log_val "ty" (quote true 0 ty) pp_term;  *)
+  log_val "ty" ty pp_value; 
+  log_val "c" c (pp_cmplx (pp_dep_term pp_value));
   match c with
   | Base (Lf (vs,_)) ->
     app_to_fib (to_list vs) ty 
@@ -283,6 +293,7 @@ let rec cellV tl ty c =
 
       | SigFib (nm,a,b) ->
 
+        log_val "a" (quote true 0 a) pp_term;
         let src_typ = cellV tl a (fstC c) in
         let tgt_typ x = cellV (Ext (tl,(nm,a))) b (sndC c x)
 
@@ -455,7 +466,7 @@ let rec cellV tl ty c =
 (*                                 Evaluation                                *)
 (*****************************************************************************)
 
-let rec eval top loc tm =
+and eval top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
   match tm with
   | VarT i -> loc i 
