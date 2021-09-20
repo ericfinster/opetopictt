@@ -8,9 +8,8 @@
 
 %token LET NORMALIZE
 %token LAMBDA COLON EQUAL DOT VBAR
-%token LPAR RPAR LBR RBR LBRKT RBRKT
-%token ARROW VDASH EMPTY SEMI
-%token COMP FILL COMPU FILLU
+%token LPAR RPAR LBR RBR
+%token ARROW 
 %token TIMES COMMA FST SND
 %token TYPE
 %token LF ND UNIT
@@ -82,12 +81,6 @@ pi_head:
   | e = expr2
     { ("",e) }
 
-dep_term:
-  | s = sep_suite(expr,SEMI) VDASH e = expr
-    { (s,Some e) }
-  | s = sep_suite(expr,SEMI) VDASH EMPTY
-    { (s,None) }
-
 expr: 
   | e = expr1
     { e }
@@ -120,17 +113,6 @@ expr3:
     { FstE e }
   | SND e = expr3
     { SndE e }
-
-  | LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { CellE (t,e,c) }
-  | COMP LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { CompE (t,e,c) } 
-  | FILL LBRKT t = tele VDASH e = expr VBAR c = cmplx(dep_term) RBRKT
-    { FillE (t,e,c) }
-  | COMPU LBRKT t = tele VDASH e = expr VBAR k = cmplx(dep_term) RBRKT c = expr3 f = expr3
-    { CompUE (t,e,k,c,f) }
-  | FILLU LBRKT t = tele VDASH e = expr VBAR k = cmplx(dep_term) RBRKT c = expr3 f = expr3
-    { FillUE (t,e,k,c,f) }
 
   | LPAR t = expr RPAR
     { t }

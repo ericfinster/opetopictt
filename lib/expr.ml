@@ -33,18 +33,8 @@ type expr =
   | SndE of expr
   | SigE of name * expr * expr 
 
-  (* Cell types *) 
-  | CellE of expr tele * expr * expr dep_term tr_expr suite
-  | CompE of expr tele * expr * expr dep_term tr_expr suite
-  | FillE of expr tele * expr * expr dep_term tr_expr suite
-  | CompUE of expr tele * expr * expr dep_term tr_expr suite * expr * expr
-  | FillUE of expr tele * expr * expr dep_term tr_expr suite * expr * expr
-
   (* The Universe *) 
   | TypE
-
-(* and dep_term = expr suite * expr option *)
-
 
 (*****************************************************************************)
 (*                          Parsing Tree Expressions                         *)
@@ -93,29 +83,7 @@ let rec pp_expr ppf expr =
     pf ppf "(%s : %a)@, \u{d7} %a"
       nm pp_expr a pp_expr b 
 
-  | CellE (tl,ty,c) ->
-    pp_expr_cell_desc ppf (tl,ty,c)
-  | CompE (tl,ty,c) ->
-    pf ppf "comp %a" pp_expr_cell_desc (tl,ty,c)
-  | FillE (tl,ty,c) -> 
-    pf ppf "fill %a" pp_expr_cell_desc (tl,ty,c)
-  | CompUE (tl,ty,k,c,f) ->
-    pf ppf "comp-unique %a %a %a"
-      pp_expr_cell_desc (tl,ty,k)
-      pp_expr c pp_expr f
-  | FillUE (tl,ty,k,c,f) -> 
-    pf ppf "fill-unique %a %a %a" 
-      pp_expr_cell_desc (tl,ty,k)
-      pp_expr c pp_expr f
-
   | TypE -> pf ppf "U"
-
-and pp_expr_cell_desc ppf (tl,ty,c) =
-  pf ppf "@[<v>[ @[%a \u{22a2} %a@]@,| %a@,]@]"
-    (pp_tele pp_expr) tl
-    pp_expr ty
-    (pp_suite ~sep:(any "@,| ")
-       (pp_tr_expr (pp_dep_term pp_expr))) c 
 
 and expr_app_parens e =
   match e with
@@ -126,10 +94,6 @@ and expr_app_parens e =
   | FstE _ -> parens pp_expr
   | SndE _ -> parens pp_expr
   | SigE _ -> parens pp_expr
-  | CompE _ -> parens pp_expr
-  | FillE _ -> parens pp_expr
-  | CompUE _ -> parens pp_expr
-  | FillUE _ -> parens pp_expr
   | _ -> pp_expr
 
 and expr_pi_parens e =

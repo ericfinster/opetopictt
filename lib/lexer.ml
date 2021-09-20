@@ -42,7 +42,6 @@ let rec token buf =
   | "{"          -> LBR
   | "}"          -> RBR
   | ":"          -> COLON
-  | ";"          -> SEMI
   | "="          -> EQUAL
   | "."          -> DOT
   | "\\"         -> LAMBDA
@@ -51,15 +50,7 @@ let rec token buf =
   | "lf"         -> LF
   | "nd"         -> ND
   | "tt"         -> UNIT
-  | "["          -> LBRKT
-  | "]"          -> RBRKT
   | "|"          -> VBAR
-  | 0x25cf       -> EMPTY
-  | 0x22a2       -> VDASH
-  | "compu"      -> COMPU
-  | "fillu"      -> FILLU
-  | "comp"       -> COMP
-  | "fill"       -> FILL
   | 0xd7         -> TIMES
   | ","          -> COMMA
   | "fst"        -> FST
