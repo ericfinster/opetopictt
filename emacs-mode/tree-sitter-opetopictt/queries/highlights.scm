@@ -3,6 +3,7 @@
 
 "let"  @keyword
 "normalize" @keyword
+"expand" @keyword
 "comp" @keyword
 "fill" @keyword
 "compu" @keyword

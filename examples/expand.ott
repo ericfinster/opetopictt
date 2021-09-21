@@ -1,0 +1,10 @@
+#
+#  expand.ott - testing opetopic expansion
+#
+
+expand (A : U) (a : A) (B : A → U) : U
+  | B a
+  | nd { y } (nd (lf { x }) (lf tt)) 
+  | lf { z }
+
+

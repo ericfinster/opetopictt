@@ -290,7 +290,14 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | _ -> tcm_fail (`InferrenceFailed e) 
 
-(* TODO: Perhaps this should return the fibration to make things more efficient ? *)
+
+and tcm_to_cmplx c =
+  let open IdtConv in 
+  try let c' = to_cmplx c in
+    let _ = validate_opetope c' in 
+    tcm_ok c' 
+  with TreeExprError msg -> tcm_fail (`InvalidShape msg)
+     | ShapeError msg -> tcm_fail (`InvalidShape msg) 
 
 and tcm_in_tele : 'a. expr tele
   -> (term tele -> 'a tcm)

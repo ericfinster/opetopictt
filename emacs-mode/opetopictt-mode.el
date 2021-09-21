@@ -69,7 +69,7 @@
 (defconst opetopictt-mode-tree-sitter-patterns
   [ ;; Keywords
    
-   [ "let" "normalize" ] @keyword
+   [ "let" "normalize" "expand" ] @keyword
    [ ":" "=" "(" ")" "," "⊢" "●" ] @punctuation
    [ "[" "]" "{" "}" "|" "lf" "nd" "tt" ] @punctuation.special
    [ "U" "fst" "snd" "comp" "fill" "compu" "fillu" ] @constant

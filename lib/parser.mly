@@ -6,7 +6,7 @@
        
 %} 
 
-%token LET NORMALIZE
+%token LET NORMALIZE EXPAND
 %token LAMBDA COLON EQUAL DOT VBAR
 %token LPAR RPAR LBR RBR
 %token ARROW 
@@ -66,6 +66,8 @@ cmd:
     { Let (id,tl,ty,tm) }
   | NORMALIZE tl = tele COLON ty = expr VBAR tm = expr
     { Normalize (tl,ty,tm) } 
+  | EXPAND tl = tele COLON ty = expr VBAR tm = expr VBAR c = cmplx(IDENT)
+    { Expand (tl,ty,tm,c) } 
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR

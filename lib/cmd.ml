@@ -4,15 +4,22 @@
 (*                                                                           *)
 (*****************************************************************************)
 
+open Base
 open Expr
 open Term
+open Suite
 open Syntax
+open Eval 
 open Typecheck
 
+(* open Opetopes.Idt *)
+open Opetopes.Idt.IdtConv
+open Opetopes.Complex
+       
 type cmd =
   | Let of name * expr tele * expr * expr
   | Normalize of expr tele * expr  * expr
-  (* | Infer of expr tele * expr *)
+  | Expand of expr tele * expr  * expr * string tr_expr suite 
 
 let rec run_cmds cmds =
   
@@ -51,7 +58,32 @@ let rec run_cmds cmds =
         Fmt.pr "Result: @[%a@]@," pp_expr t_nf_expr; 
         tcm_ok ()) in
     run_cmds cs
-      
+
+  | (Expand (tl,ty,tm,op))::cs ->
+    Fmt.pr "----------------@,";
+    Fmt.pr "Expanding: @[%a@]@," pp_expr tm;
+    let* _ = tcm_in_tele tl (fun _ ->
+        let* ty' = tcm_check ty TypV in
+        let* ty_v = tcm_eval ty' in
+        let* tm' = tcm_check tm ty_v in
+        let* tm_v = tcm_eval tm' in
+        let* op' = tcm_to_cmplx op in
+        let cell_nms = labels op' in 
+        let (_,cnt) = numerate op' in 
+        let tm_exp = naiveExpand tm_v op' in
+        let* gma = tcm_ctx in
+        let nms =
+          join (map_suite (names gma)
+                  ~f:(fun nm -> from_list
+                         (List.map cell_nms ~f:(fun c -> nm ^ c)))) in 
+        let nf_c = map_cmplx tm_exp
+            ~f:(fun v ->
+                term_to_expr nms
+                (quote true (gma.lvl * cnt) v)) in 
+        Fmt.pr "Result: @[%a@]@," (pp_cmplx pp_expr) nf_c; 
+        tcm_ok ()) in
+    run_cmds cs
+
   (* | (Infer (tl,tm))::cs ->
    *   Fmt.pr "----------------@,";
    *   Fmt.pr "Infering the type of: @[%a@]@," pp_expr tm;

@@ -40,7 +40,32 @@ module.exports = grammar({
 	    field("type", $.expression), 
 	    '|',
 	    field("term", $.expression)
-	), 
+	),
+
+	//
+	//  Expansion command
+	//
+	
+	ident_pd: $ => choice(
+	    'tt',
+	    seq('{',$.identifier,'}'),
+	    seq('lf',$.tr_expr),
+	    seq('nd',$.tr_expr,$.tr_expr),
+	    seq('(',$.tr_expr,')')
+	),
+
+	opetope: $ => sepSeq1('|',$.ident_pd),
+	
+	expand_command: $ => seq(
+	    'expand',
+	    field("context", optional($.telescope)),	    
+	    ':',
+	    field("type", $.expression), 
+	    '|',
+	    field("term", $.expression),
+	    '|',
+	    $.opetope
+	),
 
 	//
 	//  Expressions 
