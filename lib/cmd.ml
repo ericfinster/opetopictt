@@ -69,19 +69,22 @@ let rec run_cmds cmds =
         let* tm_v = tcm_eval tm' in
         let* op' = tcm_to_cmplx op in
         let cell_nms = labels op' in 
-        let (_,cnt) = numerate op' in 
-        let tm_exp = naiveExpand tm_v op' in
         let* gma = tcm_ctx in
+
+        let expanded_tm_cmplx =
+          expand gma.lvl tm_v op' in 
+        
         let nms =
           join (map_suite (names gma)
                   ~f:(fun nm -> from_list
-                         (List.map cell_nms ~f:(fun c -> nm ^ c)))) in 
-        let nf_c = map_cmplx tm_exp
-            ~f:(fun v ->
-                term_to_expr nms
-                (quote true (gma.lvl * cnt) v)) in 
+                         (List.map cell_nms ~f:(fun c -> nm ^ c)))) in
+        
+        let nf_c = map_cmplx expanded_tm_cmplx
+            ~f:(term_to_expr nms) in 
+
         Fmt.pr "Result: @[%a@]@," (pp_cmplx pp_expr) nf_c; 
         tcm_ok ()) in
+    
     run_cmds cs
 
   (* | (Infer (tl,tm))::cs ->

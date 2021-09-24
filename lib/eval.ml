@@ -9,9 +9,10 @@ open Base
     
 open Term
 open Value
-open Suite
 open Syntax
 
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                         Evaluation Utilities                              *)
 (*****************************************************************************)
@@ -36,18 +37,18 @@ let rec appV t u =
   | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
-let rec app_to_fib v_lst ty =
-  match v_lst with
-  | [] -> ty
-  | v::vs -> app_to_fib vs (appV ty v)
+let rec appArgs f args =
+  match args with
+  | [] -> f
+  | v::vs -> appArgs (appV f v) vs 
 
 (* TODO: Combine the next two functions? *)
-let rec app_vars t v i =
-  match t with
-  | Emp -> (v,i)
-  | Ext (t',(_,_)) ->
-    let (v',k) = app_vars t' v i in 
-    (appV v' (varV k), k + 1)
+(* let rec app_vars t v i =
+ *   match t with
+ *   | Emp -> (v,i)
+ *   | Ext (t',(_,_)) ->
+ *     let (v',k) = app_vars t' v i in 
+ *     (appV v' (varV k), k + 1) *)
 
 let rec fstV t =
   match t with
@@ -91,11 +92,58 @@ and shiftSp f sp =
   | FstSp sp' -> FstSp (shiftSp f sp')
   | SndSp sp' -> SndSp (shiftSp f sp')
 
-open Opetopes.Complex
-let naiveExpand (v : value) (c : 'a cmplx) : value cmplx =
-  let (num_c , total) = numerate c in 
-  map_cmplx num_c ~f:(fun idx ->
-      shiftV (fun l -> (l * total) + idx) v)
+
+(*****************************************************************************)
+(*                        Expansion (Quoting Version)                        *)
+(*****************************************************************************)
+
+let expand (l : lvl) (v : value) (c : string cmplx) : term cmplx =
+  let (idxs,n) = numerate c in
+  
+  let rec goExpand (l : lvl) (v : value) =
+    match v with
+    | RigidV (k,sp) ->
+      let i = lvl_to_idx l k in 
+      let tc = map_cmplx idxs
+          ~f:(fun idx -> VarT ((i * n) + (n - idx - 1))) in
+      goExpandSp l tc sp
+    | TopV (_,_,tv) -> goExpand l tv
+
+    | LamV (nm,bdy) ->
+
+      let rec lams nms t =
+        begin match nms with
+          | [] -> t
+          | nm::nms' -> LamT (nm,lams nms' t)
+        end in 
+
+      let bdy_cmplx = goExpand (l+1) (bdy (varV l)) in
+      let nm_cmplx = map_cmplx c ~f:(fun s -> nm ^ s) in
+
+      match_cmplx bdy_cmplx (face_cmplx nm_cmplx)
+        ~f:(fun bdy' nm_f -> lams (labels nm_f) bdy')
+
+    | _ -> failwith "not done"
+    
+  and goExpandSp (l : lvl) (tc : term cmplx) (sp : spine) =
+    match sp with
+    | EmpSp -> tc
+    | FstSp sp' ->
+      let tc' = goExpandSp l tc sp' in
+      map_cmplx tc' ~f:(fun t -> FstT t)
+    | SndSp sp' ->
+      let tc' = goExpandSp l tc sp' in
+      map_cmplx tc' ~f:(fun t -> SndT t)
+    | AppSp (sp',v) ->
+      let tc' = goExpandSp l tc sp' in 
+      let t' = goExpand l v in 
+      match_cmplx tc' (face_cmplx t')
+        (* TODO : Check the order of argument application here ... *)
+        ~f:(fun s arg_f -> TermUtil.app_args s
+               (Suite.from_list (labels arg_f)))
+
+  in goExpand l v 
+
 
 (* Probably won't be used now ... *)
 (*****************************************************************************)
@@ -185,15 +233,15 @@ and quote ufld k v =
 
   | TypV -> TypT
 
-and quote_fib ufld k tl ty =
-  match tl with
-  | Emp -> (Emp , quote ufld k ty)
-  | Ext (tl',(nm,ty')) ->
-
-    let (tl_tm, ty_tm) = quote_fib ufld k tl' ty' in
-    let (app_v , k') = app_vars tl ty k in
-
-    (Ext (tl_tm,(nm,ty_tm)) , quote ufld k' app_v)
+(* and quote_fib ufld k tl ty =
+ *   match tl with
+ *   | Emp -> (Emp , quote ufld k ty)
+ *   | Ext (tl',(nm,ty')) ->
+ * 
+ *     let (tl_tm, ty_tm) = quote_fib ufld k tl' ty' in
+ *     let (app_v , k') = app_vars tl ty k in
+ * 
+ *     (Ext (tl_tm,(nm,ty_tm)) , quote ufld k' app_v) *)
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in

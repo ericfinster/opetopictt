@@ -8,3 +8,21 @@ expand (A : U) (a : A) (B : A → U) : U
   | lf { z }
 
 
+expand (A : U) (a : A) (B : A → U) : U
+  | B a
+  | nd { z } (nd (nd { y } (nd (lf { x }) (lf tt))) (lf tt))
+  | nd { r } (nd (lf { q }) (nd (nd (lf { p })
+      (nd (lf tt) (lf tt))) (lf tt)))
+  | lf { s }
+
+expand (A : U) (B : A → U) (C : (a : A) → B a → U)
+    (a : A) (b : B a) : U
+  | C a b
+  | nd { y } (nd (lf { x }) (lf tt)) 
+  | lf { z }
+
+expand (A : U) : A → A
+  | λ a . a
+  | nd { y } (nd (lf { x }) (lf tt)) 
+  | lf { z }
+  
