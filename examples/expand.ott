@@ -26,3 +26,6 @@ expand (A : U) : A → A
   | nd { y } (nd (lf { x }) (lf tt)) 
   | lf { z }
   
+let test (A : U) : U
+  = [ a @ nd { y } (nd (lf { x }) (lf tt)) 
+        | lf { z } ] 

@@ -276,7 +276,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
     let* (u',ut) = tcm_infer u in
     let* (_, b) = tcm_extract_sig ut in
     let* uv = tcm_eval u' in
-    tcm_ok (SndT u', b (fstV uv))
+    tcm_ok (SndT u', b (fst_val uv))
 
   | SigE (nm,a,b) ->
     let* a' = tcm_check a TypV in

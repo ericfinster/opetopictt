@@ -6,7 +6,11 @@
 
 open Fmt
 open Syntax
+open Suite
+open Expr
 
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
@@ -24,6 +28,9 @@ type value =
   | PairV of value * value
   | SigV of name * value * (value -> value)
 
+  (* Opetopic Reflexivity *) 
+  | ReflV of value * string cmplx
+               
   (* The Universe *)
   | TypV
 
@@ -31,7 +38,7 @@ and spine =
   | EmpSp
   | AppSp of spine * value
   | FstSp of spine
-  | SndSp of spine 
+  | SndSp of spine
 
 let varV k = RigidV (k,EmpSp)
 
@@ -67,7 +74,14 @@ let rec pp_value ppf v =
   | SigV (nm,a,_) ->
     pf ppf "(%s : %a) \u{d7} <closure>" nm
       pp_value a
-                    
+
+
+  | ReflV (v',pi) -> 
+    let open Opetopes.Idt.IdtConv in 
+    pf ppf "[ @[%a] @ @[ %a ] ]"
+      pp_value v' (pp_suite ~sep:(any "@,| ")
+       (pp_tr_expr Fmt.string)) (of_cmplx pi) 
+
   | TypV -> pf ppf "U"
     
 and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
@@ -80,4 +94,5 @@ and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
   | FstSp sp' ->
     pf ppf "fst %a" (pp_spine pp_a a) sp' 
   | SndSp sp' ->
-    pf ppf "snd %a" (pp_spine pp_a a) sp' 
+    pf ppf "snd %a" (pp_spine pp_a a) sp'
+

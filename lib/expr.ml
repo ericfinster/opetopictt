@@ -33,6 +33,9 @@ type expr =
   | SndE of expr
   | SigE of name * expr * expr 
 
+  (* Opetopic Reflexivity *) 
+  | ReflE of expr * string tr_expr suite 
+
   (* The Universe *) 
   | TypE
 
@@ -82,6 +85,11 @@ let rec pp_expr ppf expr =
   | SigE (nm,a,b) ->
     pf ppf "(%s : %a)@, \u{d7} %a"
       nm pp_expr a pp_expr b 
+
+  | ReflE (a,pi) ->
+    pf ppf "[ @[%a] @ @[ %a ] ]"
+      pp_expr a (pp_suite ~sep:(any "@,| ")
+       (pp_tr_expr Fmt.string)) pi 
 
   | TypE -> pf ppf "U"
 

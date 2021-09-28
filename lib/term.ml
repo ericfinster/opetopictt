@@ -10,6 +10,8 @@ open Expr
 open Suite
 open Syntax
 
+open Opetopes.Complex
+       
 (*****************************************************************************)
 (*                              Type Definitions                             *)
 (*****************************************************************************)
@@ -30,6 +32,9 @@ type term =
   | FstT of term
   | SndT of term
   | SigT of name * term * term
+
+  (* Opetopic Reflexivity *)
+  | ReflT of term * string cmplx 
 
   (* The Universe *) 
   | TypT
@@ -64,6 +69,12 @@ let rec term_eq s t =
   | (SigT (_,ua,va),SigT (_,ub,vb)) ->
     if (term_eq ua ub) then
       term_eq va vb
+    else false
+
+  | (ReflT (a,pi), ReflT (b,rho)) ->
+    if (term_eq a b) then
+      (* ignore namings .. *) 
+      cmplx_eq (fun _ _ -> true) pi rho
     else false
 
   | (TypT , TypT) -> true
@@ -109,6 +120,9 @@ let rec term_to_expr nms tm =
         "x" ^ (Int.to_string (length nms)) 
       else nm in 
     SigE (nm',tte nms u, tte (Ext (nms,nm')) v)
+
+  | ReflT (a,pi) ->
+    ReflE (tte nms a, of_cmplx pi)
 
   | TypT -> TypE
 
@@ -159,6 +173,12 @@ let rec pp_term ppf tm =
   | SigT (nm,a,b) ->
     pf ppf "(%s : %a)@, \u{d7} %a"
       nm pp_term a pp_term b 
+
+  | ReflT (a,pi) ->
+    let open Opetopes.Idt.IdtConv in 
+    pf ppf "[ @[%a] @ @[ %a ] ]"
+      pp_term a (pp_suite ~sep:(any "@,| ")
+       (pp_tr_expr Fmt.string)) (of_cmplx pi) 
 
   | TypT -> pf ppf "U"
 
