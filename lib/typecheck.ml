@@ -160,7 +160,7 @@ let tcm_ctx : ctx tcm =
       
 let tcm_eval (t : term) : value tcm =
   let* gma = tcm_ctx in
-  tcm_ok (eval (top_lookup gma)
+  tcm_ok (eval gma.lvl (top_lookup gma)
             (loc_lookup gma) t)
 
 let tcm_quote (v : value) (ufld : bool) : term tcm =

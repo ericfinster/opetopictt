@@ -1,4 +1,3 @@
-
 (*****************************************************************************)
 (*                                                                           *)
 (*                           Evaluation and Quoting                          *)
@@ -62,7 +61,7 @@ let rec snd_val t =
 
 open Opetopes.Complex
        
-let rec expand (l: lvl) (oenv : lvl -> value cmplx) (v : value)
+let expand (l: lvl) (oenv : lvl -> value cmplx) (v : value)
   (c : string cmplx) (fa : face_addr) : value =
   match v with
   | RigidV (k,sp) ->
@@ -74,37 +73,34 @@ let rec expand (l: lvl) (oenv : lvl -> value cmplx) (v : value)
       ReflV (RigidV (k,sp) , face_at c fa)
 
   | _ -> failwith ""
-    
+
 
 (*****************************************************************************)
 (*                                 Evaluation                                *)
 (*****************************************************************************)
 
-and eval top loc tm =
+let rec eval lvl top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
+  let ev t = eval lvl top loc t in 
   match tm with
   
   | VarT i -> loc i 
   | TopT nm -> TopV (nm,EmpSp,top nm)
 
   | LamT (nm,u) ->
-    LamV (nm,fun v -> eval top (ext_loc loc v) u)
-  | AppT (u,v) -> app_val (eval top loc u) (eval top loc v) 
+    LamV (nm,fun v -> eval lvl top (ext_loc loc v) u)
+  | AppT (u,v) -> app_val (ev u) (ev v) 
   | PiT (nm,a,b) ->
-    PiV (nm, eval top loc a,
-         fun v -> eval top (ext_loc loc v) b)
+    PiV (nm, ev a, fun v -> eval lvl top (ext_loc loc v) b)
 
-  | PairT (u,v) ->
-    PairV (eval top loc u, eval top loc v)
-  | FstT u -> fst_val (eval top loc u)
-  | SndT u -> snd_val (eval top loc u)
-  | SigT (nm,u,v) ->
-    SigV (nm, eval top loc u,
-          fun x -> eval top (ext_loc loc x) v)
-
+  | PairT (u,v) -> PairV (ev u, ev v)
+  | FstT u -> fst_val (ev u)
+  | SndT u -> snd_val (ev u)
+  | SigT (nm,a,b) -> SigV (nm, ev a, fun v -> eval lvl top (ext_loc loc v) b)
+      
   | ReflT (u,pi) ->
     (* TODO: Make this semantic ... *)
-    ReflV (eval top loc u, pi)
+    ReflV (ev u, pi)
       
   | TypT -> TypV
 
@@ -112,7 +108,7 @@ and eval top loc tm =
 (*                                  Quoting                                  *)
 (*****************************************************************************)
 
-and quote ufld k v =
+let rec quote ufld k v =
   let qc x = quote ufld k x in
   let qcs x s = quote_sp ufld k x s in
   match v with
