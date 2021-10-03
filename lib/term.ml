@@ -39,6 +39,35 @@ type term =
   (* The Universe *) 
   | TypT
 
+
+(*****************************************************************************)
+(*                             Opetopic Expansion                            *)
+(*****************************************************************************)
+
+let rec expand tm cm fa =
+  match tm with
+  
+  | VarT i ->
+    let n = head_value cm + 1 in
+    let off = value_at cm fa in
+    VarT ((i * n) + off)
+      
+  | TopT nm ->
+    (* Do nothing on top-levels for now *)
+    ReflT (TopT nm, map_cmplx cm ~f:(fun k -> Fmt.str "x%d" k)) 
+
+  | LamT (nm,tm') ->
+    let nms = labels (map_cmplx cm ~f:(fun k -> Fmt.str "%s%d" nm k)) in
+    (* TODO: Check the order here ... *)
+    let rec lams nlst t =
+      begin match nlst with
+        | [] -> t
+        | nm::nms -> LamT (nm,lams nms t)
+      end in
+    lams nms (expand tm' cm fa)
+          
+  | _ -> failwith "" 
+
 (*****************************************************************************)
 (*                               Term Equality                               *)
 (*****************************************************************************)

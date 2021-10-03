@@ -23,45 +23,44 @@ open Opetopes.Complex
 
 type ctx = {
   top : (name * (value * value)) suite;
-  loc : (name * (value * value)) suite;
+  loc : env;
+  typs : (name * value) suite; 
   lvl : lvl;
 }
 
 let empty_ctx = {
   top = Emp;
-  loc = Emp;
+  loc = empty_env;
+  typs = Emp; 
   lvl = 0;
 }
 
 let empty_loc gma = {
   top = gma.top;
-  loc = Emp;
+  typs = Emp ; 
+  loc = empty_env;
   lvl = 0;
 }
 
 let bind gma nm ty =
   let l = gma.lvl in {
-    loc = Ext (gma.loc, (nm , (varV l , ty)));
+    loc = with_var l gma.loc ;
+    typs = Ext (gma.typs,(nm,ty)) ; 
     top = gma.top;
     lvl = l+1;
   }
 
 let define gma nm tm ty = {
   loc = gma.loc;
+  typs = gma.typs; 
   top = Ext (gma.top,(nm,(tm,ty)));
   lvl = gma.lvl;
 }
 
 let names gma =
-  map_suite gma.loc ~f:fst
+  map_suite gma.typs ~f:fst
 
 (* TODO: Use different error reporting here? *)
-
-let loc_lookup gma i =
-  try fst (snd (db_get i gma.loc))
-  with Lookup_error ->
-    raise (Eval_error (str "Index out of range: %d" i))
-
 let top_lookup gma nm = 
   try fst (assoc nm gma.top)
   with Lookup_error ->
@@ -161,7 +160,7 @@ let tcm_ctx : ctx tcm =
 let tcm_eval (t : term) : value tcm =
   let* gma = tcm_ctx in
   tcm_ok (eval gma.lvl (top_lookup gma)
-            (loc_lookup gma) t)
+            gma.loc t)
 
 let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
@@ -241,7 +240,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
   | VarE nm ->
     let* gma = tcm_ctx in
     begin try
-        let (idx,(_,ty)) = assoc_with_idx nm gma.loc in
+        let (idx,ty) = assoc_with_idx nm gma.typs in
         tcm_ok (VarT idx, ty)
       with Lookup_error ->
         begin try 

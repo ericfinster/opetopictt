@@ -9,15 +9,42 @@ open Base
 open Term
 open Value
 open Syntax
+open Suite
 
 open Opetopes.Idt
 open Opetopes.Complex
 
+
 (*****************************************************************************)
-(*                         Evaluation Utilities                              *)
+(*                             Environments                                  *)
 (*****************************************************************************)
 
 exception Eval_error of string
+
+type env =
+  { values : value suite;
+    at_shape : string cmplx -> value cmplx suite
+  }
+
+let empty_env =
+  { values = Emp ;
+    at_shape = fun _ -> Emp
+  } 
+
+let with_var lvl rho =
+  let vc_at pi =
+    let vc = map_cmplx (face_cmplx pi)
+        ~f:(fun f ->
+            if (is_obj f) then
+              varV lvl
+            else RigidV (lvl, ReflSp (EmpSp,f))) in 
+    Ext (rho.at_shape pi,vc) in 
+  { values = Ext (rho.values, varV lvl) ;
+    at_shape = vc_at } 
+
+(*****************************************************************************)
+(*                         Evaluation Utilities                              *)
+(*****************************************************************************)
 
 let ext_loc loc v i =
   if (i <= 0) then v
@@ -83,71 +110,33 @@ let rec lam_cmplx (a : 'a cmplx) (b : value cmplx -> value) : value =
         ~f:(fun _ addr -> addr) in 
     let nv = map_nst n ~f:(fun _ -> TypV) in 
     lam_cmplx t (fun vc -> do_lams (nodes_nst n') (Adjoin (vc,nv)))
-
-
-(*****************************************************************************)
-(*                             Opetopic Expansion                            *)
-(*****************************************************************************)
-
-(* let empty_op_env _ =
- *   raise (Eval_error "Empty opetopic environment")
- *     
- * let refl_val (lvl: lvl) (oe : lvl -> value cmplx) (v : value)
- *     (c : string cmplx) (fa : face_addr) : value =
- *   match v with
- *   | RigidV (k,sp) ->
- *     if (k > lvl) then
- *       let var_cmplx = oe (k - 1) in
- *       value_at var_cmplx fa
- *     else
- *       (\* Check this ... *\)
- *       ReflV (RigidV (k,sp) , face_at c fa)
- * 
- *   (\* Oh.  But we still have to run the spine to pick up the eliminators ... *\)
- *         
- *   | LamV (nm,bdy) ->
- * 
- *     (\* Extract the face? *\) 
- *     lam_cmplx c (fun cv -> TypV)
- * 
- *   | _ -> failwith "" *)
   
 (*****************************************************************************)
 (*                                 Evaluation                                *)
 (*****************************************************************************)
-
-let empty_op_loc _ =
-  raise (Eval_error "Empty opetopic environment")
-
-let ext_op_loc loc vc i =
-  if (i <= 0) then vc
-    else loc (i-1)
-  
-let face_op_loc loc fa k =
-  face_at (loc k) fa 
 
 let rec eval lvl top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
   let ev t = eval lvl top loc t in 
   match tm with
   
-  | VarT i -> loc i 
+  | VarT i -> db_get i loc.values 
   | TopT nm -> TopV (nm,EmpSp,top nm)
 
   | LamT (nm,u) ->
-    LamV (nm,fun v -> eval lvl top (ext_loc loc v) u)
+    LamV (nm,fun v -> eval lvl top (with_value lvl loc v) u)
   | AppT (u,v) -> app_val (ev u) (ev v) 
   | PiT (nm,a,b) ->
-    PiV (nm, ev a, fun v -> eval lvl top (ext_loc loc v) b)
+    PiV (nm, ev a, fun v -> eval lvl top (with_value lvl loc v) b)
 
   | PairT (u,v) -> PairV (ev u, ev v)
   | FstT u -> fst_val (ev u)
   | SndT u -> snd_val (ev u)
   | SigT (nm,a,b) ->
-    SigV (nm, ev a, fun v -> eval lvl top (ext_loc loc v) b)
+    SigV (nm, ev a, fun v -> eval lvl top (with_value lvl loc v) b)
       
-  | ReflT (_,_) -> failwith ""
-  (* refl_val lvl empty_op_env (ev u) pi (0,[]) *)
+  | ReflT (u,pi) -> 
+    refl_val lvl (loc.at_shape pi) (ev u) pi 
       
   | TypT -> TypV
 
@@ -155,15 +144,27 @@ and refl_val lvl loc v pi : value =
   match v with
   | RigidV (k,_) ->
     (* but run the spine, too! *) 
-    head_value (loc (lvl_to_idx lvl k)) 
+    head_value (nth k loc)  
 
   | LamV (_,bdy) ->
 
     lam_cmplx pi (fun vc ->
-        refl_val (lvl+1) (ext_op_loc loc vc)
+        refl_val (lvl+1) (Ext (loc, vc))
           (bdy (varV lvl)) pi)
 
   | _ -> failwith "" 
+
+and with_value lvl rho v =
+  let vshp pi =
+    let vc = map_cmplx (face_cmplx pi)
+        ~f:(fun f ->
+            if (is_obj f) then v
+            else refl_val lvl
+                (rho.at_shape f) v f) in 
+    Ext (rho.at_shape pi,vc) in
+  { values = Ext (rho.values, v) ;
+    at_shape = vshp } 
+
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)

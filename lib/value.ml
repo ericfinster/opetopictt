@@ -28,9 +28,6 @@ type value =
   | PairV of value * value
   | SigV of name * value * (value -> value)
 
-  (* Opetopic Reflexivity *) 
-  (* | ReflV of value * string cmplx *)
-               
   (* The Universe *)
   | TypV
 
