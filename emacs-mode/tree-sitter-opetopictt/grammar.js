@@ -38,7 +38,7 @@ module.exports = grammar({
 	    field("context", optional($.telescope)),	    
 	    ':',
 	    field("type", $.expression), 
-	    '|',
+	    '\u{22a2}',
 	    field("term", $.expression)
 	),
 
@@ -49,9 +49,9 @@ module.exports = grammar({
 	ident_pd: $ => choice(
 	    'tt',
 	    seq('{',$.identifier,'}'),
-	    seq('lf',$.tr_expr),
-	    seq('nd',$.tr_expr,$.tr_expr),
-	    seq('(',$.tr_expr,')')
+	    seq('lf',$.ident_pd),
+	    seq('nd',$.ident_pd,$.ident_pd),
+	    seq('(',$.ident_pd,')')
 	),
 
 	opetope: $ => sepSeq1('|',$.ident_pd),
@@ -82,28 +82,28 @@ module.exports = grammar({
 	    $.expression
 	),
 
-	term_seq: $ => seq(
-	    sepSeq(';',$.expression),
-	    '\u{22a2}',
-	    choice(
-		'\u{25cf}',
-		$.expression
-	    )
-	),
+	// term_seq: $ => seq(
+	//     sepSeq(';',$.expression),
+	//     '\u{22a2}',
+	//     choice(
+	// 	'\u{25cf}',
+	// 	$.expression
+	//     )
+	// ),
 
-	tr_expr: $ => choice(
-	    'tt',
-	    seq('{',$.term_seq,'}'),
-	    seq('lf',$.tr_expr),
-	    seq('nd',$.tr_expr,$.tr_expr),
-	    seq('(',$.tr_expr,')')
-	),
+	// tr_expr: $ => choice(
+	//     'tt',
+	//     seq('{',$.term_seq,'}'),
+	//     seq('lf',$.tr_expr),
+	//     seq('nd',$.tr_expr,$.tr_expr),
+	//     seq('(',$.tr_expr,')')
+	// ),
 
-	cmplx: $ => sepSeq1('|',$.tr_expr),
+	// cmplx: $ => sepSeq1('|',$.tr_expr),
 
-	cell_config: $ => seq(
-	    '[',optional($.telescope),'\u{22a2}',$.expression,'|',$.cmplx,']'
-	),
+	// cell_config: $ => seq(
+	//     '[',optional($.telescope),'\u{22a2}',$.expression,'|',$.cmplx,']'
+	// ),
 
 	pi_type: $ => prec(2,seq(
 	    $.pi_head,$.arrow,$.expression
@@ -126,13 +126,9 @@ module.exports = grammar({
 	    prec(4, 'U'),
 	    prec(4, $.identifier),
 	    prec(4, seq('(',$.expression,')')),
-	    prec(4, $.cell_config),
 	    prec(4, seq('fst',$.expression)),
 	    prec(4, seq('snd',$.expression)),
-	    prec(4, seq('comp',$.cell_config)),
-	    prec(4, seq('fill',$.cell_config)),
-	    prec(4, seq('compu',$.cell_config,$.expression,$.expression)),
-	    prec(4, seq('fillu',$.cell_config,$.expression,$.expression))
+	    prec(4, seq('[',$.expression,'@',$.opetope,']'))
 	    
 	),
 	

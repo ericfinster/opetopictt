@@ -70,9 +70,9 @@
   [ ;; Keywords
    
    [ "let" "normalize" "expand" ] @keyword
-   [ ":" "=" "(" ")" "," "⊢" "●" ] @punctuation
-   [ "[" "]" "{" "}" "|" "lf" "nd" "tt" ] @punctuation.special
-   [ "U" "fst" "snd" "comp" "fill" "compu" "fillu" ] @constant
+   [ ":" "=" "(" ")" "," "⊢" ] @punctuation
+   [ "[" "]" "{" "}" "|" "@" "lf" "nd" "tt" ] @punctuation.special
+   [ "U" "fst" "snd" ] @constant
 
    (var_declaration variable: (identifier) @variable.parameter)
    

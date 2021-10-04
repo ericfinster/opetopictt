@@ -7,7 +7,7 @@
 %} 
 
 %token LET NORMALIZE EXPAND
-%token LAMBDA COLON EQUAL DOT VBAR
+%token LAMBDA COLON EQUAL DOT VBAR VDASH
 %token LPAR RPAR LBR RBR
 %token ARROW 
 %token TIMES COMMA FST SND
@@ -65,7 +65,7 @@ prog:
 cmd:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
     { Let (id,tl,ty,tm) }
-  | NORMALIZE tl = tele COLON ty = expr VBAR tm = expr
+  | NORMALIZE tl = tele COLON ty = expr VDASH tm = expr
     { Normalize (tl,ty,tm) } 
   | EXPAND tl = tele COLON ty = expr VBAR tm = expr VBAR c = cmplx(IDENT)
     { Expand (tl,ty,tm,c) } 

@@ -25,4 +25,4 @@ let Square (A : U) (a₀₀ : A) (a₀₁ : A)
     (r : Eq A a₀₀ a₁₀) (s : Eq A a₀₁ a₁₁) : U
   = [ Eq A @ nd { y } (nd (lf { x }) (lf tt)) 
            | lf { p }
-           ] a₀₀ a₀₁ p a₁₀ a₁₁ q r s
+           ] a₀₀ a₀₁ p a₁₀ a₁₁ q r s 

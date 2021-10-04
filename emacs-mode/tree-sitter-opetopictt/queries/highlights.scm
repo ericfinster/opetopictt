@@ -4,10 +4,6 @@
 "let"  @keyword
 "normalize" @keyword
 "expand" @keyword
-"comp" @keyword
-"fill" @keyword
-"compu" @keyword
-"fillu" @keyword
 
 ":" @punctuation
 "=" @punctuation
@@ -21,7 +17,7 @@
 "}" @punctuation.special
 "|" @punctuation.special
 "⊢" @punctuation.special
-"●" @punctuation.special
+"@" @punctuation.special
 
 "lf" @label
 "nd" @label
