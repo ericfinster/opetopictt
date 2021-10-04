@@ -56,34 +56,32 @@ let rec run_cmds cmds =
         tcm_ok ()) in
     run_cmds cs
 
-  | (Expand _)::cs -> run_cmds cs 
-  (* | (Expand (tl,ty,tm,op))::cs ->
-   *   Fmt.pr "----------------@,";
-   *   Fmt.pr "Expanding: @[%a@]@," pp_expr tm;
-   *   let* _ = tcm_in_tele tl (fun _ ->
-   *       let* ty' = tcm_check ty TypV in
-   *       let* ty_v = tcm_eval ty' in
-   *       let* tm' = tcm_check tm ty_v in
-   *       let* tm_v = tcm_eval tm' in
-   *       let* op' = tcm_to_cmplx op in
-   *       let cell_nms = labels op' in 
-   *       let* gma = tcm_ctx in
-   * 
-   *       let expanded_tm_cmplx =
-   *         expand gma.lvl tm_v op' in 
-   *       
-   *       let nms =
-   *         join (map_suite (names gma)
-   *                 ~f:(fun nm -> from_list
-   *                        (List.map cell_nms ~f:(fun c -> nm ^ c)))) in
-   *       
-   *       let nf_c = map_cmplx expanded_tm_cmplx
-   *           ~f:(term_to_expr nms) in 
-   * 
-   *       Fmt.pr "Result: @[%a@]@," (pp_cmplx pp_expr) nf_c; 
-   *       tcm_ok ()) in
-   *   
-   *   run_cmds cs *)
+  | (Expand (tl,ty,tm,op))::cs ->
+    let open Eval in
+    let open Opetopes.Complex in 
+    Fmt.pr "----------------@,";
+    Fmt.pr "Expanding: @[%a@]@," pp_expr tm;
+    let* _ = tcm_in_tele tl (fun _ ->
+        let* ty' = tcm_check ty TypV in
+        let* ty_v = tcm_eval ty' in
+        let* tm' = tcm_check tm ty_v in
+        let* tm_v = tcm_eval tm' in
+        let* pi = tcm_to_cmplx op in
+
+        let* gma = tcm_ctx in
+        let ex_v = expand_at gma.lvl gma.loc (gma.loc.at_shape pi) tm_v pi in
+        (* lengthen the level ? *)
+        let cell_nms = labels pi in 
+        let ex_nf = quote true (gma.lvl * (List.length cell_nms)) ex_v in
+        let nms =
+          join (map_suite (names gma)
+                  ~f:(fun nm -> from_list
+                         (List.map cell_nms ~f:(fun c -> nm ^ c)))) in
+        let ex_nf_expr = term_to_expr nms ex_nf in 
+        Fmt.pr "Result: @[%a@]@," pp_expr ex_nf_expr;
+        tcm_ok ()) in
+    
+    run_cmds cs
 
   (* | (Infer (tl,tm))::cs ->
    *   Fmt.pr "----------------@,";

@@ -53,11 +53,6 @@ let rec app_val t u =
   | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
-let rec app_args f args =
-  match args with
-  | [] -> f
-  | v::vs -> app_args (app_val f v) vs 
-
 let rec fst_val t =
   match t with
   | RigidV (i,sp) -> RigidV (i, FstSp sp)
@@ -77,29 +72,74 @@ let rec snd_val t =
 (*                            Opetopic Combinators                           *)
 (*****************************************************************************)
 
+let rec app_args f args =
+  match args with
+  | [] -> f
+  | v::vs -> app_args (app_val f v) vs 
+
 (* Abstract over all the positions in a given complex and pass
    the abstracted values in complex form to the function b. *)
-let rec lam_cmplx (a : 'a cmplx) (b : value cmplx -> value) : value =
+let rec lam_cmplx (nm : name) (a : name cmplx) (b : value cmplx -> value) : value =
 
   let rec do_lams nl cm =
     match nl with
     | [] -> b cm
-    | addr::addrs ->
-      LamV ("", fun v -> 
+    | (cnm,addr)::addrs ->
+      LamV (nm ^ cnm, fun v -> 
           do_lams addrs (replace_at cm (0,addr) v))
 
   in match a with
   | Base n ->
     let n' = map_nst_with_addr n
-        ~f:(fun _ addr -> addr) in
+        ~f:(fun cnm addr -> (cnm,addr)) in
     let nv = map_nst n ~f:(fun _ -> TypV) in 
     do_lams (nodes_nst n') (Base nv)
   | Adjoin (t,n) ->
     let n' = map_nst_with_addr n
-        ~f:(fun _ addr -> addr) in 
+        ~f:(fun cnm addr -> (cnm, addr)) in 
     let nv = map_nst n ~f:(fun _ -> TypV) in 
-    lam_cmplx t (fun vc -> do_lams (nodes_nst n') (Adjoin (vc,nv)))
+    lam_cmplx nm t (fun vc -> do_lams (nodes_nst n') (Adjoin (vc,nv)))
+
+
+(* Abstract a list of types, putting the abstracted 
+   value at the appropriate address in the provided complex *)
+let rec do_pis nl cm b =
+  match nl with
+  | [] -> b cm
+  | (nm,addr,typ)::ns ->
+    PiV (nm, typ, fun v ->
+        do_pis ns (replace_at cm (0,addr) v) b)
+
+(* Given a "complex dependent type", extract the space 
+   of sections of it with respect to the complex indexed 
+   fibration b *)
+let rec pi_cmplx (nm : name) (cnms : name cmplx)
+    (a : value cmplx) (b : value cmplx -> value) : value =
   
+  match (a,cnms) with
+  | (Base n , Base nms) ->
+
+    let n' = match_nst_with_addr n nms
+        ~f:(fun typ cnm addr -> (nm ^ cnm,addr,typ)) in 
+    do_pis (nodes_nst n') a b
+
+  | (Adjoin (t,n), Adjoin (tnms,nnms)) ->
+
+    pi_cmplx nm tnms t (fun vc ->
+
+        let n' = match_nst_with_addr n nnms
+            ~f:(fun fib cnm addr ->
+                let f = face_at (Adjoin (vc,n)) (0,addr) in
+                let f_tl = tail_of f in
+                let typ = app_args fib (labels f_tl) in 
+                (nm ^ cnm,addr,typ)) in
+
+        do_pis (nodes_nst n') (Adjoin (vc,n)) b
+
+      )
+
+  | _ -> raise (Eval_error "length mismatch in pi_cmplx")
+
 (*****************************************************************************)
 (*                                 Evaluation                                *)
 (*****************************************************************************)
@@ -128,31 +168,95 @@ let rec eval lvl top loc tm =
   | TypT -> TypV
 
 and expand_at lvl loc opvs v pi : value =
+  (* Avoid the trivial case ... *) 
+  if (is_obj pi) then v else 
   match v with
+  
   | RigidV (k,sp) ->
     let hv = head_value (nth k opvs) in
-    expand_sp lvl loc opvs hv sp pi 
-  | TopV (_,_,tv) -> expand_at lvl loc opvs tv pi 
+    expand_sp lvl loc opvs hv sp pi
+      
+  | TopV (_,_,tv) ->
+    expand_at lvl loc opvs tv pi 
 
-  | LamV (_,bdy) ->
+  | LamV (nm,bdy) ->
 
-    lam_cmplx pi (fun vc ->
+    lam_cmplx nm pi (fun vc ->
         expand_at (lvl+1) loc (Ext (opvs, vc))
           (bdy (varV lvl)) pi)
 
-  | _ -> failwith "" 
+  | PiV (nm,a,b) ->
+
+    let acmplx = expand_all lvl loc a pi in
+    lam_cmplx nm (tail_of pi) (fun sc ->
+        pi_cmplx nm pi acmplx (fun vc ->
+
+            (* expand the fibration itself *) 
+            let b' = expand_at (lvl+1) loc (Ext (opvs,vc))
+                (b (varV lvl)) pi in
+
+            (* apply the arguments to the sections on the boundary *)
+            let appc = match_cmplx sc (face_cmplx (tail_of vc))
+                ~f:(fun s argc -> app_args s (labels argc)) in
+
+            (* feed these to the fibration *) 
+            app_args b' (labels appc)))
+
+
+  | PairV (a,b) ->
+
+    let a' = expand_at lvl loc opvs a pi in
+    let b' = expand_at lvl loc opvs b pi in
+    PairV (a',b') 
+
+  | SigV (nm,a,b) -> 
+    
+    lam_cmplx nm (tail_of pi) (fun pc ->
+
+        (* expand the fibration *)
+        let afib = expand_at lvl loc opvs a pi in
+        (* extract the base values given in the abstraction *)
+        let fstc = map_cmplx pc ~f:fst_val in
+        (* apply them to the fibration to get at type *) 
+        let a' = app_args afib (labels fstc) in
+
+        SigV (nm ^ (head_value pi), a', fun afst ->
+
+            let bfib = expand_at (lvl+1) loc
+                (Ext (opvs, Adjoin (fstc, Lf afst))) (b (varV lvl)) pi in
+
+            let sndc = map_cmplx pc ~f:snd_val in
+            app_args bfib (labels sndc)))
+
+  | TypV ->
+
+    lam_cmplx "" (tail_of pi) (fun vc ->
+        pi_cmplx "" (map_cmplx (tail_of pi) ~f:(fun nm -> "el" ^ nm))
+          vc (fun _ -> TypV) 
+      )
 
 and expand_sp lvl loc opvs v sp pi =
   match sp with
   | EmpSp -> v
   | FstSp sp' -> fst_val (expand_sp lvl loc opvs v sp' pi)
   | SndSp sp' -> snd_val (expand_sp lvl loc opvs v sp' pi)
-  | AppSp _ -> failwith "app in refl_sp"
+  | AppSp (sp',arg) ->
+    let v' = expand_sp lvl loc opvs v sp' pi in
+    let argc = expand_all lvl loc arg pi in
+    app_args v' (labels argc)
   | ReflSp (sp',pi') ->
     let v' = expand_sp lvl loc opvs v sp' pi in
     refl_val lvl loc v' pi'
 
-and refl_val lvl loc v pi = 
+and expand_all lvl loc v pi =
+  map_cmplx (face_cmplx pi)
+    ~f:(fun f ->
+        if (is_obj f) then v
+        else expand_at lvl loc
+            (loc.at_shape f) v f)
+
+and refl_val lvl loc v pi =
+  if (is_obj pi) then v else 
   match v with
   | RigidV (k,sp) ->
     RigidV (k,ReflSp (sp,pi))
@@ -162,15 +266,10 @@ and refl_val lvl loc v pi =
 
 and with_value lvl loc v =
   let vshp pi =
-    let vc = map_cmplx (face_cmplx pi)
-        ~f:(fun f ->
-            if (is_obj f) then v
-            else expand_at lvl loc
-                (loc.at_shape f) v f) in 
+    let vc = expand_all lvl loc v pi in 
     Ext (loc.at_shape pi,vc) in
   { values = Ext (loc.values, v) ;
     at_shape = vshp } 
-
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)

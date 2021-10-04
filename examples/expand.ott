@@ -2,30 +2,47 @@
 #  expand.ott - testing opetopic expansion
 #
 
-expand (A : U) (a : A) (B : A → U) : U
-  | B a
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+expand : U
+  | U
+  | nd { B } (nd (lf { A }) (lf tt)) 
+  | lf { C }
 
+expand : U
+  | U
+  | lf { A }
+  | nd { E } (lf tt)
+  | lf { N }
 
-expand (A : U) (a : A) (B : A → U) : U
-  | B a
-  | nd { z } (nd (nd { y } (nd (lf { x }) (lf tt))) (lf tt))
-  | nd { r } (nd (lf { q }) (nd (nd (lf { p })
+expand : U
+  | U
+  | nd { Z } (nd (nd { Y } (nd (lf { X }) (lf tt))) (lf tt))
+  | nd { R } (nd (lf { Q }) (nd (nd (lf { P })
       (nd (lf tt) (lf tt))) (lf tt)))
-  | lf { s }
+  | lf { S }
 
-expand (A : U) (B : A → U) (C : (a : A) → B a → U)
-    (a : A) (b : B a) : U
-  | C a b
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+# expand (A : U) (a : A) (B : A → U) : U
+#   | B a
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
 
-expand (A : U) : A → A
-  | λ a . a
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+# expand (A : U) (a : A) (B : A → U) : U
+#   | B a
+#   | nd { z } (nd (nd { y } (nd (lf { x }) (lf tt))) (lf tt))
+#   | nd { r } (nd (lf { q }) (nd (nd (lf { p })
+#       (nd (lf tt) (lf tt))) (lf tt)))
+#   | lf { s }
+
+# expand (A : U) (B : A → U) (C : (a : A) → B a → U)
+#     (a : A) (b : B a) : U
+#   | C a b
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
+
+# expand (A : U) : A → A
+#   | λ a . a
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
   
-let test (A : U) : U
-  = [ a @ nd { y } (nd (lf { x }) (lf tt)) 
-        | lf { z } ] 
+# let test (A : U) : U
+#   = [ a @ nd { y } (nd (lf { x }) (lf tt)) 
+#         | lf { z } ] 
