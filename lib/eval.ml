@@ -188,7 +188,7 @@ and expand_at lvl loc opvs v pi : value =
   | PiV (nm,a,b) ->
 
     let acmplx = expand_all lvl loc a pi in
-    lam_cmplx nm (tail_of pi) (fun sc ->
+    lam_cmplx "f" (tail_of pi) (fun sc ->
         pi_cmplx nm pi acmplx (fun vc ->
 
             (* expand the fibration itself *) 

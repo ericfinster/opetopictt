@@ -58,7 +58,7 @@ let rec run_cmds cmds =
 
   | (Expand (tl,ty,tm,op))::cs ->
     let open Eval in
-    let open Opetopes.Complex in 
+    (* let open Opetopes.Complex in  *)
     Fmt.pr "----------------@,";
     Fmt.pr "Expanding: @[%a@]@," pp_expr tm;
     let* _ = tcm_in_tele tl (fun _ ->
@@ -71,14 +71,16 @@ let rec run_cmds cmds =
         let* gma = tcm_ctx in
         let ex_v = expand_at gma.lvl gma.loc (gma.loc.at_shape pi) tm_v pi in
         (* lengthen the level ? *)
-        let cell_nms = labels pi in 
-        let ex_nf = quote true (gma.lvl * (List.length cell_nms)) ex_v in
-        let nms =
-          join (map_suite (names gma)
-                  ~f:(fun nm -> from_list
-                         (List.map cell_nms ~f:(fun c -> nm ^ c)))) in
-        let ex_nf_expr = term_to_expr nms ex_nf in 
-        Fmt.pr "Result: @[%a@]@," pp_expr ex_nf_expr;
+        (* let cell_nms = labels pi in  *)
+        let ex_nf = quote true gma.lvl ex_v in
+        (* let nms =
+         *   join (map_suite (names gma)
+         *           ~f:(fun nm -> from_list
+         *                  (List.map cell_nms ~f:(fun c -> nm ^ c)))) in
+         * log_val "nms" nms (pp_suite Fmt.string); *)
+        let ex_nf_expr = term_to_expr (names gma) ex_nf in 
+        (* Fmt.pr "Term: @[%a@]@," pp_term ex_nf; *)
+        Fmt.pr "Expression: @[%a@]@," pp_expr ex_nf_expr;
         tcm_ok ()) in
     
     run_cmds cs

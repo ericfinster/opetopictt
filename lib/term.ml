@@ -205,7 +205,7 @@ let rec pp_term ppf tm =
 
   | ReflT (a,pi) ->
     let open Opetopes.Idt.IdtConv in 
-    pf ppf "[ @[%a] @ @[ %a ] ]"
+    pf ppf "[ @[%a@] %@@[<v>%a@] ]"
       pp_term a (pp_suite ~sep:(any "@,| ")
        (pp_tr_expr Fmt.string)) (of_cmplx pi) 
 

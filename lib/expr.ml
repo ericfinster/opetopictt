@@ -87,7 +87,7 @@ let rec pp_expr ppf expr =
       nm pp_expr a pp_expr b 
 
   | ReflE (a,pi) ->
-    pf ppf "[ @[%a] @ @[ %a ] ]"
+    pf ppf "[ @[%a@] %@@[<v> %a@] ]"
       pp_expr a (pp_suite ~sep:(any "@,| ")
        (pp_tr_expr Fmt.string)) pi 
 
