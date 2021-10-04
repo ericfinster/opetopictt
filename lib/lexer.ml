@@ -42,6 +42,9 @@ let rec token buf =
   | ")"          -> RPAR
   | "{"          -> LBR
   | "}"          -> RBR
+  | "["          -> LBRKT
+  | "]"          -> RBRKT
+  | "@"          -> AT
   | ":"          -> COLON
   | "="          -> EQUAL
   | "."          -> DOT

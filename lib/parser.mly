@@ -11,6 +11,7 @@
 %token LPAR RPAR LBR RBR
 %token ARROW 
 %token TIMES COMMA FST SND
+%token LBRKT RBRKT AT 
 %token TYPE
 %token LF ND UNIT
 %token <string> IDENT
@@ -116,5 +117,10 @@ expr3:
   | SND e = expr3
     { SndE e }
 
+  | LBRKT e = expr AT pi = cmplx(IDENT) RBRKT
+    { ReflE (e,pi) } 
+
   | LPAR t = expr RPAR
     { t }
+
+
