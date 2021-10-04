@@ -19,3 +19,10 @@ let PathOver (A : U) (B : A → U)
         | lf { p }
         ] a₀ a₁ p b₀ b₁
 
+let Square (A : U) (a₀₀ : A) (a₀₁ : A)
+    (a₁₀ : A) (a₁₁ : A)
+    (p : Eq A a₀₀ a₀₁) (q : Eq A a₁₀ a₁₁)
+    (r : Eq A a₀₀ a₁₀) (s : Eq A a₀₁ a₁₁) : U
+  = [ Eq A @ nd { y } (nd (lf { x }) (lf tt)) 
+           | lf { p }
+           ] a₀₀ a₀₁ p a₁₀ a₁₁ q r s
