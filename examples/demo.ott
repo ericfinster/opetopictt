@@ -64,4 +64,4 @@ let fst_tst (A : U) (B : A → U) (ab : (a : A) × B a) : A
 let snd_test (A : U) (B : A → U) (ab : (a : A) × B a) : B (fst ab)
   = snd ab 
 
-normalize (A : U) (B : A → U) ⊢ A : U 
+# normalize (A : U) (B : A → U) ⊢ A : U 

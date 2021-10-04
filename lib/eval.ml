@@ -43,17 +43,6 @@ let with_var lvl rho =
     at_shape = vc_at } 
 
 (*****************************************************************************)
-(*                         Evaluation Utilities                              *)
-(*****************************************************************************)
-
-let ext_loc loc v i =
-  if (i <= 0) then v
-  else loc (i-1)
-
-let emp_loc _ =
-  raise (Eval_error "Empty local environment")
-
-(*****************************************************************************)
 (*                                Eliminators                                *)
 (*****************************************************************************)
 
@@ -117,52 +106,69 @@ let rec lam_cmplx (a : 'a cmplx) (b : value cmplx -> value) : value =
 
 let rec eval lvl top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
-  let ev t = eval lvl top loc t in 
+  let ev t = eval lvl top loc t in
+  let ev_bnd v t = eval lvl top (with_value lvl loc v) t in 
   match tm with
   
   | VarT i -> db_get i loc.values 
   | TopT nm -> TopV (nm,EmpSp,top nm)
 
   | LamT (nm,u) ->
-    LamV (nm,fun v -> eval lvl top (with_value lvl loc v) u)
+    LamV (nm,fun v -> ev_bnd v u) 
   | AppT (u,v) -> app_val (ev u) (ev v) 
-  | PiT (nm,a,b) ->
-    PiV (nm, ev a, fun v -> eval lvl top (with_value lvl loc v) b)
+  | PiT (nm,a,b) -> PiV (nm, ev a, fun v -> ev_bnd v b) 
 
   | PairT (u,v) -> PairV (ev u, ev v)
   | FstT u -> fst_val (ev u)
   | SndT u -> snd_val (ev u)
-  | SigT (nm,a,b) ->
-    SigV (nm, ev a, fun v -> eval lvl top (with_value lvl loc v) b)
+  | SigT (nm,a,b) -> SigV (nm, ev a, fun v -> ev_bnd v b) 
       
-  | ReflT (u,pi) -> 
-    refl_val lvl (loc.at_shape pi) (ev u) pi 
+  | ReflT (u,pi) -> refl_val lvl loc (ev u) pi 
       
   | TypT -> TypV
 
-and refl_val lvl loc v pi : value =
+and expand_at lvl loc opvs v pi : value =
   match v with
-  | RigidV (k,_) ->
-    (* but run the spine, too! *) 
-    head_value (nth k loc)  
+  | RigidV (k,sp) ->
+    let hv = head_value (nth k opvs) in
+    expand_sp lvl loc opvs hv sp pi 
+  | TopV (_,_,tv) -> expand_at lvl loc opvs tv pi 
 
   | LamV (_,bdy) ->
 
     lam_cmplx pi (fun vc ->
-        refl_val (lvl+1) (Ext (loc, vc))
+        expand_at (lvl+1) loc (Ext (opvs, vc))
           (bdy (varV lvl)) pi)
 
   | _ -> failwith "" 
 
-and with_value lvl rho v =
+and expand_sp lvl loc opvs v sp pi =
+  match sp with
+  | EmpSp -> v
+  | FstSp sp' -> fst_val (expand_sp lvl loc opvs v sp' pi)
+  | SndSp sp' -> snd_val (expand_sp lvl loc opvs v sp' pi)
+  | AppSp _ -> failwith "app in refl_sp"
+  | ReflSp (sp',pi') ->
+    let v' = expand_sp lvl loc opvs v sp' pi in
+    refl_val lvl loc v' pi'
+
+and refl_val lvl loc v pi = 
+  match v with
+  | RigidV (k,sp) ->
+    RigidV (k,ReflSp (sp,pi))
+  | TopV (nm,sp,tv) ->
+    TopV (nm,ReflSp (sp,pi), refl_val lvl loc tv pi)
+  | _ -> expand_at lvl loc (loc.at_shape pi) v pi 
+
+and with_value lvl loc v =
   let vshp pi =
     let vc = map_cmplx (face_cmplx pi)
         ~f:(fun f ->
             if (is_obj f) then v
-            else refl_val lvl
-                (rho.at_shape f) v f) in 
-    Ext (rho.at_shape pi,vc) in
-  { values = Ext (rho.values, v) ;
+            else expand_at lvl loc
+                (loc.at_shape f) v f) in 
+    Ext (loc.at_shape pi,vc) in
+  { values = Ext (loc.values, v) ;
     at_shape = vshp } 
 
 
