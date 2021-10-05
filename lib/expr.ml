@@ -64,16 +64,16 @@ let rec pp_expr ppf expr =
   match expr with
   | VarE nm -> string ppf nm
                  
-  | LamE (nm,bdy) -> pf ppf "\u{03bb} %s. %a" nm ppe bdy
+  | LamE (nm,bdy) -> pf ppf "\u{03bb} %s.@ @[%a@]" nm ppe bdy
   | AppE (u, v) ->
     pf ppf "@[%a@]@, @[%a@]" ppe u
       (expr_app_parens v) v
       
   | PiE (nm,a,b) when Poly.(=) nm "" ->
-    pf ppf "@[%a@]@, \u{2192} @[%a@]"
+    pf ppf "@[%a@] \u{2192}@ @[%a@]"
       (expr_pi_parens a) a ppe b
   | PiE (nm,dom,cod) ->
-    pf ppf "(%s : @[%a@])@, \u{2192} @[%a@]" nm
+    pf ppf "(%s : @[%a@]) \u{2192}@ @[%a@]" nm
       ppe dom ppe cod
 
   | PairE (u,v) ->
@@ -83,13 +83,13 @@ let rec pp_expr ppf expr =
   | SndE u ->
     pf ppf "snd %a" pp_expr u
   | SigE (nm,a,b) ->
-    pf ppf "(%s : %a)@, \u{d7} %a"
+    pf ppf "(%s : @[%a@]) \u{d7}@ @[%a@]"
       nm pp_expr a pp_expr b 
 
   | ReflE (a,pi) ->
-    pf ppf "[ @[%a@] %@@[<v> %a@] ]"
-      pp_expr a (pp_suite ~sep:(any "@,| ")
-       (pp_tr_expr Fmt.string)) pi 
+    pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
+      pp_expr a (pp_suite ~sep:(any "@;| ")
+       (Fmt.box (pp_tr_expr Fmt.string))) pi 
 
   | TypE -> pf ppf "U"
 
