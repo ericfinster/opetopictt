@@ -214,16 +214,21 @@ let typ_fib pi =
 
       let cnms = map_cmplx pi ~f:(fun nm -> "el" ^ nm) in
       
-      let fib = pi_cmplx "" (tail_of cnms) vc (fun _ -> TypV) in
+      let dim = dim_cmplx vc in 
+      let fst_vc = map_cmplx_with_addr vc
+          ~f:(fun v (cd,_) ->
+              if (cd = dim) then v else fst_val v) in 
+      
+      let fib = pi_cmplx "" (tail_of cnms) fst_vc (fun _ -> TypV) in
       
       (* FIXME: Dummy top cell to satsify pi_kan ...*)
-      let comp = pi_kan "" cnms [] (Adjoin (vc, Lf TypV)) (fun kc ->
+      let comp = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
           let cface = face_at kc (0,[]) in 
           let cfib = head_value cface in
           if (is_obj cface) then head_value cface
           else app_args cfib (labels (tail_of cface))) in
       
-      let fill fibv compv = pi_kan "" cnms [] (Adjoin (vc, Lf TypV)) (fun kc ->
+      let fill fibv compv = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
 
           let kargs = 
             match kc with
@@ -325,9 +330,9 @@ and expand_at lvl loc opvs v pi : value =
 
     if (is_obj pi) then v else 
 
-      let afib = expand_at lvl loc opvs a pi in
-      let bfib vc = expand_at (lvl+1) loc
-          (Ext (opvs, vc)) (b (varV lvl)) pi in
+      let afib = fst_val (expand_at lvl loc opvs a pi) in
+      let bfib vc = fst_val (expand_at (lvl+1) loc
+          (Ext (opvs, vc)) (b (varV lvl)) pi) in
 
       sig_fib afib bfib nm pi 
 
