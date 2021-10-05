@@ -168,8 +168,8 @@ let rec eval lvl top loc tm =
   | TypT -> TypV
 
 and expand_at lvl loc opvs v pi : value =
-  (* Avoid the trivial case ... *) 
-  if (is_obj pi) then v else 
+  (* Avoid the trivial case ... *)
+  (* Hmm.  But could this be a problem for variables? *)
   match v with
   
   | RigidV (k,sp) ->
@@ -187,7 +187,12 @@ and expand_at lvl loc opvs v pi : value =
 
   | PiV (nm,a,b) ->
 
-    let acmplx = expand_all lvl loc a pi in
+    (* Yeah, this is too naive.  It just jettisons the actual
+       opetopic environment, which may have been extended. 
+       You need to have a routine which expands using the faces ... *)
+    if (is_obj pi) then v else 
+    
+    let acmplx = expand_faces lvl loc opvs a pi in 
     lam_cmplx "f" (tail_of pi) (fun sc ->
         pi_cmplx nm pi acmplx (fun vc ->
 
@@ -210,6 +215,8 @@ and expand_at lvl loc opvs v pi : value =
     PairV (a',b') 
 
   | SigV (nm,a,b) -> 
+
+    if (is_obj pi) then v else 
     
     lam_cmplx nm (tail_of pi) (fun pc ->
 
@@ -230,6 +237,8 @@ and expand_at lvl loc opvs v pi : value =
 
   | TypV ->
 
+    if (is_obj pi) then v else 
+
     lam_cmplx "" (tail_of pi) (fun vc ->
         pi_cmplx "" (map_cmplx (tail_of pi) ~f:(fun nm -> "el" ^ nm))
           vc (fun _ -> TypV) 
@@ -242,11 +251,18 @@ and expand_sp lvl loc opvs v sp pi =
   | SndSp sp' -> snd_val (expand_sp lvl loc opvs v sp' pi)
   | AppSp (sp',arg) ->
     let v' = expand_sp lvl loc opvs v sp' pi in
-    let argc = expand_all lvl loc arg pi in
+    let argc = expand_faces lvl loc opvs arg pi in
     app_args v' (labels argc)
   | ReflSp (sp',pi') ->
     let v' = expand_sp lvl loc opvs v sp' pi in
     refl_val lvl loc v' pi'
+
+and expand_faces lvl loc opvs v pi =
+  map_cmplx_with_addr pi
+    ~f:(fun _ fa ->
+        let face_env = map_suite opvs
+            ~f:(fun c -> face_at c fa) in
+        expand_at lvl loc face_env v (face_at pi fa))   
 
 and expand_all lvl loc v pi =
   map_cmplx (face_cmplx pi)
