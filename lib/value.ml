@@ -89,11 +89,11 @@ and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
   | AppSp (sp',v) ->
     pf ppf "%a %a" (pp_spine pp_a a) sp' pp_value v
   | FstSp sp' ->
-    pf ppf "fst %a" (pp_spine pp_a a) sp' 
+    pf ppf "fst @[%a@]" (pp_spine pp_a a) sp' 
   | SndSp sp' ->
-    pf ppf "snd %a" (pp_spine pp_a a) sp'
-  | ReflSp (sp',pi) -> 
-    let open Opetopes.Idt.IdtConv in 
-    pf ppf "[ @[%a] @ @[ %a ] ]"
-      (pp_spine pp_a a) sp' (pp_suite ~sep:(any "@,| ")
-       (pp_tr_expr Fmt.string)) (of_cmplx pi) 
+    pf ppf "snd @[%a@]" (pp_spine pp_a a) sp'
+  | ReflSp (sp',pi) ->
+    let open Opetopes.Idt.IdtConv in
+    pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
+      (pp_spine pp_a a) sp' (pp_suite ~sep:(any "@;| ")
+       (Fmt.box (pp_tr_expr Fmt.string))) (of_cmplx pi)

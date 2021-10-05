@@ -294,8 +294,9 @@ and tcm_infer (e : expr) : (term * value) tcm =
     let* gma = tcm_ctx in
 
     if (is_obj pi') then tcm_ok (ReflT (u',pi') , ut) else
-      let rt = refl_val gma.lvl gma.loc ut pi' in
-
+      
+      let rt = fst_val (refl_val gma.lvl gma.loc ut pi') in
+      
       let* uv = tcm_eval u' in
       let uc = map_cmplx (face_cmplx (tail_of pi'))
           ~f:(fun f -> refl_val gma.lvl gma.loc uv f) in 

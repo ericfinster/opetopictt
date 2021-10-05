@@ -204,10 +204,10 @@ let rec pp_term ppf tm =
       nm pp_term a pp_term b 
 
   | ReflT (a,pi) ->
-    let open Opetopes.Idt.IdtConv in 
-    pf ppf "[ @[%a@] %@@[<v>%a@] ]"
-      pp_term a (pp_suite ~sep:(any "@,| ")
-       (pp_tr_expr Fmt.string)) (of_cmplx pi) 
+    let open Opetopes.Idt.IdtConv in
+    pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
+      pp_term a (pp_suite ~sep:(any "@;| ")
+       (Fmt.box (pp_tr_expr Fmt.string))) (of_cmplx pi)
 
   | TypT -> pf ppf "U"
 

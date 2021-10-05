@@ -3,10 +3,10 @@
 #
 
 let Eq (A : U) (a₀ : A) (a₁ : A) : U
-  = [ A
-    @ nd { y } (nd (lf { x }) (lf tt)) 
-    | lf { p }
-    ] a₀ a₁
+  = fst [ A
+        @ nd { y } (nd (lf { x }) (lf tt)) 
+        | lf { p }
+        ] a₀ a₁
 
 let refl (A : U) (a : A) : Eq A a a
   = [ a
@@ -17,32 +17,29 @@ let refl (A : U) (a : A) : Eq A a a
 let PathOver (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) (b₁ : B a₁) : U
-  = [ B
-    @ nd { y } (nd (lf { x }) (lf tt)) 
-    | lf { p }
-    ] a₀ a₁ p b₀ b₁
+  = fst ([ B
+         @ nd { y } (nd (lf { x }) (lf tt)) 
+         | lf { p }
+         ] a₀ a₁ p) b₀ b₁
+
+let transport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) : B a₁
+  = fst snd ([ B
+             @ nd { y } (nd (lf { x }) (lf tt)) 
+             | lf { p }
+             ] a₀ a₁ p) b₀
+
 
 let Square (A : U) (a₀₀ : A) (a₀₁ : A)
     (a₁₀ : A) (a₁₁ : A)
     (p : Eq A a₀₀ a₀₁) (q : Eq A a₁₀ a₁₁)
     (r : Eq A a₀₀ a₁₀) (s : Eq A a₀₁ a₁₁) : U
-  = [ Eq A
-    @ nd { y } (nd (lf { x }) (lf tt)) 
-    | lf { p }
-    ] a₀₀ a₀₁ p a₁₀ a₁₁ q r s 
-
-let have-eq (A : U) (B : U) (phi : A → B → U) : Eq U A B
-  = phi 
+  = fst ([ Eq A
+         @ nd { y } (nd (lf { x }) (lf tt)) 
+         | lf { p }
+         ] a₀₀ a₀₁ p a₁₀ a₁₁ q) r s 
 
 
-let pi-over (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U
-  = λ a . (b : B a) → C a b
-  
-let pi-test (A : U) (B : A → U) (C : (a : A) → B a → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-  = [ pi-over A B C
-    @ nd { y } (nd (lf { x }) (lf tt)) 
-    | lf { p }
-    ] 
 
 

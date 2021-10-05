@@ -324,7 +324,8 @@ and expand_at lvl loc opvs v pi : value =
           (expand_at (lvl+1) loc (Ext (opvs,vc))
              (b (varV lvl)) pi) in
       
-      pi_fib acmplx bcmplx nm pi 
+      mk_cell (pi_fib acmplx bcmplx nm pi)
+        TypV TypV 
 
   | SigV (nm,a,b) -> 
 
@@ -334,14 +335,18 @@ and expand_at lvl loc opvs v pi : value =
       let bfib vc = fst_val (expand_at (lvl+1) loc
           (Ext (opvs, vc)) (b (varV lvl)) pi) in
 
-      sig_fib afib bfib nm pi 
+      mk_cell (sig_fib afib bfib nm pi)
+        TypV TypV 
 
   | TypV ->
 
     if (is_obj pi) then v else
-      
-      typ_fib pi
+      mk_cell (typ_fib pi)
+        TypV TypV
 
+and mk_cell fib comp fill =
+  PairV (fib, PairV (comp,fill))
+    
 and expand_sp lvl loc opvs v sp pi =
   match sp with
   | EmpSp -> v
