@@ -55,3 +55,14 @@ expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U
   | λ a . (b : B a) → C a b
   | nd { y } (nd (lf { x }) (lf tt)) 
   | lf { z }
+
+expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
+  | λ a . (b : B a) → C a b
+  | lf { x }
+  | nd { f } (lf tt)
+  | lf { a }
+
+expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
+  | λ a . (b : B a) × C a b
+  | nd { y } (nd (lf { x }) (lf tt)) 
+  | lf { z }

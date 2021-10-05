@@ -100,7 +100,6 @@ let rec lam_cmplx (nm : name) (a : name cmplx) (b : value cmplx -> value) : valu
     let nv = map_nst n ~f:(fun _ -> TypV) in 
     lam_cmplx nm t (fun vc -> do_lams (nodes_nst n') (Adjoin (vc,nv)))
 
-
 (* Abstract a list of types, putting the abstracted 
    value at the appropriate address in the provided complex *)
 let rec do_pis nl cm b =
@@ -140,6 +139,53 @@ let rec pi_cmplx (nm : name) (cnms : name cmplx)
 
   | _ -> raise (Eval_error "length mismatch in pi_cmplx")
 
+
+(*****************************************************************************)
+(*                         Implementation of Sigma                           *)
+(*****************************************************************************)
+
+let sig_fib afib bfib nm pi =
+  lam_cmplx nm (tail_of pi) (fun pc ->
+      
+      (* extract the base values given in the abstraction *)
+      let fstc = map_cmplx pc ~f:fst_val in
+      
+      (* apply them to the fibration to get at type *) 
+      let atyp = app_args afib (labels fstc) in
+      
+      (* now sum over the result *)
+      SigV (nm ^ (head_value pi), atyp, fun afst ->
+          let sndc = map_cmplx pc ~f:snd_val in
+          app_args (bfib (Adjoin (fstc, Lf afst))) (labels sndc)))
+
+(*****************************************************************************)
+(*                           Implementation of Pi                            *)
+(*****************************************************************************)
+
+let pi_fib acmplx bcmplx nm pi =
+  lam_cmplx "f" (tail_of pi) (fun sc ->
+      pi_cmplx nm pi acmplx (fun vc ->
+          
+          (* apply the arguments to the sections on the boundary *)
+          let appc = match_cmplx sc (face_cmplx (tail_of vc))
+              ~f:(fun s argc -> app_args s (labels argc)) in
+
+          (* feed these to the fibration *) 
+          app_args (bcmplx vc) (labels appc)))
+
+(* let pi_comp acmplx bcmplx nm pi =
+ *   failwith "not done ..."  *)
+
+(*****************************************************************************)
+(*                       Implementation of the Universe                      *)
+(*****************************************************************************)
+
+let typ_fib pi = 
+  lam_cmplx "" (tail_of pi) (fun vc ->
+      pi_cmplx "" (map_cmplx (tail_of pi) ~f:(fun nm -> "el" ^ nm))
+        vc (fun _ -> TypV) 
+    )
+
 (*****************************************************************************)
 (*                                 Evaluation                                *)
 (*****************************************************************************)
@@ -167,6 +213,15 @@ let rec eval lvl top loc tm =
       
   | TypT -> TypV
 
+and refl_val lvl loc v pi =
+  if (is_obj pi) then v else 
+  match v with
+  | RigidV (k,sp) ->
+    RigidV (k,ReflSp (sp,pi))
+  | TopV (nm,sp,tv) ->
+    TopV (nm,ReflSp (sp,pi), refl_val lvl loc tv pi)
+  | _ -> expand_at lvl loc (loc.at_shape pi) v pi 
+
 and expand_at lvl loc opvs v pi : value =
   (* Avoid the trivial case ... *)
   (* Hmm.  But could this be a problem for variables? *)
@@ -185,64 +240,37 @@ and expand_at lvl loc opvs v pi : value =
         expand_at (lvl+1) loc (Ext (opvs, vc))
           (bdy (varV lvl)) pi)
 
-  | PiV (nm,a,b) ->
-
-    (* Yeah, this is too naive.  It just jettisons the actual
-       opetopic environment, which may have been extended. 
-       You need to have a routine which expands using the faces ... *)
-    if (is_obj pi) then v else 
-    
-    let acmplx = expand_faces lvl loc opvs a pi in 
-    lam_cmplx "f" (tail_of pi) (fun sc ->
-        pi_cmplx nm pi acmplx (fun vc ->
-
-            (* expand the fibration itself *) 
-            let b' = expand_at (lvl+1) loc (Ext (opvs,vc))
-                (b (varV lvl)) pi in
-
-            (* apply the arguments to the sections on the boundary *)
-            let appc = match_cmplx sc (face_cmplx (tail_of vc))
-                ~f:(fun s argc -> app_args s (labels argc)) in
-
-            (* feed these to the fibration *) 
-            app_args b' (labels appc)))
-
-
   | PairV (a,b) ->
 
     let a' = expand_at lvl loc opvs a pi in
     let b' = expand_at lvl loc opvs b pi in
     PairV (a',b') 
 
+  | PiV (nm,a,b) ->
+
+    if (is_obj pi) then v else 
+
+      let acmplx = expand_faces lvl loc opvs a pi in
+      let bcmplx vc = expand_at (lvl+1) loc (Ext (opvs,vc))
+          (b (varV lvl)) pi in
+      
+      pi_fib acmplx bcmplx nm pi 
+
   | SigV (nm,a,b) -> 
 
     if (is_obj pi) then v else 
-    
-    lam_cmplx nm (tail_of pi) (fun pc ->
 
-        (* expand the fibration *)
-        let afib = expand_at lvl loc opvs a pi in
-        (* extract the base values given in the abstraction *)
-        let fstc = map_cmplx pc ~f:fst_val in
-        (* apply them to the fibration to get at type *) 
-        let a' = app_args afib (labels fstc) in
+      let afib = expand_at lvl loc opvs a pi in
+      let bfib vc = expand_at (lvl+1) loc
+          (Ext (opvs, vc)) (b (varV lvl)) pi in
 
-        SigV (nm ^ (head_value pi), a', fun afst ->
-
-            let bfib = expand_at (lvl+1) loc
-                (Ext (opvs, Adjoin (fstc, Lf afst))) (b (varV lvl)) pi in
-
-            let sndc = map_cmplx pc ~f:snd_val in
-            app_args bfib (labels sndc)))
+      sig_fib afib bfib nm pi 
 
   | TypV ->
 
-    if (is_obj pi) then v else 
-
-    lam_cmplx "" (tail_of pi) (fun vc ->
-        pi_cmplx "" (map_cmplx (tail_of pi) ~f:(fun nm -> "el" ^ nm))
-          vc (fun _ -> TypV) 
-      )
+    if (is_obj pi) then v else
+      
+      typ_fib pi
 
 and expand_sp lvl loc opvs v sp pi =
   match sp with
@@ -254,6 +282,8 @@ and expand_sp lvl loc opvs v sp pi =
     let argc = expand_faces lvl loc opvs arg pi in
     app_args v' (labels argc)
   | ReflSp (sp',pi') ->
+    (* TODO: is this correct? You throw away opvs, but I'm not sure if
+       this leaves you with the correct environment.... *)
     let v' = expand_sp lvl loc opvs v sp' pi in
     refl_val lvl loc v' pi'
 
@@ -264,21 +294,13 @@ and expand_faces lvl loc opvs v pi =
             ~f:(fun c -> face_at c fa) in
         expand_at lvl loc face_env v (face_at pi fa))   
 
+
 and expand_all lvl loc v pi =
   map_cmplx (face_cmplx pi)
     ~f:(fun f ->
         if (is_obj f) then v
         else expand_at lvl loc
             (loc.at_shape f) v f)
-
-and refl_val lvl loc v pi =
-  if (is_obj pi) then v else 
-  match v with
-  | RigidV (k,sp) ->
-    RigidV (k,ReflSp (sp,pi))
-  | TopV (nm,sp,tv) ->
-    TopV (nm,ReflSp (sp,pi), refl_val lvl loc tv pi)
-  | _ -> expand_at lvl loc (loc.at_shape pi) v pi 
 
 and with_value lvl loc v =
   let vshp pi =
