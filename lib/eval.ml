@@ -139,6 +139,35 @@ let rec pi_cmplx (nm : name) (cnms : name cmplx)
 
   | _ -> raise (Eval_error "length mismatch in pi_cmplx")
 
+(* b takes just the frame, leaving out the top cell ... *)
+let pi_kan (nm : name) (cnms : name cmplx) 
+    (addr : addr) (a : value cmplx) (b : value cmplx -> value) : value =
+  
+  match (a,cnms) with
+  | (Base _ , _) -> failwith "Base in Kan abstraction"
+  | (Adjoin (Base n , _) , Adjoin (Base nms , _)) ->
+
+    let n' = match_nst_with_addr n nms
+        ~f:(fun typ cnm addr -> (nm ^ cnm,addr,typ)) in 
+    do_pis (nodes_nst_except n' addr) (Base n) b
+
+  | (Adjoin (Adjoin (t,n),_) , Adjoin (Adjoin (tnms,nnms),_)) ->
+
+    pi_cmplx nm tnms t (fun vc ->
+
+        let n' = match_nst_with_addr n nnms
+            ~f:(fun fib cnm addr ->
+                let f = face_at (Adjoin (vc,n)) (0,addr) in
+                let f_tl = tail_of f in
+                let typ = app_args fib (labels f_tl) in 
+                (nm ^ cnm,addr,typ)) in
+
+        do_pis (nodes_nst_except n' addr) (Adjoin (vc,n)) b
+
+      )
+
+  | _ -> failwith "uneven complex in pi_kan"
+
 
 (*****************************************************************************)
 (*                         Implementation of Sigma                           *)
@@ -182,8 +211,39 @@ let pi_fib acmplx bcmplx nm pi =
 
 let typ_fib pi = 
   lam_cmplx "" (tail_of pi) (fun vc ->
-      pi_cmplx "" (map_cmplx (tail_of pi) ~f:(fun nm -> "el" ^ nm))
-        vc (fun _ -> TypV) 
+
+      let cnms = map_cmplx pi ~f:(fun nm -> "el" ^ nm) in
+      
+      let fib = pi_cmplx "" (tail_of cnms) vc (fun _ -> TypV) in
+      
+      (* FIXME: Dummy top cell to satsify pi_kan ...*)
+      let comp = pi_kan "" cnms [] (Adjoin (vc, Lf TypV)) (fun kc ->
+          let cface = face_at kc (0,[]) in 
+          let cfib = head_value cface in
+          if (is_obj cface) then head_value cface
+          else app_args cfib (labels (tail_of cface))) in
+      
+      let fill fibv compv = pi_kan "" cnms [] (Adjoin (vc, Lf TypV)) (fun kc ->
+
+          let kargs = 
+            match kc with
+            | Base n ->
+              nodes_nst_except n [] 
+            | Adjoin (t, n) ->
+              List.append (labels t)
+                (nodes_nst_except n [])
+          in
+          
+          let kc' = replace_at kc (0,[]) (app_args compv kargs) in 
+          app_args fibv (labels kc')
+
+        ) in 
+
+      
+      SigV ("fib", fib, fun fibv ->
+          SigV ("cmp", comp, fun compv ->
+              fill fibv compv))
+        
     )
 
 (*****************************************************************************)
@@ -223,8 +283,6 @@ and refl_val lvl loc v pi =
   | _ -> expand_at lvl loc (loc.at_shape pi) v pi 
 
 and expand_at lvl loc opvs v pi : value =
-  (* Avoid the trivial case ... *)
-  (* Hmm.  But could this be a problem for variables? *)
   match v with
   
   | RigidV (k,sp) ->
@@ -250,9 +308,16 @@ and expand_at lvl loc opvs v pi : value =
 
     if (is_obj pi) then v else 
 
-      let acmplx = expand_faces lvl loc opvs a pi in
-      let bcmplx vc = expand_at (lvl+1) loc (Ext (opvs,vc))
-          (b (varV lvl)) pi in
+      let dim = dim_cmplx pi in 
+      let acmplx = map_cmplx_with_addr
+          (expand_faces lvl loc opvs a pi)
+          ~f:(fun v (cd,_) ->
+              if (cd = dim) then v
+               else fst_val v) in
+      
+      let bcmplx vc = fst_val
+          (expand_at (lvl+1) loc (Ext (opvs,vc))
+             (b (varV lvl)) pi) in
       
       pi_fib acmplx bcmplx nm pi 
 

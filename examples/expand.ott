@@ -46,23 +46,33 @@ expand (A : U) (B : U) : U
   | nd { y } (nd (lf { x }) (lf tt)) 
   | lf { z }
 
-expand (A : U) (B : U) (f : A → B) : A → B
-  | f
+expand (A : U) (B : A → U) : U
+  | (a : A) → B a 
   | nd { y } (nd (lf { x }) (lf tt)) 
   | lf { z }
 
-expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
-  | λ a . (b : B a) → C a b
+expand (A : U) (B : A → U) : U
+  | (a : A) × B a
   | nd { y } (nd (lf { x }) (lf tt)) 
   | lf { z }
+  
+# expand (A : U) (B : U) (f : A → B) : A → B
+#   | f
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
 
-expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
-  | λ a . (b : B a) → C a b
-  | lf { x }
-  | nd { f } (lf tt)
-  | lf { a }
+# expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
+#   | λ a . (b : B a) → C a b
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
 
-expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
-  | λ a . (b : B a) × C a b
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+# expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
+#   | λ a . (b : B a) → C a b
+#   | lf { x }
+#   | nd { f } (lf tt)
+#   | lf { a }
+
+# expand (A : U) (B : A → U) (C : (a : A) → B a → U) : A → U 
+#   | λ a . (b : B a) × C a b
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
