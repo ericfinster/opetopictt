@@ -17,7 +17,8 @@ open Opetopes.Complex
 
 type value =
 
-  | RigidV of lvl * spine 
+  | RigidV of lvl * spine
+  | ExpV of lvl 
   | TopV of name * spine * value
 
   (* Pi Types *)
@@ -57,6 +58,8 @@ let rec pp_value ppf v =
   
   | RigidV (i,sp) ->
     pf ppf "%a" (pp_spine Fmt.int i) sp
+  | ExpV i ->
+    pf ppf "exp%d" i 
   | TopV (nm,sp,_) ->
     let pp_nm ppf' n = pf ppf' "%s" n in 
     pf ppf "%a" (pp_spine pp_nm nm) sp
@@ -72,12 +75,6 @@ let rec pp_value ppf v =
   | SigV (nm,a,_) ->
     pf ppf "(%s : %a) \u{d7} <closure>" nm
       pp_value a
-
-  (* | ReflV (v',pi) -> 
-   *   let open Opetopes.Idt.IdtConv in 
-   *   pf ppf "[ @[%a] @ @[ %a ] ]"
-   *     pp_value v' (pp_suite ~sep:(any "@,| ")
-   *      (pp_tr_expr Fmt.string)) (of_cmplx pi)  *)
 
   | TypV -> pf ppf "U"
     

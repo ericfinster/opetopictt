@@ -55,6 +55,7 @@ let rec token buf =
   | "nd"         -> ND
   | "tt"         -> UNIT
   | "|"          -> VBAR
+  | 0x22A2       -> VDASH 
   | 0xd7         -> TIMES
   | ","          -> COMMA
   | "fst"        -> FST

@@ -261,7 +261,15 @@ let rec eval lvl top loc tm =
   let ev_bnd v t = eval lvl top (with_value lvl loc v) t in 
   match tm with
   
-  | VarT i -> db_get i loc.values 
+  | VarT i ->
+    begin try db_get i loc.values
+      with Suite.Lookup_error ->
+        log_msg "invalid environment";
+        log_val "loc.values" loc.values (pp_suite pp_value); 
+        log_val "i" i Fmt.int; 
+        raise (Eval_error "invalid environment")
+    end 
+
   | TopT nm -> TopV (nm,EmpSp,top nm)
 
   | LamT (nm,u) ->
@@ -274,7 +282,12 @@ let rec eval lvl top loc tm =
   | SndT u -> snd_val (ev u)
   | SigT (nm,a,b) -> SigV (nm, ev a, fun v -> ev_bnd v b) 
       
-  | ReflT (u,pi) -> refl_val lvl loc (ev u) pi 
+  | ReflT (u,pi) ->
+    log_val "refl u" u pp_term;
+    let uv = ev u in
+    log_val "uv" uv pp_value; 
+    let r = refl_val lvl loc uv pi in
+    log_val "r" r pp_value; r 
       
   | TypT -> TypV
 
@@ -288,9 +301,12 @@ and refl_val lvl loc v pi =
   | _ -> expand_at lvl loc (loc.at_shape pi) v pi 
 
 and expand_at lvl loc opvs v pi : value =
+  log_val "expand: v" v pp_value; 
+  log_val "opvs" opvs (pp_suite (pp_cmplx pp_value)); 
   match v with
   
   | RigidV (k,sp) ->
+    log_val "ridig/opvs" opvs (pp_suite (pp_cmplx pp_value)); 
     let hv = head_value (nth k opvs) in
     expand_sp lvl loc opvs hv sp pi
       
@@ -370,19 +386,45 @@ and expand_faces lvl loc opvs v pi =
         expand_at lvl loc face_env v (face_at pi fa))   
 
 
+(* and expand_all lvl loc v pi =
+ *   map_cmplx (face_cmplx pi)
+ *     ~f:(fun f ->
+ *         if (is_obj f) then v
+ *         else expand_at lvl loc
+ *             (loc.at_shape f) v f) *)
+
+(* Should this use refl instead? *) 
 and expand_all lvl loc v pi =
   map_cmplx (face_cmplx pi)
     ~f:(fun f ->
         if (is_obj f) then v
-        else expand_at lvl loc
-            (loc.at_shape f) v f)
+        else refl_val lvl loc v f)
 
 and with_value lvl loc v =
+  log_val "with_value: v" v pp_value; 
   let vshp pi =
+    log_msg "running vshp";
     let vc = expand_all lvl loc v pi in 
     Ext (loc.at_shape pi,vc) in
   { values = Ext (loc.values, v) ;
     at_shape = vshp } 
+
+(* So there's some kind of problem with the definition of 
+   vshp here.  There's some kind of difference where when we
+   pull a guy from top-level, the environment is being created
+   by this method as opposed to the typechecker above using the
+   with_var.  So somehow that's messing things up later ... *)
+
+(* My guess is that this is getting called as we enter the lambdas
+   that we have put at toplevel to make the terms closed.  Because
+   then, the very first thing we will see in the environment is the
+   argument to Eq.  And if it is non-trivial, then it is going to
+   expand whether we call refl_val or expand.  But since it is the
+   first thing in the environment, it may reference variables from the
+   environment it was living in, and these are no longer around. So
+   when we later to go expand, we find that in order to "rewrite the
+   past" we have to expand some guy which has a lot of free things
+   whic are unreferrenced.  How to fix this ? *)
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
