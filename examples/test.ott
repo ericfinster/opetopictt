@@ -36,26 +36,19 @@ let Σ-eq (A : U) (B : A → U)
   : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
   = p , q 
 
-# normalize (A : U) (a₀ : A) (a₁ : A) : U
-#   ⊢ Eq A a₀ a₁ 
+# ucomps are with us ...
 
-# normalize (A : U) (B : A → U)
-#     (σ₀ : (a : A) → B a)
-#     (σ₁ : (a : A) → B a) : U
-#   ⊢ fst [ (a : A) → B a 
-#         @ nd { y } (nd (lf { x }) (lf tt)) 
-#         | lf { p }
-#         ] σ₀ σ₁
+let ucomp (A : U) (a : A) : A
+  = fst snd [ A
+            @ nd { y } (nd (lf { x }) (lf tt)) 
+            | lf { p }
+            ] a
 
-# normalize (A : U) (B : A → U)
-#     (σ₀ : (a : A) → B a)
-#     (σ₁ : (a : A) → B a) : U
-#   ⊢ Eq ((a : A) → B a) σ₀ σ₁
-
-# normalize (A : U) (B : A → U)
-#     (a₀ : A) (a₁ : A) 
-#     (b₀ : B a₀) (b₁ : B a₁) : U
-#   ⊢ Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁) 
+let ufill (A : U) (a : A) : Eq A a (ucomp A a)
+  = fst snd snd [ A
+                @ nd { y } (nd (lf { x }) (lf tt)) 
+                | lf { p }
+                ] a
 
 #
 #  Some other shapes ....

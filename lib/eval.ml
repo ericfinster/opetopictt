@@ -184,50 +184,8 @@ let pi_fib acmplx bcmplx nm pi =
  *   failwith "not done ..."  *)
 
 (*****************************************************************************)
-(*                       Implementation of the Universe                      *)
+(*                     Utility for Inspecting Opetopes                       *) 
 (*****************************************************************************)
-
-let typ_fib pi = 
-  lam_cmplx "" (tail_of pi) (fun vc ->
-
-      let cnms = map_cmplx pi ~f:(fun nm -> "el" ^ nm) in
-      
-      let dim = dim_cmplx vc in 
-      let fst_vc = map_cmplx_with_addr vc
-          ~f:(fun v (cd,_) ->
-              if (cd = dim) then v else fst_val v) in 
-      
-      let fib = pi_cmplx "" (tail_of cnms) fst_vc (fun _ -> TypV) in
-      
-      (* FIXME: Dummy top cell to satsify pi_kan ...*)
-      let comp = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
-          let cface = face_at kc (0,[]) in 
-          let cfib = head_value cface in
-          if (is_obj cface) then head_value cface
-          else app_args cfib (labels (tail_of cface))) in
-      
-      let fill fibv compv = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
-
-          let kargs = 
-            match kc with
-            | Base n ->
-              nodes_nst_except n [] 
-            | Adjoin (t, n) ->
-              List.append (labels t)
-                (nodes_nst_except n [])
-          in
-          
-          let kc' = replace_at kc (0,[]) (app_args compv kargs) in 
-          app_args fibv (labels kc')
-
-        ) in 
-
-      
-      SigV ("fib", fib, fun fibv ->
-          SigV ("cmp", comp, fun compv ->
-              fill fibv compv))
-        
-    )
 
 type 'a cmplx_opt =
   | Obj of 'a
@@ -312,12 +270,8 @@ let rec refl_val opvs olvl v pi =
       mk_cell (sig_fib afib bfib nm pi)
         TypV TypV 
 
-  | TypV ->
-
-    if (is_obj pi) then v else
-      
-      mk_cell (typ_fib pi)
-        TypV TypV 
+  | TypV -> mk_cell (typ_fib pi)
+              TypV TypV 
 
 and refl_sp opvs olvl init sp pi = 
   match sp with
@@ -355,12 +309,12 @@ and mk_cell fib comp fill =
 and id_typ v =
   let arr = arr_cmplx "x" "y" "p" in 
   fst_val (refl_val Emp 0 v arr)
-  
+
 (*****************************************************************************)
 (*                       Implementation of the Universe                      *)
 (*****************************************************************************)
     
-and  new_typ_fib o =
+and  typ_fib o =
   let open ValSyntax in 
   match get_cmplx_opt o with
   | Obj _ -> TypV
@@ -418,17 +372,62 @@ and  new_typ_fib o =
 
         val_of (
       let* atyp = lam "A" in
-      let* btyp = lam "b" in
+      let* btyp = lam "B" in
       let* eqv = sigma "E" (efib atyp btyp) in
       let* tcmp = sigma "to_cmp" (to_cmp atyp btyp eqv) in
       let* tfill = sigma "to_fill" (to_fill atyp btyp eqv tcmp) in
       let* _ = sigma "to_unique" (to_unique atyp btyp eqv tcmp tfill) in 
-      let* fcmp = sigma "to_cmp" (from_cmp atyp btyp eqv) in
-      let* ffill = sigma "to_fill" (from_fill atyp btyp eqv fcmp) in
+      let* fcmp = sigma "from_cmp" (from_cmp atyp btyp eqv) in
+      let* ffill = sigma "from_fill" (from_fill atyp btyp eqv fcmp) in
       ret (from_unique atyp btyp eqv fcmp ffill)
     )
 
-  | Cell _ -> TypV
+  | Cell (t,n,a) -> 
+
+    let frm = Adjoin (t,n) in
+    let op = Adjoin (frm,Lf(a)) in 
+        
+    lam_cmplx "" frm (fun vc ->
+
+        let cnms = map_cmplx op ~f:(fun nm -> "el" ^ nm) in
+
+        let dim = dim_cmplx vc in 
+        let fst_vc = map_cmplx_with_addr vc
+            ~f:(fun v (cd,_) ->
+                if (cd = dim) then v else fst_val v) in 
+
+        let fib = pi_cmplx "" (tail_of cnms) fst_vc (fun _ -> TypV) in
+
+        (* FIXME: Dummy top cell to satsify pi_kan ...*)
+        let comp = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
+            let cface = face_at kc (0,[]) in 
+            let cfib = head_value cface in
+            if (is_obj cface) then head_value cface
+            else app_args cfib (labels (tail_of cface))) in
+
+        let fill fibv compv = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
+
+            let kargs = 
+              match kc with
+              | Base n ->
+                nodes_nst_except n [] 
+              | Adjoin (t, n) ->
+                List.append (labels t)
+                  (nodes_nst_except n [])
+            in
+
+            let kc' = replace_at kc (0,[]) (app_args compv kargs) in 
+            app_args fibv (labels kc')
+
+          ) in 
+
+        val_of (
+          let* fibv = sigma "fib" fib in
+          let* cmpv = sigma "cmp" comp in
+          ret (fill fibv cmpv)
+        )
+
+      )
 
 (*****************************************************************************)
 (*                                 Evaluation                                *)
