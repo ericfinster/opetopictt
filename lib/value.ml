@@ -18,7 +18,7 @@ open Opetopes.Complex
 type value =
 
   | RigidV of lvl * spine
-  | ExpV of lvl 
+  | ExpV of lvl * spine 
   | TopV of name * spine * value
 
   (* Pi Types *)
@@ -40,6 +40,7 @@ and spine =
   | ReflSp of spine * string cmplx 
 
 let varV k = RigidV (k,EmpSp)
+let expV k = ExpV (k,EmpSp) 
 
 (* Take the non-dependent product of a list of type values *)
 let rec prod tys =
@@ -57,9 +58,10 @@ let rec pp_value ppf v =
   match v with
   
   | RigidV (i,sp) ->
-    pf ppf "%a" (pp_spine Fmt.int i) sp
-  | ExpV i ->
-    pf ppf "exp%d" i 
+    pp_spine Fmt.int i ppf sp 
+  | ExpV (i,sp) ->
+    let ppe ppf = pf ppf "exp%d" in 
+    pp_spine ppe i ppf sp 
   | TopV (nm,sp,_) ->
     let pp_nm ppf' n = pf ppf' "%s" n in 
     pf ppf "%a" (pp_spine pp_nm nm) sp
