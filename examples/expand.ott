@@ -7,54 +7,54 @@ expand : U
   | nd { B } (nd (lf { A }) (lf tt)) 
   | lf { C }
 
-expand : U
-  | U
-  | lf { A }
-  | nd { E } (lf tt)
-  | lf { N }
+# expand : U
+#   | U
+#   | lf { A }
+#   | nd { E } (lf tt)
+#   | lf { N }
 
-expand : U
-  | U
-  | nd { Z } (nd (nd { Y } (nd (lf { X }) (lf tt))) (lf tt))
-  | nd { R } (nd (lf { Q }) (nd (nd (lf { P })
-      (nd (lf tt) (lf tt))) (lf tt)))
-  | lf { S }
+# expand : U
+#   | U
+#   | nd { Z } (nd (nd { Y } (nd (lf { X }) (lf tt))) (lf tt))
+#   | nd { R } (nd (lf { Q }) (nd (nd (lf { P })
+#       (nd (lf tt) (lf tt))) (lf tt)))
+#   | lf { S }
 
-expand (A : U) : A → A
-  | λ a . a
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { f }
+# expand (A : U) : A → A
+#   | λ a . a
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { f }
 
-expand (A : U) : A → A
-  | λ a . a 
-  | lf { x }
-  | nd { f } (lf tt)
-  | lf { a }
+# expand (A : U) : A → A
+#   | λ a . a 
+#   | lf { x }
+#   | nd { f } (lf tt)
+#   | lf { a }
 
-expand (A : U) : A → U
-  | λ a . A
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { f }
+# expand (A : U) : A → U
+#   | λ a . A
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { f }
 
-expand (A : U) (a : A) (B : A → U) : U
-  | B a
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+# expand (A : U) (a : A) (B : A → U) : U
+#   | B a
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
 
-expand (A : U) (B : U) : U
-  | A → B
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+# expand (A : U) (B : U) : U
+#   | A → B
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
 
-expand (A : U) (B : A → U) : U
-  | (a : A) → B a 
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+# expand (A : U) (B : A → U) : U
+#   | (a : A) → B a 
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
 
-expand (A : U) (B : A → U) : U
-  | (a : A) × B a
-  | nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { z }
+# expand (A : U) (B : A → U) : U
+#   | (a : A) × B a
+#   | nd { y } (nd (lf { x }) (lf tt)) 
+#   | lf { z }
   
 # expand (A : U) (B : U) (f : A → B) : A → B
 #   | f

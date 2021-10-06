@@ -73,7 +73,7 @@ let rec run_cmds cmds =
         let* pi = tcm_to_cmplx op in
 
         let* gma = tcm_ctx in
-        let ex_v = expand_at gma.lvl gma.loc (gma.loc.at_shape pi) tm_v pi in
+        let ex_v = refl_val Emp 0 tm_v pi in
         (* lengthen the level ? *)
         (* let cell_nms = labels pi in  *)
         let ex_nf = quote true gma.lvl ex_v in

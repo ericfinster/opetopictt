@@ -21,26 +21,26 @@ open Opetopes.Complex
 
 exception Eval_error of string
 
-type env =
-  { values : value suite;
-    at_shape : string cmplx -> value cmplx suite
-  }
-
-let empty_env =
-  { values = Emp ;
-    at_shape = fun _ -> Emp
-  } 
-
-let with_var lvl rho =
-  let vc_at pi =
-    let vc = map_cmplx (face_cmplx pi)
-        ~f:(fun f ->
-            if (is_obj f) then
-              varV lvl
-            else RigidV (lvl, ReflSp (EmpSp,f))) in 
-    Ext (rho.at_shape pi,vc) in 
-  { values = Ext (rho.values, varV lvl) ;
-    at_shape = vc_at } 
+(* type env =
+ *   { values : value suite;
+ *     at_shape : string cmplx -> value cmplx suite
+ *   }
+ * 
+ * let empty_env =
+ *   { values = Emp ;
+ *     at_shape = fun _ -> Emp
+ *   } 
+ * 
+ * let with_var lvl rho =
+ *   let vc_at pi =
+ *     let vc = map_cmplx (face_cmplx pi)
+ *         ~f:(fun f ->
+ *             if (is_obj f) then
+ *               varV lvl
+ *             else RigidV (lvl, ReflSp (EmpSp,f))) in 
+ *     Ext (rho.at_shape pi,vc) in 
+ *   { values = Ext (rho.values, varV lvl) ;
+ *     at_shape = vc_at }  *)
 
 (*****************************************************************************)
 (*                                Eliminators                                *)
@@ -258,17 +258,10 @@ let typ_fib pi =
 let rec eval lvl top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
   let ev t = eval lvl top loc t in
-  let ev_bnd v t = eval lvl top (with_value lvl loc v) t in 
+  let ev_bnd v t = eval lvl top (Ext (loc,v)) t in 
   match tm with
   
-  | VarT i ->
-    begin try db_get i loc.values
-      with Suite.Lookup_error ->
-        log_msg "invalid environment";
-        log_val "loc.values" loc.values (pp_suite pp_value); 
-        log_val "i" i Fmt.int; 
-        raise (Eval_error "invalid environment")
-    end 
+  | VarT i -> db_get i loc
 
   | TopT nm -> TopV (nm,EmpSp,top nm)
 
@@ -283,46 +276,30 @@ let rec eval lvl top loc tm =
   | SigT (nm,a,b) -> SigV (nm, ev a, fun v -> ev_bnd v b) 
       
   | ReflT (u,pi) ->
-    log_val "refl u" u pp_term;
-    let uv = ev u in
-    log_val "uv" uv pp_value; 
-    let r = refl_val lvl loc uv pi in
-    log_val "r" r pp_value; r 
+    refl_val Emp 0 (ev u) pi
       
   | TypT -> TypV
 
-and refl_val lvl loc v pi =
-  if (is_obj pi) then v else 
-  match v with
-  | RigidV (k,sp) ->
-    RigidV (k,ReflSp (sp,pi))
-  | TopV (nm,sp,tv) ->
-    TopV (nm,ReflSp (sp,pi), refl_val lvl loc tv pi)
-  | _ -> expand_at lvl loc (loc.at_shape pi) v pi 
-
-and expand_at lvl loc opvs v pi : value =
-  log_val "expand: v" v pp_value; 
-  log_val "opvs" opvs (pp_suite (pp_cmplx pp_value)); 
+and refl_val opvs olvl v pi =
   match v with
   
   | RigidV (k,sp) ->
-    log_val "ridig/opvs" opvs (pp_suite (pp_cmplx pp_value)); 
-    let hv = head_value (nth k opvs) in
-    expand_sp lvl loc opvs hv sp pi
+    RigidV (k,ReflSp (sp,pi))
+  | ExpV k -> head_value (nth k opvs)
       
-  | TopV (_,_,tv) ->
-    expand_at lvl loc opvs tv pi 
+  | TopV (nm,sp,tv) ->
+    TopV (nm,ReflSp (sp,pi), refl_val opvs olvl tv pi)
 
   | LamV (nm,bdy) ->
 
     lam_cmplx nm pi (fun vc ->
-        expand_at (lvl+1) loc (Ext (opvs, vc))
-          (bdy (varV lvl)) pi)
+        refl_val (Ext (opvs,vc)) (olvl+1)
+          (bdy (ExpV olvl)) pi)
 
   | PairV (a,b) ->
 
-    let a' = expand_at lvl loc opvs a pi in
-    let b' = expand_at lvl loc opvs b pi in
+    let a' = refl_val opvs olvl a pi in
+    let b' = refl_val opvs olvl b pi in
     PairV (a',b') 
 
   | PiV (nm,a,b) ->
@@ -331,15 +308,15 @@ and expand_at lvl loc opvs v pi : value =
 
       let dim = dim_cmplx pi in 
       let acmplx = map_cmplx_with_addr
-          (expand_faces lvl loc opvs a pi)
+          (refl_faces opvs olvl a pi)
           ~f:(fun v (cd,_) ->
               if (cd = dim) then v
-               else fst_val v) in
-      
+              else fst_val v) in
+
       let bcmplx vc = fst_val
-          (expand_at (lvl+1) loc (Ext (opvs,vc))
-             (b (varV lvl)) pi) in
-      
+          (refl_val (Ext (opvs,vc)) (olvl+1)
+             (b (ExpV olvl)) pi) in
+
       mk_cell (pi_fib acmplx bcmplx nm pi)
         TypV TypV 
 
@@ -347,9 +324,10 @@ and expand_at lvl loc opvs v pi : value =
 
     if (is_obj pi) then v else 
 
-      let afib = fst_val (expand_at lvl loc opvs a pi) in
-      let bfib vc = fst_val (expand_at (lvl+1) loc
-          (Ext (opvs, vc)) (b (varV lvl)) pi) in
+      let afib = fst_val (refl_val opvs olvl a pi) in
+      let bfib vc = fst_val
+          (refl_val (Ext (opvs, vc)) (olvl+1)
+             (b (ExpV olvl)) pi) in
 
       mk_cell (sig_fib afib bfib nm pi)
         TypV TypV 
@@ -357,33 +335,104 @@ and expand_at lvl loc opvs v pi : value =
   | TypV ->
 
     if (is_obj pi) then v else
+      
       mk_cell (typ_fib pi)
-        TypV TypV
+        TypV TypV 
 
-and mk_cell fib comp fill =
-  PairV (fib, PairV (comp,fill))
-    
-and expand_sp lvl loc opvs v sp pi =
-  match sp with
-  | EmpSp -> v
-  | FstSp sp' -> fst_val (expand_sp lvl loc opvs v sp' pi)
-  | SndSp sp' -> snd_val (expand_sp lvl loc opvs v sp' pi)
-  | AppSp (sp',arg) ->
-    let v' = expand_sp lvl loc opvs v sp' pi in
-    let argc = expand_faces lvl loc opvs arg pi in
-    app_args v' (labels argc)
-  | ReflSp (sp',pi') ->
-    (* TODO: is this correct? You throw away opvs, but I'm not sure if
-       this leaves you with the correct environment.... *)
-    let v' = expand_sp lvl loc opvs v sp' pi in
-    refl_val lvl loc v' pi'
 
-and expand_faces lvl loc opvs v pi =
+and refl_faces opvs olvl v pi =
   map_cmplx_with_addr pi
     ~f:(fun _ fa ->
         let face_env = map_suite opvs
             ~f:(fun c -> face_at c fa) in
-        expand_at lvl loc face_env v (face_at pi fa))   
+        refl_val face_env olvl v (face_at pi fa))
+
+and mk_cell fib comp fill =
+  PairV (fib, PairV (comp,fill))
+
+
+(* and expand_at lvl loc opvs v pi : value =
+ *   log_val "expand: v" v pp_value; 
+ *   log_val "opvs" opvs (pp_suite (pp_cmplx pp_value)); 
+ *   match v with
+ *   
+ *   | RigidV (k,sp) ->
+ *     log_val "ridig/opvs" opvs (pp_suite (pp_cmplx pp_value)); 
+ *     let hv = head_value (nth k opvs) in
+ *     expand_sp lvl loc opvs hv sp pi
+ *       
+ *   | TopV (_,_,tv) ->
+ *     expand_at lvl loc opvs tv pi 
+ * 
+ *   | LamV (nm,bdy) ->
+ * 
+ *     lam_cmplx nm pi (fun vc ->
+ *         expand_at (lvl+1) loc (Ext (opvs, vc))
+ *           (bdy (varV lvl)) pi)
+ * 
+ *   | PairV (a,b) ->
+ * 
+ *     let a' = expand_at lvl loc opvs a pi in
+ *     let b' = expand_at lvl loc opvs b pi in
+ *     PairV (a',b') 
+ * 
+ *   | PiV (nm,a,b) ->
+ * 
+ *     if (is_obj pi) then v else 
+ * 
+ *       let dim = dim_cmplx pi in 
+ *       let acmplx = map_cmplx_with_addr
+ *           (expand_faces lvl loc opvs a pi)
+ *           ~f:(fun v (cd,_) ->
+ *               if (cd = dim) then v
+ *                else fst_val v) in
+ *       
+ *       let bcmplx vc = fst_val
+ *           (expand_at (lvl+1) loc (Ext (opvs,vc))
+ *              (b (varV lvl)) pi) in
+ *       
+ *       mk_cell (pi_fib acmplx bcmplx nm pi)
+ *         TypV TypV 
+ * 
+ *   | SigV (nm,a,b) -> 
+ * 
+ *     if (is_obj pi) then v else 
+ * 
+ *       let afib = fst_val (expand_at lvl loc opvs a pi) in
+ *       let bfib vc = fst_val (expand_at (lvl+1) loc
+ *           (Ext (opvs, vc)) (b (varV lvl)) pi) in
+ * 
+ *       mk_cell (sig_fib afib bfib nm pi)
+ *         TypV TypV 
+ * 
+ *   | TypV ->
+ * 
+ *     if (is_obj pi) then v else
+ *       mk_cell (typ_fib pi)
+ *         TypV TypV *)
+
+    
+(* and expand_sp lvl loc opvs v sp pi =
+ *   match sp with
+ *   | EmpSp -> v
+ *   | FstSp sp' -> fst_val (expand_sp lvl loc opvs v sp' pi)
+ *   | SndSp sp' -> snd_val (expand_sp lvl loc opvs v sp' pi)
+ *   | AppSp (sp',arg) ->
+ *     let v' = expand_sp lvl loc opvs v sp' pi in
+ *     let argc = expand_faces lvl loc opvs arg pi in
+ *     app_args v' (labels argc)
+ *   | ReflSp (sp',pi') ->
+ *     (\* TODO: is this correct? You throw away opvs, but I'm not sure if
+ *        this leaves you with the correct environment.... *\)
+ *     let v' = expand_sp lvl loc opvs v sp' pi in
+ *     refl_val lvl loc v' pi' *)
+
+(* and expand_faces lvl loc opvs v pi =
+ *   map_cmplx_with_addr pi
+ *     ~f:(fun _ fa ->
+ *         let face_env = map_suite opvs
+ *             ~f:(fun c -> face_at c fa) in
+ *         expand_at lvl loc face_env v (face_at pi fa))    *)
 
 
 (* and expand_all lvl loc v pi =
@@ -394,37 +443,20 @@ and expand_faces lvl loc opvs v pi =
  *             (loc.at_shape f) v f) *)
 
 (* Should this use refl instead? *) 
-and expand_all lvl loc v pi =
-  map_cmplx (face_cmplx pi)
-    ~f:(fun f ->
-        if (is_obj f) then v
-        else refl_val lvl loc v f)
+(* and expand_all lvl loc v pi =
+ *   map_cmplx (face_cmplx pi)
+ *     ~f:(fun f ->
+ *         if (is_obj f) then v
+ *         else refl_val lvl loc v f) *)
 
-and with_value lvl loc v =
-  log_val "with_value: v" v pp_value; 
-  let vshp pi =
-    log_msg "running vshp";
-    let vc = expand_all lvl loc v pi in 
-    Ext (loc.at_shape pi,vc) in
-  { values = Ext (loc.values, v) ;
-    at_shape = vshp } 
-
-(* So there's some kind of problem with the definition of 
-   vshp here.  There's some kind of difference where when we
-   pull a guy from top-level, the environment is being created
-   by this method as opposed to the typechecker above using the
-   with_var.  So somehow that's messing things up later ... *)
-
-(* My guess is that this is getting called as we enter the lambdas
-   that we have put at toplevel to make the terms closed.  Because
-   then, the very first thing we will see in the environment is the
-   argument to Eq.  And if it is non-trivial, then it is going to
-   expand whether we call refl_val or expand.  But since it is the
-   first thing in the environment, it may reference variables from the
-   environment it was living in, and these are no longer around. So
-   when we later to go expand, we find that in order to "rewrite the
-   past" we have to expand some guy which has a lot of free things
-   whic are unreferrenced.  How to fix this ? *)
+(* and with_value lvl loc v =
+ *   log_val "with_value: v" v pp_value; 
+ *   let vshp pi =
+ *     log_msg "running vshp";
+ *     let vc = expand_all lvl loc v pi in 
+ *     Ext (loc.at_shape pi,vc) in
+ *   { values = Ext (loc.values, v) ;
+ *     at_shape = vshp } *)
 
 (*****************************************************************************)
 (*                                  Quoting                                  *)
@@ -436,6 +468,8 @@ let rec quote ufld k v =
   match v with
 
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
+  | ExpV _ -> raise (Eval_error "quoting an expvar")
+
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
 

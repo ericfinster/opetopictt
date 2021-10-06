@@ -23,14 +23,14 @@ open Opetopes.Complex
 
 type ctx = {
   top : (name * (value * value)) suite;
-  loc : env;
+  loc : value suite;
   typs : (name * value) suite; 
   lvl : lvl;
 }
 
 let empty_ctx = {
   top = Emp;
-  loc = empty_env;
+  loc = Emp;
   typs = Emp; 
   lvl = 0;
 }
@@ -38,13 +38,13 @@ let empty_ctx = {
 let empty_loc gma = {
   top = gma.top;
   typs = Emp ; 
-  loc = empty_env;
+  loc = Emp;
   lvl = 0;
 }
 
 let bind gma nm ty =
   let l = gma.lvl in {
-    loc = with_var l gma.loc ;
+    loc = Ext (gma.loc,varV l) ;
     typs = Ext (gma.typs,(nm,ty)) ; 
     top = gma.top;
     lvl = l+1;
@@ -291,15 +291,13 @@ and tcm_infer (e : expr) : (term * value) tcm =
     let* (u',ut) = tcm_infer u in
     let* pi' = tcm_to_cmplx pi in
 
-    let* gma = tcm_ctx in
-
     if (is_obj pi') then tcm_ok (ReflT (u',pi') , ut) else
       
-      let rt = fst_val (refl_val gma.lvl gma.loc ut pi') in
+      let rt = fst_val (refl_val Emp 0 ut pi') in
       
       let* uv = tcm_eval u' in
       let uc = map_cmplx (face_cmplx (tail_of pi'))
-          ~f:(fun f -> refl_val gma.lvl gma.loc uv f) in 
+          ~f:(fun f -> refl_val Emp 0 uv f) in 
 
       tcm_ok (ReflT (u',pi') , app_args rt (labels uc))
 
