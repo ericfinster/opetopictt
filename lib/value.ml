@@ -89,6 +89,9 @@ let pi (nm : name) (av : value) : value valm =
   
 let sigma (nm : name) (av : value) : value valm =
   fun k -> SigV (nm,av,k) 
+
+let pair a b =
+  ValMonad.return (PairV (a,b))
     
 let val_of (m : value valm) : value =
   m (fun v -> v) 

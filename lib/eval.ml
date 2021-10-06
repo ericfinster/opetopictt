@@ -243,53 +243,6 @@ let get_cmplx_opt pi =
     Cell (t,n,a) 
   | _ -> failwith "complex match error"
 
-let new_typ_fib o =
-  let open ValSyntax in 
-  match get_cmplx_opt o with
-  | Obj _ -> TypV
-  | Arr _ ->
-
-    let efib atyp btyp = val_of (
-        let* _ = pi "a" atyp in
-        let* _ = pi "b" btyp in
-        ret TypV 
-      ) in
-    
-    let to_cmp atyp btyp _ = val_of (
-        let* _ = pi "a" atyp in
-        ret btyp 
-      ) in 
-
-    let to_fill atyp _ eqv cmp = val_of (
-        let* a = pi "a" atyp in
-        ret (eqv <@ a <@ (cmp <@ a))
-      ) in 
-
-    (* let to_cmpu atyp btyp eqv cmp fill =
-     *   PiV ("a", atyp, fun a ->
-     *       PiV ("b", btyp, fun b ->
-     *           PiV ("e", app_val (app_val eqv a) b, fun e ->
-     *               
-     *               (\* So here I need the identity type, right ? *\)
-     *               
-     *               TypV) *)
-    
-    
-    (* let from_cmp atyp btyp eqv = PiV ("b", btyp , fun _ -> atyp) in *)
-    (* let from_fill atyp btyp eqv cmp =
-     *   PiV ("b", btyp , fun b ->
-     *       app_val (app_val eqv (app_val cmp b)) b) in *)
-
-    val_of (
-      let* atyp = lam "A" in
-      let* btyp = lam "b" in
-      let* eqv = sigma "E" (efib atyp btyp) in
-      let* cmp = sigma "to_cmp" (to_cmp atyp btyp eqv) in
-      let* _ = sigma "to_fill" (to_fill atyp btyp eqv cmp) in 
-      ret TypV 
-    )
-
-  | Cell _ -> TypV
     
 (*****************************************************************************)
 (*                               Reflexivity                                 *)
@@ -397,6 +350,61 @@ and refl_faces opvs olvl v pi =
 
 and mk_cell fib comp fill =
   PairV (fib, PairV (comp,fill))
+
+(* The identity type on a type value *) 
+and id_typ v =
+  let arr = arr_cmplx "x" "y" "p" in 
+  fst_val (refl_val Emp 0 v arr)
+  
+(*****************************************************************************)
+(*                       Implementation of the Universe                      *)
+(*****************************************************************************)
+    
+and  new_typ_fib o =
+  let open ValSyntax in 
+  match get_cmplx_opt o with
+  | Obj _ -> TypV
+  | Arr _ ->
+
+    let efib atyp btyp = val_of (
+        let* _ = pi "a" atyp in
+        let* _ = pi "b" btyp in
+        ret TypV 
+      ) in
+    
+    let to_cmp atyp btyp _ = val_of (
+        let* _ = pi "a" atyp in
+        ret btyp 
+      ) in 
+
+    let to_fill atyp _ eqv cmp = val_of (
+        let* a = pi "a" atyp in
+        ret (eqv <@ a <@ (cmp <@ a))
+      ) in 
+
+    let to_unique atyp btyp eqv cmp fill = val_of (
+        let* a = pi "a" atyp in
+        let* b = pi "b" btyp in
+        let* e = pi "e" (eqv <@ a <@ b) in
+
+        ret (id_typ
+               (SigV ("b'", btyp, fun b' -> eqv <@ a <@ b'))
+             <@ PairV (cmp <@ a, fill <@ a)
+             <@ PairV (b,e))
+
+      ) in 
+        
+    val_of (
+      let* atyp = lam "A" in
+      let* btyp = lam "b" in
+      let* eqv = sigma "E" (efib atyp btyp) in
+      let* cmp = sigma "to_cmp" (to_cmp atyp btyp eqv) in
+      let* fill = sigma "to_fill" (to_fill atyp btyp eqv cmp) in
+      let* _ = sigma "to_unique" (to_unique atyp btyp eqv cmp fill) in 
+      ret TypV 
+    )
+
+  | Cell _ -> TypV
 
 (*****************************************************************************)
 (*                                 Evaluation                                *)
