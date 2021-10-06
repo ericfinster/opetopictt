@@ -393,15 +393,39 @@ and  new_typ_fib o =
              <@ PairV (b,e))
 
       ) in 
-        
-    val_of (
+
+    let from_cmp atyp btyp _ = val_of (
+        let* _ = pi "b" btyp in
+        ret atyp 
+      ) in 
+
+    let from_fill _ btyp eqv cmp = val_of (
+        let* b = pi "b" btyp in
+        ret (eqv <@ (cmp <@ b) <@ b)
+      ) in 
+
+    let from_unique atyp btyp eqv cmp fill = val_of (
+        let* a = pi "a" atyp in
+        let* b = pi "b" btyp in
+        let* e = pi "e" (eqv <@ a <@ b) in
+
+        ret (id_typ
+               (SigV ("a'", atyp, fun a' -> eqv <@ a' <@ b))
+             <@ PairV (cmp <@ b, fill <@ b)
+             <@ PairV (a,e))
+
+      ) in 
+
+        val_of (
       let* atyp = lam "A" in
       let* btyp = lam "b" in
       let* eqv = sigma "E" (efib atyp btyp) in
-      let* cmp = sigma "to_cmp" (to_cmp atyp btyp eqv) in
-      let* fill = sigma "to_fill" (to_fill atyp btyp eqv cmp) in
-      let* _ = sigma "to_unique" (to_unique atyp btyp eqv cmp fill) in 
-      ret TypV 
+      let* tcmp = sigma "to_cmp" (to_cmp atyp btyp eqv) in
+      let* tfill = sigma "to_fill" (to_fill atyp btyp eqv tcmp) in
+      let* _ = sigma "to_unique" (to_unique atyp btyp eqv tcmp tfill) in 
+      let* fcmp = sigma "to_cmp" (from_cmp atyp btyp eqv) in
+      let* ffill = sigma "to_fill" (from_fill atyp btyp eqv fcmp) in
+      ret (from_unique atyp btyp eqv fcmp ffill)
     )
 
   | Cell _ -> TypV
