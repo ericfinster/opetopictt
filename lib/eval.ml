@@ -28,6 +28,8 @@ let rec app_val t u =
   | LamV (_,cl) -> cl u
   | _ -> raise (Eval_error (Fmt.str "malformed application: %a" pp_value t))
 
+let (<@) = app_val 
+
 let rec fst_val t =
   match t with
   | RigidV (l,sp) -> RigidV (l, FstSp sp)
@@ -227,36 +229,73 @@ let typ_fib pi =
         
     )
 
+type 'a cmplx_opt =
+  | Obj of 'a
+  | Arr of 'a * 'a * 'a
+  | Cell of 'a cmplx * 'a nst * 'a
+
+let get_cmplx_opt pi =
+  match pi with
+  | Base (Lf a) -> Obj a
+  | Adjoin (Base (Nd (t, Nd (Lf s, Lf ()))), Lf a) ->
+    Arr (s,t,a)
+  | Adjoin (Adjoin (t,n), Lf a) ->
+    Cell (t,n,a) 
+  | _ -> failwith "complex match error"
+
+let new_typ_fib o =
+  let open ValSyntax in 
+  match get_cmplx_opt o with
+  | Obj _ -> TypV
+  | Arr _ ->
+
+    let efib atyp btyp = val_of (
+        let* _ = pi "a" atyp in
+        let* _ = pi "b" btyp in
+        ret TypV 
+      ) in
+    
+    let to_cmp atyp btyp _ = val_of (
+        let* _ = pi "a" atyp in
+        ret btyp 
+      ) in 
+
+    let to_fill atyp _ eqv cmp = val_of (
+        let* a = pi "a" atyp in
+        ret (eqv <@ a <@ (cmp <@ a))
+      ) in 
+
+    (* let to_cmpu atyp btyp eqv cmp fill =
+     *   PiV ("a", atyp, fun a ->
+     *       PiV ("b", btyp, fun b ->
+     *           PiV ("e", app_val (app_val eqv a) b, fun e ->
+     *               
+     *               (\* So here I need the identity type, right ? *\)
+     *               
+     *               TypV) *)
+    
+    
+    (* let from_cmp atyp btyp eqv = PiV ("b", btyp , fun _ -> atyp) in *)
+    (* let from_fill atyp btyp eqv cmp =
+     *   PiV ("b", btyp , fun b ->
+     *       app_val (app_val eqv (app_val cmp b)) b) in *)
+
+    val_of (
+      let* atyp = lam "A" in
+      let* btyp = lam "b" in
+      let* eqv = sigma "E" (efib atyp btyp) in
+      let* cmp = sigma "to_cmp" (to_cmp atyp btyp eqv) in
+      let* _ = sigma "to_fill" (to_fill atyp btyp eqv cmp) in 
+      ret TypV 
+    )
+
+  | Cell _ -> TypV
+    
 (*****************************************************************************)
-(*                                 Evaluation                                *)
+(*                               Reflexivity                                 *)
 (*****************************************************************************)
 
-let rec eval lvl top loc tm =
-  (* pr "Evaluating: %a@," pp_term tm; *)
-  let ev t = eval lvl top loc t in
-  let ev_bnd v t = eval lvl top (Ext (loc,v)) t in 
-  match tm with
-  
-  | VarT i -> db_get i loc
-
-  | TopT nm -> TopV (nm,EmpSp,top nm)
-
-  | LamT (nm,u) ->
-    LamV (nm,fun v -> ev_bnd v u) 
-  | AppT (u,v) -> app_val (ev u) (ev v) 
-  | PiT (nm,a,b) -> PiV (nm, ev a, fun v -> ev_bnd v b) 
-
-  | PairT (u,v) -> PairV (ev u, ev v)
-  | FstT u -> fst_val (ev u)
-  | SndT u -> snd_val (ev u)
-  | SigT (nm,a,b) -> SigV (nm, ev a, fun v -> ev_bnd v b) 
-      
-  | ReflT (u,pi) ->
-    refl_val Emp 0 (ev u) pi
-      
-  | TypT -> TypV
-
-and refl_val opvs olvl v pi =
+let rec refl_val opvs olvl v pi =
   (* log_val "refl_val/v" v pp_value; *)
   match v with
   
@@ -360,6 +399,33 @@ and mk_cell fib comp fill =
   PairV (fib, PairV (comp,fill))
 
 (*****************************************************************************)
+(*                                 Evaluation                                *)
+(*****************************************************************************)
+
+let rec eval lvl top loc tm =
+  (* pr "Evaluating: %a@," pp_term tm; *)
+  let ev t = eval lvl top loc t in
+  let ev_bnd t v = eval lvl top (Ext (loc,v)) t in 
+  match tm with
+  
+  | VarT i -> db_get i loc
+
+  | TopT nm -> TopV (nm,EmpSp,top nm)
+
+  | PiT (nm,a,b) -> PiV (nm, ev a, ev_bnd b) 
+  | LamT (nm,u) -> LamV (nm, ev_bnd u) 
+  | AppT (u,v) -> app_val (ev u) (ev v) 
+
+  | SigT (nm,a,b) -> SigV (nm, ev a, ev_bnd b) 
+  | PairT (u,v) -> PairV (ev u, ev v)
+  | FstT u -> fst_val (ev u)
+  | SndT u -> snd_val (ev u)
+      
+  | ReflT (u,pi) -> refl_val Emp 0 (ev u) pi
+      
+  | TypT -> TypV
+
+(*****************************************************************************)
 (*                                  Quoting                                  *)
 (*****************************************************************************)
 
@@ -374,11 +440,11 @@ let rec quote ufld k v =
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp
 
-  | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
   | PiV (nm,u,cl) -> PiT (nm, qc u, quote ufld (k+1) (cl (varV k)))
+  | LamV (nm,cl) -> LamT (nm, quote ufld (k+1) (cl (varV k)))
 
-  | PairV (u,v) -> PairT (qc u, qc v)
   | SigV (nm,u,cl) -> SigT (nm, qc u, quote ufld (k+1) (cl (varV k)))
+  | PairV (u,v) -> PairT (qc u, qc v)
 
   | TypV -> TypT
 

@@ -50,6 +50,50 @@ let rec prod tys =
   | ty :: tys' -> 
     SigV ("",ty,fun _ -> prod tys')
 
+
+(*****************************************************************************)
+(*                      A Monad for Constructing Values                      *)
+(*****************************************************************************)
+
+type 'a valm = ('a -> value) -> value 
+  
+module ValBasic =
+struct
+
+  type 'a t = 'a valm 
+
+  let return a k = k a
+  let bind m ~f:f k =
+    m (fun a -> f a k) 
+
+  let map m ~f:f k =
+    m (fun a -> k (f a))
+
+  let map = `Custom map 
+  
+end
+
+module ValMonad = Base.Monad.Make(ValBasic) 
+
+module ValSyntax =
+struct
+  let (let*) m f = ValMonad.bind m ~f 
+  let ret = ValMonad.return
+end 
+  
+let lam (nm : name) : value valm =
+  fun k -> LamV (nm,k) 
+
+let pi (nm : name) (av : value) : value valm =
+  fun k -> PiV (nm,av,k) 
+  
+let sigma (nm : name) (av : value) : value valm =
+  fun k -> SigV (nm,av,k) 
+    
+let val_of (m : value valm) : value =
+  m (fun v -> v) 
+    
+
 (*****************************************************************************)
 (*                              Pretty Printing                              *)
 (*****************************************************************************)

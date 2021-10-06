@@ -57,19 +57,18 @@ let Σ-eq (A : U) (B : A → U)
 #     (b₀ : B a₀) (b₁ : B a₁) : U
 #   ⊢ Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁) 
 
-
 #
 #  Some other shapes ....
 #
 
-# let Square (A : U) (a₀₀ : A) (a₀₁ : A)
-#     (a₁₀ : A) (a₁₁ : A)
-#     (p : Eq A a₀₀ a₀₁) (q : Eq A a₁₀ a₁₁)
-#     (r : Eq A a₀₀ a₁₀) (s : Eq A a₀₁ a₁₁) : U
-#   = fst ([ Eq A
-#          @ nd { y } (nd (lf { x }) (lf tt)) 
-#          | lf { p }
-#          ] a₀₀ a₀₁ p a₁₀ a₁₁ q) r s 
+let Square (A : U) (a₀₀ : A) (a₀₁ : A)
+    (a₁₀ : A) (a₁₁ : A)
+    (p : Eq A a₀₀ a₀₁) (q : Eq A a₁₀ a₁₁)
+    (r : Eq A a₀₀ a₁₀) (s : Eq A a₀₁ a₁₁) : U
+  = fst ([ Eq A
+         @ nd { y } (nd (lf { x }) (lf tt)) 
+         | lf { p }
+         ] a₀₀ a₀₁ p a₁₀ a₁₁ q) r s 
 
 
 
