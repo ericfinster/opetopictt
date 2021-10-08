@@ -46,14 +46,46 @@ let rec snd_val t =
   | PairV (_,v) -> v
   | _ -> raise (Eval_error (Fmt.str "malformed second proj: %a" pp_value t))
 
+
 (*****************************************************************************)
-(*                            Opetopic Combinators                           *)
+(*                           Opetopic Utilities                              *)
 (*****************************************************************************)
+
+type 'a cmplx_opt =
+  | Obj of 'a
+  | Arr of 'a * 'a * 'a
+  | Cell of 'a cmplx * 'a nst * 'a
+
+let get_cmplx_opt pi =
+  match pi with
+  | Base (Lf a) -> Obj a
+  | Adjoin (Base (Nd (t, Nd (Lf s, Lf ()))), Lf a) ->
+    Arr (s,t,a)
+  | Adjoin (Adjoin (t,n), Lf a) ->
+    Cell (t,n,a) 
+  | _ -> failwith "complex match error"
+
+
+(* convert a complex of cells in the universe to a complex of fibrations by projecting
+   out the fibration in appropriate dimensions *)
+let ucells_to_fib ucs =
+  let dim = dim_cmplx ucs in 
+  map_cmplx_with_addr ucs
+    ~f:(fun v (cd,_) ->
+        if (cd = dim) then v
+        else fst_val v)
+
 
 let rec app_args f args =
   match args with
   | [] -> f
   | v::vs -> app_args (app_val f v) vs 
+
+let appc v vc = app_args v (labels vc)
+
+(*****************************************************************************)
+(*                            Opetopic Combinators                           *)
+(*****************************************************************************)
 
 (* Abstract over all the positions in a given complex and pass
    the abstracted values in complex form to the function b. *)
@@ -77,6 +109,7 @@ let rec lam_cmplx (nm : name) (a : name cmplx) (b : value cmplx -> value) : valu
         ~f:(fun cnm addr -> (cnm, addr)) in 
     let nv = map_nst n ~f:(fun _ -> TypV) in 
     lam_cmplx nm t (fun vc -> do_lams (nodes_nst n') (Adjoin (vc,nv)))
+
 
 (* Abstract a list of types, putting the abstracted 
    value at the appropriate address in the provided complex *)
@@ -147,61 +180,68 @@ let pi_kan (nm : name) (cnms : name cmplx)
   | _ -> failwith "uneven complex in pi_kan"
 
 
+let pi_pd (nm : name)
+    (atnms : name cmplx) (at : value cmplx)
+    (ahnms : name nst) (ah : value nst)
+    (b : value cmplx * value nst -> value) : value = 
+  let open ValSyntax in val_of (
+
+    let frm = Adjoin (at,ah) in 
+    let* vc = pi_cmplx nm atnms at in
+
+    let ah' = match_nst_with_addr ah ahnms
+        ~f:(fun fib cnm addr ->
+            let f = face_at frm (0,addr) in
+            let typ = appc fib (tail_of f) in
+            (nm ^ cnm, addr, typ)
+          ) in 
+    
+    ret (do_pis (nodes_nst_except ah' []) (Adjoin (vc,ah))
+           (fun vc' -> b (tail_of vc',head_of vc')))
+
+  )
+
+(* value monad smart constructors *)
+let lamc (nm : name) (a : name cmplx) : value cmplx valm =
+  lam_cmplx nm a 
+
+let pic (nm : name) (cnms : name cmplx) (a : value cmplx) : value cmplx valm =
+  pi_cmplx nm cnms a 
+
+let pic_kan (nm : name) (cnms : name cmplx) (addr : addr) (a : value cmplx) : value cmplx valm =
+  pi_kan nm cnms addr a 
+    
+    
 (*****************************************************************************)
 (*                         Implementation of Sigma                           *)
 (*****************************************************************************)
 
 let sig_fib afib bfib nm pi =
-  lam_cmplx nm (tail_of pi) (fun pc ->
-      
-      (* extract the base values given in the abstraction *)
-      let fstc = map_cmplx pc ~f:fst_val in
-      
-      (* apply them to the fibration to get at type *) 
-      let atyp = app_args afib (labels fstc) in
-      
-      (* now sum over the result *)
-      SigV (nm ^ (head_value pi), atyp, fun afst ->
-          let sndc = map_cmplx pc ~f:snd_val in
-          app_args (bfib (Adjoin (fstc, Lf afst))) (labels sndc)))
+  let open ValSyntax in val_of (
+    
+    let* pc = lamc nm (tail_of pi) in
+    let fstc = map_cmplx pc ~f:fst_val in
+    let atyp = appc afib fstc in
+    let* afst = sigma (nm ^ head_value pi) atyp in
+    let sndc = map_cmplx pc ~f:snd_val in
+    ret (appc (bfib (Adjoin (fstc, Lf afst))) sndc)
+
+  )
 
 (*****************************************************************************)
 (*                           Implementation of Pi                            *)
 (*****************************************************************************)
 
 let pi_fib acmplx bcmplx nm pi =
-  lam_cmplx "f" (tail_of pi) (fun sc ->
-      pi_cmplx nm pi acmplx (fun vc ->
-          
-          (* apply the arguments to the sections on the boundary *)
-          let appc = match_cmplx sc (face_cmplx (tail_of vc))
-              ~f:(fun s argc -> app_args s (labels argc)) in
+  let open ValSyntax in val_of (
 
-          (* feed these to the fibration *) 
-          app_args (bcmplx vc) (labels appc)))
+    let* sc = lamc "f" (tail_of pi) in
+    let* vc = pic nm pi (ucells_to_fib acmplx) in
+    let bargs = match_cmplx sc (face_cmplx (tail_of vc)) ~f:appc in
+    ret (appc (fst_val (bcmplx vc)) bargs)
 
-(* let pi_comp acmplx bcmplx nm pi =
- *   failwith "not done ..."  *)
+  )
 
-(*****************************************************************************)
-(*                     Utility for Inspecting Opetopes                       *) 
-(*****************************************************************************)
-
-type 'a cmplx_opt =
-  | Obj of 'a
-  | Arr of 'a * 'a * 'a
-  | Cell of 'a cmplx * 'a nst * 'a
-
-let get_cmplx_opt pi =
-  match pi with
-  | Base (Lf a) -> Obj a
-  | Adjoin (Base (Nd (t, Nd (Lf s, Lf ()))), Lf a) ->
-    Arr (s,t,a)
-  | Adjoin (Adjoin (t,n), Lf a) ->
-    Cell (t,n,a) 
-  | _ -> failwith "complex match error"
-
-    
 (*****************************************************************************)
 (*                               Reflexivity                                 *)
 (*****************************************************************************)
@@ -244,16 +284,9 @@ let rec refl_val opvs olvl v pi =
 
     if (is_obj pi) then v else 
 
-      let dim = dim_cmplx pi in 
-      let acmplx = map_cmplx_with_addr
-          (refl_faces opvs olvl a pi)
-          ~f:(fun v (cd,_) ->
-              if (cd = dim) then v
-              else fst_val v) in
-
-      let bcmplx vc = fst_val
-          (refl_val (Ext (opvs,vc)) (olvl+1)
-             (b (expV olvl)) pi) in
+      let acmplx = refl_faces opvs olvl a pi in
+      let bcmplx vc = refl_val (Ext (opvs,vc)) (olvl+1)
+                          (b (expV olvl)) pi in 
 
       mk_cell (pi_fib acmplx bcmplx nm pi)
         TypV TypV 
@@ -370,7 +403,7 @@ and  typ_fib o =
 
       ) in 
 
-        val_of (
+    val_of (
       let* atyp = lam "A" in
       let* btyp = lam "B" in
       let* eqv = sigma "E" (efib atyp btyp) in
@@ -384,50 +417,75 @@ and  typ_fib o =
 
   | Cell (t,n,a) -> 
 
+    let tnms = map_cmplx t ~f:(fun nm -> "el" ^ nm) in
+    let nnms = map_nst n ~f:(fun nm -> "el" ^ nm) in
     let frm = Adjoin (t,n) in
-    let op = Adjoin (frm,Lf(a)) in 
-        
-    lam_cmplx "" frm (fun vc ->
+    let op = Adjoin (frm, Lf a) in 
+    let cnms = Adjoin (tnms,nnms) in 
 
-        let cnms = map_cmplx op ~f:(fun nm -> "el" ^ nm) in
+    let open ValSyntax in val_of (
 
-        let dim = dim_cmplx vc in 
-        let fst_vc = map_cmplx_with_addr vc
-            ~f:(fun v (cd,_) ->
-                if (cd = dim) then v else fst_val v) in 
+      let* vc = lam_cmplx "" frm in
+      let vc_fibs = ucells_to_fib vc in
 
-        let fib = pi_cmplx "" (tail_of cnms) fst_vc (fun _ -> TypV) in
+      let fibt = pic "" (tail_of cnms) vc_fibs (fun _ -> TypV) in
 
-        (* FIXME: Dummy top cell to satsify pi_kan ...*)
-        let comp = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
-            let cface = face_at kc (0,[]) in 
-            let cfib = head_value cface in
-            if (is_obj cface) then head_value cface
-            else app_args cfib (labels (tail_of cface))) in
+      let comp = val_of (
 
-        let fill fibv compv = pi_kan "" cnms [] (Adjoin (fst_vc, Lf TypV)) (fun kc ->
+          let* (tv,hv) = pi_pd "" tnms (tail_of vc) nnms (head_of vc) in
+          
+          let cface = face_at (Adjoin (tv,hv)) (0,[]) in
+          let cfib = head_value cface in
+          
+          ret (appc cfib (tail_of cface))
 
-            let kargs = 
-              match kc with
-              | Base n ->
-                nodes_nst_except n [] 
-              | Adjoin (t, n) ->
-                List.append (labels t)
-                  (nodes_nst_except n [])
-            in
+        ) in 
 
-            let kc' = replace_at kc (0,[]) (app_args compv kargs) in 
-            app_args fibv (labels kc')
+      let fill fib cmp = val_of (
 
-          ) in 
+          let* (tv,hv) = pi_pd "" tnms (tail_of vc) nnms (head_of vc) in
 
-        val_of (
-          let* fibv = sigma "fib" fib in
-          let* cmpv = sigma "cmp" comp in
-          ret (fill fibv cmpv)
-        )
+          let pd_args = List.append (labels tv)
+              (nodes_nst_except hv []) in
+          let hv' = with_base_value hv
+              (app_args cmp pd_args)  in 
 
-      )
+          ret (appc fib (Adjoin (tv,hv'))) 
+
+        ) in 
+      
+      let unique fib cmp fil = val_of (
+
+          let* els = pic "" op (Adjoin (vc_fibs,Lf fib)) in
+
+          let f = head_value els in
+          let cface = face_at els (0,[]) in 
+          let c = head_value cface in
+          
+          let cmpt = appc (head_value vc_fibs) (tail_of cface) in
+
+          let tv = tail_of (tail_of els) in
+          let hv = head_of (tail_of els) in
+          let pd_args = List.append (labels tv)
+              (nodes_nst_except hv []) in
+
+          let cmp_el = app_args cmp pd_args in
+          let fil_el = app_args fil pd_args in 
+          
+          ret (id_typ
+                (SigV ("c'", cmpt, fun c' ->
+                     appc fib (replace_at (tail_of els) (0,[]) c')))
+               <@ PairV (cmp_el , fil_el)
+               <@ PairV (c,f))
+            
+        ) in 
+      
+      let* fib = sigma "fib" fibt in
+      let* cmp = sigma "cmp" comp in
+      let* fil = sigma "fil" (fill fib cmp) in 
+      ret (unique fib cmp fil)
+
+    ) 
 
 (*****************************************************************************)
 (*                                 Evaluation                                *)
