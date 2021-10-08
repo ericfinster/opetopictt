@@ -217,14 +217,17 @@ let pic_kan (nm : name) (cnms : name cmplx) (addr : addr) (a : value cmplx) : va
 (*****************************************************************************)
 
 let sig_fib afib bfib nm pi =
+  log_val "afib" afib pp_value ; 
   let open ValSyntax in val_of (
     
     let* pc = lamc nm (tail_of pi) in
     let fstc = map_cmplx pc ~f:fst_val in
-    let atyp = appc afib fstc in
+    let atyp = appc (fst_val afib) fstc in
     let* afst = sigma (nm ^ head_value pi) atyp in
     let sndc = map_cmplx pc ~f:snd_val in
-    ret (appc (bfib (Adjoin (fstc, Lf afst))) sndc)
+    let bres = fst_val (bfib (Adjoin (fstc, Lf afst))) in
+    log_val "bres" bres pp_value;
+    ret (appc bres sndc)
 
   )
 
@@ -289,22 +292,21 @@ let rec refl_val opvs olvl v pi =
                           (b (expV olvl)) pi in 
 
       mk_cell (pi_fib acmplx bcmplx nm pi)
-        TypV TypV 
+        TypV TypV TypV 
 
   | SigV (nm,a,b) -> 
 
     if (is_obj pi) then v else 
 
-      let afib = fst_val (refl_val opvs olvl a pi) in
-      let bfib vc = fst_val
-          (refl_val (Ext (opvs, vc)) (olvl+1)
-             (b (expV olvl)) pi) in
+      let afib = refl_val opvs olvl a pi in
+      let bfib vc = refl_val (Ext (opvs, vc)) (olvl+1)
+             (b (expV olvl)) pi in
 
       mk_cell (sig_fib afib bfib nm pi)
-        TypV TypV 
+        TypV TypV TypV
 
   | TypV -> mk_cell (typ_fib pi)
-              TypV TypV 
+              TypV TypV TypV
 
 and refl_sp opvs olvl init sp pi = 
   match sp with
@@ -335,8 +337,8 @@ and refl_faces opvs olvl v pi =
             ~f:(fun c -> face_at c fa) in
         refl_val face_env olvl v (face_at pi fa))
 
-and mk_cell fib comp fill =
-  PairV (fib, PairV (comp,fill))
+and mk_cell fib comp fill unique =
+  PairV (fib, PairV (comp,PairV (fill,unique)))
 
 (* The identity type on a type value *) 
 and id_typ v =
@@ -419,16 +421,15 @@ and  typ_fib o =
 
     let tnms = map_cmplx t ~f:(fun nm -> "el" ^ nm) in
     let nnms = map_nst n ~f:(fun nm -> "el" ^ nm) in
+    let fnms = Adjoin (tnms,nnms) in 
     let frm = Adjoin (t,n) in
-    let op = Adjoin (frm, Lf a) in 
-    let cnms = Adjoin (tnms,nnms) in 
 
     let open ValSyntax in val_of (
 
       let* vc = lam_cmplx "" frm in
-      let vc_fibs = ucells_to_fib vc in
+      (* let vc_fibs = ucells_to_fib vc in *)
 
-      let fibt = pic "" (tail_of cnms) vc_fibs (fun _ -> TypV) in
+      let fibt = pic "" fnms vc (fun _ -> TypV) in
 
       let comp = val_of (
 
@@ -456,13 +457,17 @@ and  typ_fib o =
       
       let unique fib cmp fil = val_of (
 
-          let* els = pic "" op (Adjoin (vc_fibs,Lf fib)) in
+          let* els = pic "" (Adjoin (fnms,Lf ("el" ^ a))) (Adjoin (vc,Lf fib)) in
 
-          let f = head_value els in
-          let cface = face_at els (0,[]) in 
-          let c = head_value cface in
+          log_val "els" els (pp_cmplx pp_value);
           
-          let cmpt = appc (head_value vc_fibs) (tail_of cface) in
+          let f = head_value els in
+          let cface = face_at els (1,[]) in 
+          let c = head_value cface in
+
+          log_val "cface" cface (pp_cmplx pp_value);
+          
+          let cmpt = appc (head_value vc) (tail_of cface) in
 
           let tv = tail_of (tail_of els) in
           let hv = head_of (tail_of els) in
@@ -471,10 +476,16 @@ and  typ_fib o =
 
           let cmp_el = app_args cmp pd_args in
           let fil_el = app_args fil pd_args in 
+
+          let sigtyp = SigV ("c'", cmpt, fun c' ->
+              appc fib (replace_at (tail_of els) (0,[]) c')) in
+          
+          log_val "sigtyp" sigtyp pp_value;
           
           ret (id_typ
-                (SigV ("c'", cmpt, fun c' ->
-                     appc fib (replace_at (tail_of els) (0,[]) c')))
+                 (SigV ("c'", cmpt, fun c' ->
+                      appc fib (replace_at (tail_of els) (0,[]) c')))
+
                <@ PairV (cmp_el , fil_el)
                <@ PairV (c,f))
             

@@ -79,9 +79,9 @@ let rec pp_expr ppf expr =
   | PairE (u,v) ->
     pf ppf "@[%a@] , @[%a@]" pp_expr u pp_expr v
   | FstE u ->
-    pf ppf "fst @[%a@]" pp_expr u
+    pf ppf "fst @[%a@]" (expr_app_parens u) u
   | SndE u ->
-    pf ppf "snd @[%a@]" pp_expr u
+    pf ppf "snd @[%a@]" (expr_app_parens u) u 
   | SigE (nm,a,b) ->
     pf ppf "(%s : @[%a@]) \u{d7}@ @[%a@]"
       nm pp_expr a pp_expr b 
