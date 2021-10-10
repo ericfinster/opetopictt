@@ -9,7 +9,7 @@ module.exports = grammar({
     rules: {
 	
 	source_file: $ => seq(
-	    repeat($._import_stmt),
+	    repeat($.import_stmt),
 	    repeat($._command)
 	),
 
@@ -21,7 +21,7 @@ module.exports = grammar({
 	//  Imports
 	//
 
-	_import_stmt: $ => seq(
+	import_stmt: $ => seq(
 	    'import',
 	    field("name", $.identifier)
 	),
@@ -32,7 +32,8 @@ module.exports = grammar({
 	
 	_command: $ => choice(
 	    $.let_command,
-	    $.normalize_command
+	    $.normalize_command,
+	    $.expand_command
 	),
 
 	let_command: $ => seq(
@@ -54,10 +55,6 @@ module.exports = grammar({
 	    field("term", $.expression)
 	),
 
-	//
-	//  Expansion command
-	//
-	
 	ident_pd: $ => choice(
 	    'tt',
 	    seq('{',$.identifier,'}'),
@@ -94,40 +91,12 @@ module.exports = grammar({
 	    $.expression
 	),
 
-	// term_seq: $ => seq(
-	//     sepSeq(';',$.expression),
-	//     '\u{22a2}',
-	//     choice(
-	// 	'\u{25cf}',
-	// 	$.expression
-	//     )
-	// ),
-
-	// tr_expr: $ => choice(
-	//     'tt',
-	//     seq('{',$.term_seq,'}'),
-	//     seq('lf',$.tr_expr),
-	//     seq('nd',$.tr_expr,$.tr_expr),
-	//     seq('(',$.tr_expr,')')
-	// ),
-
-	// cmplx: $ => sepSeq1('|',$.tr_expr),
-
-	// cell_config: $ => seq(
-	//     '[',optional($.telescope),'\u{22a2}',$.expression,'|',$.cmplx,']'
-	// ),
-
-	pi_type: $ => prec(2,seq(
-	    $.pi_head,$.arrow,$.expression
-	)),
-
-	sig_type: $ => prec(2,seq(
-	    $.pi_head,$.times,$.expression
-	)),
+	pi_type: $ => prec(2, seq($.pi_head,$.times,$.expression)),
+	sig_type: $ => prec(2, seq($.pi_head,$.arrow,$.expression)),
 	
 	expression: $ => choice(
 
-	    prec.right(1, seq($.expression,",",$.expression)),
+	    prec.right(1, seq($.expression,',',$.expression)),
 	    
 	    prec(2, seq($.lambda,$.identifier,'.',$.expression)),
 	    $.pi_type,
@@ -143,6 +112,33 @@ module.exports = grammar({
 	    prec(4, seq('[',$.expression,'@',$.opetope,']'))
 	    
 	),
+
+	// expr: $ => choice(
+	//     $.expr1,
+	//     $.expr1,',',$.expr
+	// ),
+
+	// expr1: $ => choice(
+	//     $.expr2, 
+	//     seq($.lambda,$.identifier,'.',$.expr1),
+	//     seq($.pi_head,$.arrow,$.expr1),
+	//     seq($.pi_head,$.times,$.expr1)
+	// ),
+
+	// expr2: $ => choice(
+	//     $.expr3,
+	//     seq($.expr2,$.expr3)
+	// ),
+	
+	// expr3: $ => choice(
+	//     'U',
+	//     $.identifier,
+	//     seq('(',$.expr,')'),
+	//     seq('fst',$.expr3),
+	//     seq('snd',$.expr3),
+	//     seq('[',$.expr,'@',$.opetope,']')
+	// ),
+
 	
 	//
 	//  Lexical definitions 

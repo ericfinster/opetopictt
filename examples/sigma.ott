@@ -8,5 +8,56 @@ let Σ-eq (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
   : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
-  = p , q 
+  = p , q
 
+let transp (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) : B a₁
+  = fst snd ([ B
+             @ nd { y } (nd (lf { x }) (lf tt)) 
+             | lf { p }
+             ] a₀ a₁ p) b₀
+
+let transp-po (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) : PathOver A B a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
+  = fst snd snd
+      ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
+           | lf { p }
+           ] a₀ a₁ p) b₀ 
+
+let transp2 (A : U) (B : A → U) (C : (a : A) → B a → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (c₀ : C a₀ b₀) : C a₁ (transp A B a₀ a₁ p b₀)
+  = fst snd ([ C @ nd { B } (nd (lf { A }) (lf tt)) 
+                 | lf { C } ] a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
+                                        (transp-po A B a₀ a₁ p b₀)) c₀
+
+let transp2-po (A : U) (B : A → U) (C : (a : A) → B a → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (c₀ : C a₀ b₀)
+  : PathOverOver A B C a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
+      (transp-po A B a₀ a₁ p b₀) c₀ (transp2 A B C a₀ a₁ p b₀ c₀)
+  = fst snd snd ([ C @ nd { B } (nd (lf { A }) (lf tt)) 
+                     | lf { C } ] a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
+                                  (transp-po A B a₀ a₁ p b₀)) c₀
+
+
+
+#
+#  The comp for Σ done manually 
+#
+
+let sigma-comp (A : U) (B : A → U) (C : (a : A) → B a → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : ((b : B a₀) × C a₀ b) → ((b : B a₁) × C a₁ b)
+  = λ pr . (transp A B a₀ a₁ p (fst pr) ,
+            transp2 A B C a₀ a₁ p (fst pr) (snd pr))
+            
+
+let sigma-fill (A : U) (B : A → U) (C : (a : A) → B a → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁) (ρ₀ : (b : B a₀) × C a₀ b)
+  : PathOver A (λ a . (b : B a) × C a b) a₀ a₁ p
+      ρ₀ (sigma-comp A B C a₀ a₁ p ρ₀)
+  = (transp-po A B a₀ a₁ p (fst ρ₀),
+     transp2-po A B C a₀ a₁ p (fst ρ₀) (snd ρ₀))

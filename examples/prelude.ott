@@ -22,6 +22,15 @@ let PathOver (A : U) (B : A → U)
          | lf { p }
          ] a₀ a₁ p) b₀ b₁
 
+let PathOverOver (A : U) (B : A → U) (C : (a : A) → B a → U) 
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
+    (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
+  = fst ([ C
+         @ nd { y } (nd (lf { x }) (lf tt)) 
+         | lf { p }
+         ] a₀ a₁ p b₀ b₁ q) c₀ c₁ 
+
 let transport (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) : B a₁
