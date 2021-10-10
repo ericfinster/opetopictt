@@ -1,0 +1,12 @@
+#
+#  sigma.ott - playing around with sigma
+#
+
+import prelude
+
+let Σ-eq (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
+  : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
+  = p , q 
+

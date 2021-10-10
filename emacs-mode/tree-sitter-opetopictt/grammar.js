@@ -8,11 +8,23 @@ module.exports = grammar({
 
     rules: {
 	
-	source_file: $ => repeat($._command),
+	source_file: $ => seq(
+	    repeat($._import_stmt),
+	    repeat($._command)
+	),
 
 	comment: $ => token(seq(
 	    '#', /.*/
 	)),
+
+	//
+	//  Imports
+	//
+
+	_import_stmt: $ => seq(
+	    'import',
+	    field("name", $.identifier)
+	),
 	
 	//
 	//  Commands 

@@ -36,6 +36,7 @@ let rec token buf =
   | "let"        -> LET
   | "normalize"  -> NORMALIZE
   | "expand"     -> EXPAND
+  | "import"     -> IMPORT
   | 0x2192       -> ARROW
   | "->"         -> ARROW
   | "("          -> LPAR

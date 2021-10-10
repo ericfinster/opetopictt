@@ -8,8 +8,7 @@ open Format
     
 open Opetopictt.Io
 open Opetopictt.Typecheck
-open Opetopictt.Cmd 
-
+       
 (*****************************************************************************)
 (*                                  Options                                  *)
 (*****************************************************************************)
@@ -28,11 +27,6 @@ let () =
   open_vbox 0; (* initialize the pretty printer *)
   Arg.parse spec_list (fun s -> file_in := s::!file_in) usage;
   let files = List.rev (!file_in) in
-  let cmds = parse_all files in
-  match run_cmds cmds empty_ctx with
-  | Ok _ -> 
-    printf "----------------@,Success!";
-    print_newline ();
-    print_newline ()
-  | Error err -> Fmt.pr "@,Typing error: @,@,%a@,@," pp_error err
+  let _ = check_files empty_ctx [] files in
+  ()
 

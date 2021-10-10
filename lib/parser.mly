@@ -6,7 +6,7 @@
        
 %} 
 
-%token LET NORMALIZE EXPAND
+%token LET NORMALIZE EXPAND IMPORT
 %token LAMBDA COLON EQUAL DOT VBAR VDASH
 %token LPAR RPAR LBR RBR
 %token ARROW 
@@ -18,7 +18,7 @@
 %token EOF
 
 %start prog
-%type <Cmd.cmd list> prog
+%type <string list * Cmd.cmd list> prog
 
 %%
 
@@ -58,9 +58,13 @@ cmplx(X):
 
 prog:
   | EOF
-    { [] }
-  | defs = nonempty_list(cmd) EOF
-    { defs }
+    { ([],[]) }
+  | imprts = list(import) defs = nonempty_list(cmd) EOF
+    { (imprts, defs) }
+
+import:
+  | IMPORT nm = IDENT
+    { nm } 
 
 cmd:
   | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr

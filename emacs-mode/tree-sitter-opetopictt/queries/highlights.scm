@@ -4,6 +4,7 @@
 "let"  @keyword
 "normalize" @keyword
 "expand" @keyword
+"import" @keyword
 
 ":" @punctuation
 "=" @punctuation
