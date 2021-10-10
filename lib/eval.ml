@@ -217,7 +217,6 @@ let pic_kan (nm : name) (cnms : name cmplx) (addr : addr) (a : value cmplx) : va
 (*****************************************************************************)
 
 let sig_fib afib bfib nm pi =
-  log_val "afib" afib pp_value ; 
   let open ValSyntax in val_of (
     
     let* pc = lamc nm (tail_of pi) in
@@ -226,7 +225,6 @@ let sig_fib afib bfib nm pi =
     let* afst = sigma (nm ^ head_value pi) atyp in
     let sndc = map_cmplx pc ~f:snd_val in
     let bres = fst_val (bfib (Adjoin (fstc, Lf afst))) in
-    log_val "bres" bres pp_value;
     ret (appc bres sndc)
 
   )
@@ -250,7 +248,6 @@ let pi_fib acmplx bcmplx nm pi =
 (*****************************************************************************)
 
 let rec refl_val opvs olvl v pi =
-  (* log_val "refl_val/v" v pp_value; *)
   match v with
   
   | RigidV (k,sp) ->
@@ -349,7 +346,7 @@ and id_typ v =
 (*                       Implementation of the Universe                      *)
 (*****************************************************************************)
     
-and  typ_fib o =
+and typ_fib o =
   let open ValSyntax in 
   match get_cmplx_opt o with
   | Obj _ -> TypV
@@ -427,8 +424,6 @@ and  typ_fib o =
     let open ValSyntax in val_of (
 
       let* vc = lam_cmplx "" frm in
-      (* let vc_fibs = ucells_to_fib vc in *)
-
       let fibt = pic "" fnms vc (fun _ -> TypV) in
 
       let comp = val_of (
@@ -459,14 +454,10 @@ and  typ_fib o =
 
           let* els = pic "" (Adjoin (fnms,Lf ("el" ^ a))) (Adjoin (vc,Lf fib)) in
 
-          log_val "els" els (pp_cmplx pp_value);
-          
           let f = head_value els in
           let cface = face_at els (1,[]) in 
           let c = head_value cface in
 
-          log_val "cface" cface (pp_cmplx pp_value);
-          
           let cmpt = appc (head_value vc) (tail_of cface) in
 
           let tv = tail_of (tail_of els) in
@@ -477,11 +468,6 @@ and  typ_fib o =
           let cmp_el = app_args cmp pd_args in
           let fil_el = app_args fil pd_args in 
 
-          let sigtyp = SigV ("c'", cmpt, fun c' ->
-              appc fib (replace_at (tail_of els) (0,[]) c')) in
-          
-          log_val "sigtyp" sigtyp pp_value;
-          
           ret (id_typ
                  (SigV ("c'", cmpt, fun c' ->
                       appc fib (replace_at (tail_of els) (0,[]) c')))

@@ -13,12 +13,12 @@ expand : U
   | nd { E } (lf tt)
   | lf { N }
 
-# expand : U
-#   | U
-#   | nd { Z } (nd (nd { Y } (nd (lf { X }) (lf tt))) (lf tt))
-#   | nd { R } (nd (lf { Q }) (nd (nd (lf { P })
-#       (nd (lf tt) (lf tt))) (lf tt)))
-#   | lf { S }
+expand : U
+  | U
+  | nd { Z } (nd (nd { Y } (nd (lf { X }) (lf tt))) (lf tt))
+  | nd { R } (nd (lf { Q }) (nd (nd (lf { P })
+      (nd (lf tt) (lf tt))) (lf tt)))
+  | lf { S }
 
 # expand (A : U) : A → A
 #   | λ a . a
