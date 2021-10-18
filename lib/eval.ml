@@ -262,7 +262,7 @@ let rec refl_val opvs olvl v pi =
     run_sp (head_value (nth k opvs)) sp'
       
   | TopV (nm,sp,tv) ->
-    TopV (nm,ReflSp (sp,pi), refl_val opvs olvl tv pi)
+    TopV (nm, ReflSp (sp,pi), refl_val opvs olvl tv pi)
 
   | LamV (nm,bdy) ->
 
@@ -488,15 +488,16 @@ and typ_fib o =
 (*                                 Evaluation                                *)
 (*****************************************************************************)
 
-let rec eval lvl top loc tm =
+let rec eval top loc tm =
   (* pr "Evaluating: %a@," pp_term tm; *)
-  let ev t = eval lvl top loc t in
-  let ev_bnd t v = eval lvl top (Ext (loc,v)) t in 
+  let ev t = eval top loc t in
+  let ev_bnd t v = eval top (Ext (loc,v)) t in 
   match tm with
   
   | VarT i -> db_get i loc
 
   | TopT nm -> TopV (nm,EmpSp,top nm)
+  | LetT (_,_,tm,bdy) -> ev_bnd bdy (ev tm) 
 
   | PiT (nm,a,b) -> PiV (nm, ev a, ev_bnd b) 
   | LamT (nm,u) -> LamV (nm, ev_bnd u) 

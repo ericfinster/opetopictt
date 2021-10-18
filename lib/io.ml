@@ -50,7 +50,7 @@ let parse_file f =
     (imprts,defs)
   with
   | Parse_error (Some (line,pos), err) ->
-    pr "Parse error: %sLine: %d, Pos: %d@," err line pos;
+    pr "Parse error: %s@,Line: %d, Pos: %d@," err line pos;
     close_in fi;
     exit (-1)
   | Parse_error (None, err) ->

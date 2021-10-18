@@ -22,6 +22,9 @@ type expr =
   (* Variables *)
   | VarE of name
 
+  (* Let *)
+  | LetE of name * expr * expr * expr 
+
   (* Pi Types *)
   | LamE of name * expr
   | AppE of expr * expr
@@ -63,7 +66,11 @@ let rec pp_expr ppf expr =
   let ppe = pp_expr in
   match expr with
   | VarE nm -> string ppf nm
-                 
+
+  | LetE (nm,ty,tm,exp) ->
+    pf ppf "let %s : @[%a@] =@ @[%a@] in @[%a]"
+      nm pp_expr ty pp_expr tm pp_expr exp 
+
   | LamE (nm,bdy) -> pf ppf "\u{03bb} %s.@ @[%a@]" nm ppe bdy
   | AppE (u, v) ->
     pf ppf "@[%a@]@, @[%a@]" ppe u

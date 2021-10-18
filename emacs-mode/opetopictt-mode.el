@@ -69,14 +69,14 @@
 (defconst opetopictt-mode-tree-sitter-patterns
   [ ;; Keywords
    
-   [ "let" "normalize" "expand" "import" ] @keyword
+   [ "def" "let" "in" "normalize" "expand" "import" ] @keyword
    [ ":" "=" "(" ")" "," "⊢" ] @punctuation
    [ "[" "]" "{" "}" "|" "@" "lf" "nd" "tt" ] @punctuation.special
    [ "U" "fst" "snd" ] @constant
 
    (var_declaration variable: (identifier) @variable.parameter)
    
-   (let_command
+   (def_command
     name: (identifier) @function)
 
    (identifier) @variable

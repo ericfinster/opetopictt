@@ -21,6 +21,7 @@ type term =
   (* Variables and Definitions *)
   | VarT of idx
   | TopT of name
+  | LetT of name * term * term *term
 
   (* Pi Types *) 
   | LamT of name * term
@@ -76,7 +77,13 @@ let rec term_eq s t =
   match (s,t) with
   | (VarT i , VarT j) -> i = j
   | (TopT m , TopT n) -> String.equal m n
-                           
+  | (LetT (_,tya,tma,bdya), LetT (_,tyb,tmb,bdyb)) ->
+    if (term_eq tya tyb) then
+      if (term_eq tma tmb) then
+        term_eq bdya bdyb
+      else false
+    else false
+
   | (LamT (_,u) , LamT (_,v)) -> term_eq u v
   | (AppT (u,v) , AppT (a,b)) ->
     if (term_eq u a) then
@@ -124,6 +131,8 @@ let rec term_to_expr nms tm =
   | VarT i ->
     let nm = db_get i nms in VarE nm
   | TopT nm -> VarE nm
+  | LetT (nm,ty,tm,bdy) ->
+    LetE (nm,tte nms ty,tte nms tm,tte nms bdy) 
 
   | LamT (nm,bdy) ->
     LamE (nm, tte (Ext (nms,nm)) bdy)
@@ -181,7 +190,10 @@ let rec pp_term ppf tm =
   match tm with
   | VarT i -> int ppf i
   | TopT nm -> string ppf nm
-                 
+  | LetT (nm,ty,tm,bdy) -> 
+    pf ppf "let %s : @[%a@] =@ @[%a@] in @[%a]"
+      nm pp_term ty pp_term tm pp_term bdy
+
   | LamT (nm,t) ->
     pf ppf "\u{03bb} %s . %a" nm pp_term t
   | AppT (u,v) ->

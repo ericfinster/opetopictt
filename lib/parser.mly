@@ -6,8 +6,9 @@
        
 %} 
 
-%token LET NORMALIZE EXPAND IMPORT
-%token LAMBDA COLON EQUAL DOT VBAR VDASH
+%token DEF NORMALIZE EXPAND IMPORT
+%token LET COLON EQUAL IN
+%token LAMBDA DOT VBAR VDASH
 %token LPAR RPAR LBR RBR
 %token ARROW 
 %token TIMES COMMA FST SND
@@ -67,8 +68,8 @@ import:
     { nm } 
 
 cmd:
-  | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
-    { Let (id,tl,ty,tm) }
+  | DEF id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
+    { Define (id,tl,ty,tm) }
   | NORMALIZE tl = tele COLON ty = expr VDASH tm = expr
     { Normalize (tl,ty,tm) } 
   | EXPAND tl = tele COLON ty = expr VBAR tm = expr VBAR c = cmplx(IDENT)
@@ -93,6 +94,8 @@ expr:
     { e }
   | u = expr1 COMMA v = expr
     { PairE (u,v) } 
+  | LET id = IDENT COLON ty = expr EQUAL tm = expr IN bdy = expr
+    { LetE (id,ty,tm,bdy) }
 
 expr1:
   | e = expr2
@@ -103,6 +106,7 @@ expr1:
     { let (nm,dom) = hd in PiE (nm,dom,cod) }
   | hd = pi_head TIMES cod = expr1
     { let (nm,dom) = hd in SigE (nm,dom,cod) } 
+
 
 expr2:
   | e = expr3

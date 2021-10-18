@@ -159,8 +159,7 @@ let tcm_ctx : ctx tcm =
       
 let tcm_eval (t : term) : value tcm =
   let* gma = tcm_ctx in
-  tcm_ok (eval gma.lvl (top_lookup gma)
-            gma.loc t)
+  tcm_ok (eval (top_lookup gma) gma.loc t)
 
 let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
@@ -203,6 +202,14 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
   match (e , t) with
 
   | (e , TopV (_,_,tv)) -> tcm_check e tv
+
+  | (LetE (nm,ty,tm,bdy), _) ->
+    let* ty' = tcm_check ty TypV in
+    let* tyv = tcm_eval ty' in
+    let* tm' = tcm_check tm tyv in
+    let* bdy' = tcm_with_binding nm tyv
+        (tcm_check bdy t) in 
+    tcm_ok (LetT (nm,ty',tm',bdy'))
 
   | (LamE (nm,e) , PiV (_,a,b)) ->
     let* gma = tcm_ctx in
@@ -249,6 +256,14 @@ and tcm_infer (e : expr) : (term * value) tcm =
           with Lookup_error -> tcm_fail (`NameNotInScope nm)
         end
     end
+
+  | LetE (nm,ty,tm,bdy) ->
+    let* ty' = tcm_check ty TypV in
+    let* tyv = tcm_eval ty' in
+    let* tm' = tcm_check tm tyv in
+    let* (bdy',bdyty) = tcm_with_binding nm tyv
+        (tcm_infer bdy) in 
+    tcm_ok (LetT (nm,ty',tm',bdy'),bdyty)
 
   | AppE (u,v) ->
 

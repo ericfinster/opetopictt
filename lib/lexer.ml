@@ -32,11 +32,13 @@ let lexing_error lexbuf msg =
 
 let rec token buf =
   match%sedlex buf with
-
-  | "let"        -> LET
+  
+  | "import"     -> IMPORT
+  | "def"        -> DEF 
   | "normalize"  -> NORMALIZE
   | "expand"     -> EXPAND
-  | "import"     -> IMPORT
+  | "let"        -> LET
+  | "in"         -> IN
   | 0x2192       -> ARROW
   | "->"         -> ARROW
   | "("          -> LPAR

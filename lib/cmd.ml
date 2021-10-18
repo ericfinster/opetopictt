@@ -14,7 +14,7 @@ open Typecheck
 open Opetopes.Idt.IdtConv
 
 type cmd =
-  | Let of name * expr tele * expr * expr
+  | Define of name * expr tele * expr * expr
   | Normalize of expr tele * expr  * expr
   | Expand of expr tele * expr  * expr * string tr_expr suite 
 
@@ -24,7 +24,7 @@ let rec run_cmds cmds =
   
   match cmds with
   | [] -> tcm_ctx
-  | (Let (id,tl,ty,tm))::cs ->
+  | (Define (id,tl,ty,tm))::cs ->
     Fmt.pr "----------------@,";
     Fmt.pr "Checking definition: %s@," id;
     let (abs_ty,abs_tm) = E.abstract_tele_with_type tl ty tm in

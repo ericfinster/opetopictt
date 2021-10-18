@@ -31,13 +31,13 @@ module.exports = grammar({
 	//
 	
 	_command: $ => choice(
-	    $.let_command,
+	    $.def_command,
 	    $.normalize_command,
 	    $.expand_command
 	),
 
-	let_command: $ => seq(
-	    'let',
+	def_command: $ => seq(
+	    'def',
 	    field("name", $.identifier),
 	    field("context", optional($.telescope)),	    
 	    ':',
@@ -97,6 +97,8 @@ module.exports = grammar({
 	expression: $ => choice(
 
 	    prec.right(1, seq($.expression,',',$.expression)),
+	    prec.right(1, seq('let',$.identifier,':',$.expression,
+		  	'=',$.expression,'in',$.expression)),
 	    
 	    prec(2, seq($.lambda,$.identifier,'.',$.expression)),
 	    $.pi_type,

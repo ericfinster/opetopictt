@@ -2,19 +2,19 @@
 #  prelude.ott - basic lemmas and definitions
 #
 
-let Eq (A : U) (a₀ : A) (a₁ : A) : U
+def Eq (A : U) (a₀ : A) (a₁ : A) : U
   = fst [ A
         @ nd { y } (nd (lf { x }) (lf tt)) 
         | lf { p }
         ] a₀ a₁
 
-let refl (A : U) (a : A) : Eq A a a
+def refl (A : U) (a : A) : Eq A a a
   = [ a
     @ nd { y } (nd (lf { x }) (lf tt)) 
     | lf { p }
     ]
 
-let PathOver (A : U) (B : A → U)
+def PathOver (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) (b₁ : B a₁) : U
   = fst ([ B
@@ -22,7 +22,7 @@ let PathOver (A : U) (B : A → U)
          | lf { p }
          ] a₀ a₁ p) b₀ b₁
 
-let PathOverOver (A : U) (B : A → U) (C : (a : A) → B a → U) 
+def PathOverOver (A : U) (B : A → U) (C : (a : A) → B a → U) 
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
     (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
@@ -31,7 +31,7 @@ let PathOverOver (A : U) (B : A → U) (C : (a : A) → B a → U)
          | lf { p }
          ] a₀ a₁ p b₀ b₁ q) c₀ c₁ 
 
-let transport (A : U) (B : A → U)
+def transport (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) : B a₁
   = fst snd ([ B
@@ -39,21 +39,25 @@ let transport (A : U) (B : A → U)
              | lf { p }
              ] a₀ a₁ p) b₀
 
-let is-contr (A : U) : U 
+def is-contr (A : U) : U 
   = (a₀ : A) × ((a₁ : A) → Eq A a₀ a₁)
 
-let is-equiv (A : U) (B : U) (f : A → B) : U
+def is-equiv (A : U) (B : U) (f : A → B) : U
   = (g : B → A) ×
     (h : B → A) ×
     (l : (a : A) → Eq A a (h (f a))) ×
     ((b : B) → Eq B b (f (g b)))
     
-let Equiv (A : U) (B : U) : U
+def Equiv (A : U) (B : U) : U
   = (f : A → B) × is-equiv A B f
 
-let eqv (A : U) (B : U)
+def eqv (A : U) (B : U)
     (f : A → B) (g : B → A)
     (l : (a : A) → Eq A a (g (f a)))
     (r : (b : B) → Eq B b (f (g b))) : Equiv A B
   = f , g , g , l , r 
 
+def test (A : U) : U
+  = let idU : U → U
+            = λ B. B in
+    idU A 

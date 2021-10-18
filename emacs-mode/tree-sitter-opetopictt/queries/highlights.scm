@@ -1,10 +1,13 @@
 ; Keywords
 
 
-"let"  @keyword
+"def"  @keyword
 "normalize" @keyword
 "expand" @keyword
 "import" @keyword
+
+"let"  @keyword
+"in"   @keyword
 
 ":" @punctuation
 "=" @punctuation
@@ -31,7 +34,7 @@
 (var_declaration
  variable: (identifier) @variable)
 
-(let_command
+(def_command
  name: (identifier) @function)
 
 ((identifier) @function
