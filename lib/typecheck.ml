@@ -23,6 +23,7 @@ open Opetopes.Complex
 
 type ctx = {
   top : (name * (value * value)) suite;
+  sec : (name * (value * value)) suite suite; 
   loc : value suite;
   typs : (name * value) suite; 
   lvl : lvl;
@@ -30,30 +31,29 @@ type ctx = {
 
 let empty_ctx = {
   top = Emp;
+  sec = Emp;
   loc = Emp;
   typs = Emp; 
   lvl = 0;
 }
 
-let empty_loc gma = {
-  top = gma.top;
-  typs = Emp ; 
-  loc = Emp;
-  lvl = 0;
-}
-
-let bind gma nm ty =
-  let l = gma.lvl in {
-    loc = Ext (gma.loc,varV l) ;
+let bind_var gma nm ty =
+  { gma with
+    loc = Ext (gma.loc,varV gma.lvl) ;
     typs = Ext (gma.typs,(nm,ty)) ; 
-    top = gma.top;
-    lvl = l+1;
+    lvl = gma.lvl+1;
   }
 
+let bind_let gma nm ty =
+  { gma with 
+    typs = Ext (gma.typs,(nm,ty));
+  } 
+
 let define gma nm tm ty = {
+  top = Ext (gma.top,(nm,(tm,ty)));
+  sec = gma.sec; (* Oh, no, this will chagne ... *) 
   loc = gma.loc;
   typs = gma.typs; 
-  top = Ext (gma.top,(nm,(tm,ty)));
   lvl = gma.lvl;
 }
 
@@ -167,9 +167,13 @@ let tcm_quote (v : value) (ufld : bool) : term tcm =
 
 let tcm_in_ctx g m _ = m g 
 
-let tcm_with_binding nm ty m =
+let tcm_with_var_binding nm ty m =
   let* gma = tcm_ctx in
-  tcm_in_ctx (bind gma nm ty) m 
+  tcm_in_ctx (bind_var gma nm ty) m 
+
+let tcm_with_let_binding nm ty m =
+  let* gma = tcm_ctx in
+  tcm_in_ctx (bind_let gma nm ty) m
 
 let rec tcm_extract_pi (v: value) =
   match v with
@@ -207,13 +211,13 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     let* ty' = tcm_check ty TypV in
     let* tyv = tcm_eval ty' in
     let* tm' = tcm_check tm tyv in
-    let* bdy' = tcm_with_binding nm tyv
+    let* bdy' = tcm_with_let_binding nm tyv
         (tcm_check bdy t) in 
     tcm_ok (LetT (nm,ty',tm',bdy'))
 
   | (LamE (nm,e) , PiV (_,a,b)) ->
     let* gma = tcm_ctx in
-    tcm_in_ctx (bind gma nm a)
+    tcm_in_ctx (bind_var gma nm a)
       begin
         let* bdy = tcm_check e (b (varV gma.lvl)) in
         tcm_ok (LamT (nm,bdy))
@@ -261,7 +265,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
     let* ty' = tcm_check ty TypV in
     let* tyv = tcm_eval ty' in
     let* tm' = tcm_check tm tyv in
-    let* (bdy',bdyty) = tcm_with_binding nm tyv
+    let* (bdy',bdyty) = tcm_with_let_binding nm tyv
         (tcm_infer bdy) in 
     tcm_ok (LetT (nm,ty',tm',bdy'),bdyty)
 
@@ -276,7 +280,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
   | PiE (nm,a,b) ->
     let* a' = tcm_check a TypV in
     let* av = tcm_eval a' in
-    let* b' = tcm_with_binding nm av
+    let* b' = tcm_with_var_binding nm av
         (tcm_check b TypV) in 
 
     tcm_ok (PiT (nm,a',b') , TypV)
@@ -295,7 +299,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
   | SigE (nm,a,b) ->
     let* a' = tcm_check a TypV in
     let* av = tcm_eval a' in
-    let* b' = tcm_with_binding nm av
+    let* b' = tcm_with_var_binding nm av
         (tcm_check b TypV) in 
 
     tcm_ok (SigT (nm,a',b') , TypV)
@@ -318,7 +322,6 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | _ -> tcm_fail (`InferrenceFailed e) 
 
-
 and tcm_to_cmplx c =
   let open IdtConv in 
   try let c' = to_cmplx c in
@@ -338,5 +341,5 @@ and tcm_in_tele : 'a. expr tele
         let* ty_tm = tcm_check ty TypV in
         let* ty_val = tcm_eval ty_tm in
         let* gma = tcm_ctx in
-        tcm_in_ctx (bind gma id ty_val)
+        tcm_in_ctx (bind_var gma id ty_val)
           (k (Ext (tt,(id,ty_tm)))))
