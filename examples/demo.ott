@@ -4,35 +4,35 @@
 
 def id (A : U) (a : A) : A = a
 
-def const (A : U) (B : U) : A -> B -> A
+def const (A : U) (B : U) : A → B → A
   = λ a → λ b → a
 
 def List : U → U
   = λ A → (L : U) → (A → L → L) → L → L
 
-def nil : (A : U) -> List A
+def nil : (A : U) → List A
   = λ A → λ L → λ cons → λ nil → nil
 
-def cons : (A : U) -> A -> List A -> List A
-  = \A → \x → \xs → \L → \cons → \nil → cons x (xs L cons nil)
+def cons : (A : U) → A → List A → List A
+  = λ A → λ x → λ xs → λ L → λ cons → λ nil → cons x (xs L cons nil)
 
 def Bool : U
-  = (B : U) -> B -> B -> B
+  = (B : U) → B → B → B
 
 def true : Bool
-  = \B → \t → \f → t
+  = λ B → λ t → λ f → t
 
 def false : Bool
-  = \B → \t → \f → f
+  = λ B → λ t → λ f → f
 
-def not : Bool -> Bool
-  = \b → \B → \t → \f → b B f t
+def not : Bool → Bool
+  = λ b → λ B → λ t → λ f → b B f t
 
-def Eq : (A : U) -> A -> A -> U
-  = \A → \x → \y → (P : A -> U) -> P x -> P y
+def Eq : (A : U) → A → A → U
+  = λ A → λ x → λ y → (P : A → U) → P x → P y
 
-def refl : (A : U) -> (x : A) -> Eq A x x
-  = \A → \x → \P → \px → px
+def refl : (A : U) → (x : A) → Eq A x x
+  = λ A → λ x → λ P → λ px → px
 
 def list1 : List Bool
   = cons Bool (id Bool true) (nil Bool)
@@ -41,13 +41,13 @@ def list2 : List Bool
   = cons Bool true (cons Bool false (nil Bool))
 
 def Nat : U
-  = (A : U) -> A -> (A -> A) -> A
+  = (A : U) → A → (A → A) → A
 
 def zero : Nat
-  = \A → \zero → \succ → zero
+  = λ A → λ zero → λ succ → zero
 
-def succ : Nat -> Nat
-  = \n → \A → \zero → \succ → succ (n A zero succ)
+def succ : Nat → Nat
+  = λ n → λ A → λ zero → λ succ → succ (n A zero succ)
 
 def one : Nat
   = succ (zero)
