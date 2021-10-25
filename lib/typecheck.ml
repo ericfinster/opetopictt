@@ -38,7 +38,7 @@ let bound_term b =
 
 let get_binding qnm bndgs =
   match qnm with
-  | Qual _ -> failwith "get binding on qual" 
+  | Qual _ -> None
   | Name nm -> 
 
     let rec go bs i = 
@@ -304,6 +304,7 @@ and tcm_infer (e : expr) : (term * value) tcm =
     begin match get_binding qnm gma.bindings with
       | Some (idx,_,ty) -> tcm_ok (VarT idx, ty)
       | None ->
+        log_val "qnm" qnm pp_qname; 
         begin match resolve_qname qnm gma.local_scope with
           | Some (TermDefn (_,ty,_)) -> tcm_ok (TopT qnm , ty) 
           | Some (ModuleDefn _) -> failwith "module not ok"
@@ -397,7 +398,8 @@ let rec tcm_check_defns defs =
     
     let* (tm,vm) = tcm_check_module nm tl defs in
 
-    Fmt.pr "Module check complete for: %s@," nm; 
+    Fmt.pr "----------------@,";
+    Fmt.pr "Module %s complete.@," nm; 
     
     tcm_with_local_defn vm
       begin

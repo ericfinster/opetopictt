@@ -37,7 +37,11 @@ let lexing_error lexbuf msg =
 
 let rec qname buf =
   match%sedlex buf with
-  | module_name , '.' -> Qual (Sedlexing.Utf8.lexeme buf , qname buf) 
+  | module_name , '.' ->
+    let mndot = Sedlexing.Utf8.lexeme buf in
+    let mn = String.sub mndot 0 (String.length mndot - 1) in 
+    let qn = qname buf in 
+    Qual (mn,qn)
   | ident -> Name (Sedlexing.Utf8.lexeme buf)
   | _ -> lexing_error buf (Printf.sprintf "Unexpected character: %s" (Sedlexing.Utf8.lexeme buf))
 
@@ -75,10 +79,14 @@ let rec token buf =
   | "snd"        -> SND
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
-  | module_name , '.' -> QNAME (Qual (Sedlexing.Utf8.lexeme buf , qname buf))
+  | module_name , '.' ->
+    let mndot = Sedlexing.Utf8.lexeme buf in
+    let mn = String.sub mndot 0 (String.length mndot - 1) in 
+    let qn = qname buf in 
+    QNAME (Qual (mn,qn))
                
   | Plus space -> token buf
   | "#",Star (Compl '\n') -> token buf
-  | "\n" -> token buf (* Sedlexing.new_line buf ; token buf  *)
+  | "\n" -> token buf 
   | eof -> EOF
   | _ -> lexing_error buf (Printf.sprintf "Unexpected character: %s" (Sedlexing.Utf8.lexeme buf))
