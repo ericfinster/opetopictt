@@ -49,17 +49,34 @@ let rec qname_eq qnm qnm' =
   | _ -> false
 
 (*****************************************************************************)
-(*                             Module Descriptions                           *)
+(*                               Definitions                                 *)
 (*****************************************************************************)
 
-type 'a module_desc = {
-  params   : 'a tele ;
-  entries  : (name * 'a module_entry) suite ; 
-} 
+type 'a defn =
+  | ModuleDefn of name * 'a tele * 'a defn suite 
+  | TermDefn of name * 'a * 'a 
 
-and 'a module_entry = 
-  | DefnEntry of 'a * 'a
-  | ModuleEntry of 'a module_desc 
+let defn_name def =
+  match def with
+  | ModuleDefn (nm,_,_) -> nm
+  | TermDefn (nm,_,_) -> nm
+
+let rec resolve_name nm defs =
+  match defs with
+  | Emp -> failwith "empty defs"
+  | Ext (defs',def) ->
+    if (String.equal nm (defn_name def))
+    then Some def
+    else resolve_name nm defs' 
+
+and resolve_qname qnm defs =
+  match qnm with
+  | Name nm -> resolve_name nm defs
+  | Qual (md,qn) ->
+    match resolve_name md defs with
+    | Some (ModuleDefn (_,_,mdefs)) ->
+      resolve_qname qn mdefs
+    | _ -> None 
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

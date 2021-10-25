@@ -42,10 +42,6 @@ type expr =
   (* The Universe *) 
   | TypE
 
-type defn_expr =
-  | ModuleE of name * expr tele * defn_expr list 
-  | DefE of name * expr tele * expr * expr 
-
 (*****************************************************************************)
 (*                          Parsing Tree Expressions                         *)
 (*****************************************************************************)

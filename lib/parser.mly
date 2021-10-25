@@ -2,6 +2,12 @@
 
     open Expr
     open Suite
+    open Syntax
+
+    let abstract_defn tl ty tm =
+      fold_right tl (ty,tm)
+	(fun (nm,ty) (ty',tm') ->
+	  (PiE (nm,ty,ty'), LamE (nm,tm')))
        
 %} 
 
@@ -20,7 +26,7 @@
 %token EOF
 
 %start prog
-%type <string list * Expr.defn_expr list> prog
+%type <string list * Expr.expr Syntax.defn list> prog
 
 %%
 
@@ -70,9 +76,10 @@ import:
 
 defn:
   | MODULE id = IDENT tl = tele WHERE defs = list(defn) END
-    { ModuleE (id,tl,defs) } 
+    { ModuleDefn (id,tl,Suite.from_list defs) } 
   | DEF id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
-    { DefE (id,tl,ty,tm) }
+    { let (ty',tm') = abstract_defn tl ty tm
+      in TermDefn (id,ty',tm') }
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
