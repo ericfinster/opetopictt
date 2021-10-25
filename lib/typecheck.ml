@@ -21,8 +21,6 @@ open Opetopes.Complex
 (*                           Typechecking Contexts                           *)
 (*****************************************************************************)
 
-
-
 (* Bindingds *) 
 type 'a binding =
   | LetBinding of name * 'a * 'a 
@@ -69,24 +67,35 @@ type ctx = {
   
 }
 
+let empty_ctx = {
+  global_scope = Emp ;
+  local_scope = Emp ;
+  level = 0 ;
+  bindings = Emp ;
+} 
+  
 let bind_var gma nm ty =
   { gma with
-    
+    bindings =
+      gma.bindings |@>
+      VarBinding (nm, varV gma.level , ty);
     level = gma.level + 1 ;
-    bindings = gma.bindings |@>
-               VarBinding (nm, varV gma.level , ty)
-               
   }
 
 let bind_let gma nm ty tm =
   { gma with
-    
+    bindings =
+      gma.bindings |@>
+      LetBinding (nm, tm, ty);
     level = gma.level + 1;
-    bindings = gma.bindings |@>
-               LetBinding (nm, tm, ty)
-                 
   }
-    
+
+let define gma def =
+  { gma with
+    local_scope =
+      gma.local_scope |@> def ; 
+  } 
+  
 let names gma =
   map_suite gma.bindings ~f:bound_name 
 
@@ -178,8 +187,7 @@ let (let*) m f = TcmMonad.bind m ~f
 let tcm_ok = TcmMonad.return 
 let tcm_fail e _ = Error e 
 
-let tcm_ctx : ctx tcm =
-  fun gma -> Ok gma
+let tcm_ctx gma = Ok gma
       
 let tcm_eval (t : term) : value tcm =
   let* gma = tcm_ctx in
@@ -200,6 +208,10 @@ let tcm_with_var_binding nm ty m =
 let tcm_with_let_binding nm ty tm m =
   let* gma = tcm_ctx in
   tcm_in_ctx (bind_let gma nm ty tm) m
+
+let tcm_with_local_defn def m =
+  let* gma = tcm_ctx in
+  tcm_in_ctx (define gma def) m 
 
 let rec tcm_extract_pi (v: value) =
   match v with
@@ -223,6 +235,14 @@ let tcm_ensure (b : bool) (e : typing_error) : unit tcm =
   if b then tcm_ok ()
   else tcm_fail e
       
+let tcm_to_cmplx c =
+  let open IdtConv in 
+  try let c' = to_cmplx c in
+    let _ = validate_opetope c' in 
+    tcm_ok c' 
+  with TreeExprError msg -> tcm_fail (`InvalidShape msg)
+     | ShapeError msg -> tcm_fail (`InvalidShape msg) 
+
 (*****************************************************************************)
 (*                            Typechecking Rules                             *)
 (*****************************************************************************)
@@ -349,24 +369,52 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | _ -> tcm_fail (`InferrenceFailed e) 
 
-and tcm_to_cmplx c =
-  let open IdtConv in 
-  try let c' = to_cmplx c in
-    let _ = validate_opetope c' in 
-    tcm_ok c' 
-  with TreeExprError msg -> tcm_fail (`InvalidShape msg)
-     | ShapeError msg -> tcm_fail (`InvalidShape msg) 
-
-and tcm_in_tele : 'a. expr tele
-  -> (term tele -> 'a tcm)
+let rec tcm_in_tele : 'a. expr tele
+  -> (term tele -> value tele -> 'a tcm)
   -> 'a tcm = 
   fun tl k -> 
   match tl with
-  | Emp -> k Emp
+  | Emp -> k Emp Emp
   | Ext (tl',(id,ty)) ->
-    tcm_in_tele tl' (fun tt -> 
+    tcm_in_tele tl' (fun tt vt -> 
         let* ty_tm = tcm_check ty TypV in
         let* ty_val = tcm_eval ty_tm in
         let* gma = tcm_ctx in
         tcm_in_ctx (bind_var gma id ty_val)
-          (k (Ext (tt,(id,ty_tm)))))
+          (k (tt |@> (id,ty_tm)) (vt |@> (id,ty_val))))
+
+let rec tcm_check_defns defs =
+  match defs with
+  | [] -> tcm_ok (Emp,Emp)
+  | (ModuleDefn (nm,tl,defs))::ds ->
+
+    let* (tm,vm) = tcm_check_module nm tl defs in
+    tcm_with_local_defn vm
+      begin
+        let* (tdefs,vdefs) = tcm_check_defns ds in
+        tcm_ok (tdefs |@> tm,
+                vdefs |@> vm)
+      end
+      
+  | (TermDefn (nm,ty,tm))::ds ->
+    let* ty' = tcm_check ty TypV in
+    let* tyv = tcm_eval ty' in 
+    let* tm' = tcm_check tm tyv in 
+    let* tmv = tcm_eval tm' in 
+    let tdef = TermDefn (nm,ty',tm') in
+    let vdef = TermDefn (nm,tyv,tmv) in
+    tcm_with_local_defn vdef
+      begin
+        let* (tdefs,vdefs) = tcm_check_defns ds in
+        tcm_ok (tdefs |@> tdef,
+                vdefs |@> vdef) 
+      end
+
+and tcm_check_module nm tl defs =
+  tcm_in_tele tl (fun tt vt ->
+      let* (tds,vds) = tcm_check_defns (to_list defs) in
+      let tm = ModuleDefn (nm,tt,tds) in
+      let vm = ModuleDefn (nm,vt,vds) in
+      tcm_ok (tm,vm)
+    )
+    

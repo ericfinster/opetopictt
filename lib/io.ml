@@ -68,11 +68,11 @@ let parse_file f =
 
 let rec check_files ctx checked to_check =
   let open Typecheck in
-  let open Cmd in 
+  let open Suite in 
   match to_check with
   | [] -> ctx
   | f::fs ->
-    let (imprts,cmds) = parse_file f in
+    let (imprts,defs) = parse_file f in
     let imports_to_check =
       List.filter_map
         (fun i -> let fnm = i ^ ".ott" in 
@@ -82,9 +82,15 @@ let rec check_files ctx checked to_check =
     let ctx' = check_files ctx checked imports_to_check in 
     pr "-----------------@,";
     pr "Processing input file: %s@," f;
-    begin match run_cmds cmds ctx' with
-      | Ok ctx'' -> 
+    let mname = Filename.remove_extension f in
+    begin match tcm_check_module mname Emp (Suite.from_list defs) ctx' with
+      | Ok (tm,_) -> 
         pr "----------------@,Success!@,";
+        let ctx'' = {
+          ctx' with
+          global_scope = ctx'.global_scope |@> tm
+        }  in 
+            
         check_files ctx'' (f::checked) fs
       | Error err ->
         pr "@,Typing error: @,@,%a@,@," pp_error err ; 
