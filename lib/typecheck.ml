@@ -104,7 +104,7 @@ let names gma =
 (*****************************************************************************)
            
 type typing_error = [
-  | `NameNotInScope of name
+  | `NameNotInScope of qname
   | `TypeMismatch of expr * expr * expr
   | `NotImplemented of string
   | `InferrenceFailed of expr
@@ -116,9 +116,9 @@ type typing_error = [
 
 let pp_error ppf e =
   match e with
-  | `NameNotInScope nm ->
+  | `NameNotInScope qnm ->
     
-    Fmt.pf ppf "Name not in scope: %s" nm
+    Fmt.pf ppf "Name not in scope: %a" pp_qname qnm
       
   | `TypeMismatch (e,exp,inf) ->
 
@@ -192,7 +192,11 @@ let tcm_ctx gma = Ok gma
 let tcm_eval (t : term) : value tcm =
   let* gma = tcm_ctx in
   let loc = map_suite gma.bindings ~f:bound_term in
-  let top _ = failwith ""  in
+  let top qnm =
+    match resolve_qname qnm gma.local_scope with
+    | Some (TermDefn (_,_,tm)) -> tm 
+    | _ -> failwith "unresolved name"
+  in
   tcm_ok (eval top loc t)
 
 let tcm_quote (v : value) (ufld : bool) : term tcm =
@@ -301,9 +305,9 @@ and tcm_infer (e : expr) : (term * value) tcm =
       | Some (idx,_,ty) -> tcm_ok (VarT idx, ty)
       | None ->
         begin match resolve_qname qnm gma.local_scope with
-          | Some (TermDefn (_,_,ty)) -> tcm_ok (TopT qnm , ty) 
+          | Some (TermDefn (_,ty,_)) -> tcm_ok (TopT qnm , ty) 
           | Some (ModuleDefn _) -> failwith "module not ok"
-          | _ -> failwith "not in scope error" 
+          | _ -> tcm_fail (`NameNotInScope (qnm))
         end
     end
 
@@ -388,7 +392,13 @@ let rec tcm_check_defns defs =
   | [] -> tcm_ok (Emp,Emp)
   | (ModuleDefn (nm,tl,defs))::ds ->
 
+    Fmt.pr "----------------@,";
+    Fmt.pr "Entering module: %s@," nm;
+    
     let* (tm,vm) = tcm_check_module nm tl defs in
+
+    Fmt.pr "Module check complete for: %s@," nm; 
+    
     tcm_with_local_defn vm
       begin
         let* (tdefs,vdefs) = tcm_check_defns ds in
@@ -397,10 +407,20 @@ let rec tcm_check_defns defs =
       end
       
   | (TermDefn (nm,ty,tm))::ds ->
+    
+    Fmt.pr "----------------@,";
+    Fmt.pr "Checking definition: %s@," nm;
+    
     let* ty' = tcm_check ty TypV in
     let* tyv = tcm_eval ty' in 
     let* tm' = tcm_check tm tyv in 
-    let* tmv = tcm_eval tm' in 
+    let* tmv = tcm_eval tm' in
+
+    Fmt.pr "Checking complete for %s@," nm;
+    let* gma = tcm_ctx in 
+    let exp = term_to_expr (names gma) tm' in 
+    Fmt.pr "Result: @[%a@]@," pp_expr exp ; 
+
     let tdef = TermDefn (nm,ty',tm') in
     let vdef = TermDefn (nm,tyv,tmv) in
     tcm_with_local_defn vdef

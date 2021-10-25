@@ -63,7 +63,7 @@ let defn_name def =
 
 let rec resolve_name nm defs =
   match defs with
-  | Emp -> failwith "empty defs"
+  | Emp -> None 
   | Ext (defs',def) ->
     if (String.equal nm (defn_name def))
     then Some def

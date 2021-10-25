@@ -5,34 +5,34 @@
 def id (A : U) (a : A) : A = a
 
 def const (A : U) (B : U) : A -> B -> A
-  = \a.\b.a
+  = λ a → λ b → a
 
-def List : U -> U
-  = \A. (L : U) -> (A -> L -> L) -> L -> L
+def List : U → U
+  = λ A → (L : U) → (A → L → L) → L → L
 
 def nil : (A : U) -> List A
-  = \A. \L. \cons. \nil. nil
+  = λ A → λ L → λ cons → λ nil → nil
 
 def cons : (A : U) -> A -> List A -> List A
-  = \A. \x. \xs. \L. \cons. \nil. cons x (xs L cons nil)
+  = \A → \x → \xs → \L → \cons → \nil → cons x (xs L cons nil)
 
 def Bool : U
   = (B : U) -> B -> B -> B
 
 def true : Bool
-  = \B. \t. \f. t
+  = \B → \t → \f → t
 
 def false : Bool
-  = \B. \t. \f. f
+  = \B → \t → \f → f
 
 def not : Bool -> Bool
-  = \b. \B. \t. \f. b B f t
+  = \b → \B → \t → \f → b B f t
 
 def Eq : (A : U) -> A -> A -> U
-  = \A. \x. \y. (P : A -> U) -> P x -> P y
+  = \A → \x → \y → (P : A -> U) -> P x -> P y
 
 def refl : (A : U) -> (x : A) -> Eq A x x
-  = \A. \x. \P. \px. px
+  = \A → \x → \P → \px → px
 
 def list1 : List Bool
   = cons Bool (id Bool true) (nil Bool)
@@ -44,10 +44,10 @@ def Nat : U
   = (A : U) -> A -> (A -> A) -> A
 
 def zero : Nat
-  = \A. \zero. \succ. zero
+  = \A → \zero → \succ → zero
 
 def succ : Nat -> Nat
-  = \n. \A. \zero. \succ. succ (n A zero succ)
+  = \n → \A → \zero → \succ → succ (n A zero succ)
 
 def one : Nat
   = succ (zero)
@@ -64,4 +64,4 @@ def fst_tst (A : U) (B : A → U) (ab : (a : A) × B a) : A
 def snd_test (A : U) (B : A → U) (ab : (a : A) × B a) : B (fst ab)
   = snd ab 
 
-# normalize (A : U) (B : A → U) ⊢ A : U 
+

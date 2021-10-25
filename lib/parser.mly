@@ -14,7 +14,7 @@
 %token MODULE WHERE END 
 %token DEF IMPORT
 %token LET COLON EQUAL IN
-%token LAMBDA DOT VBAR 
+%token LAMBDA VBAR 
 %token LPAR RPAR LBR RBR
 %token ARROW 
 %token TIMES COMMA FST SND
@@ -106,7 +106,7 @@ expr:
 expr1:
   | e = expr2
     { e }
-  | LAMBDA id = IDENT DOT e = expr1
+  | LAMBDA id = IDENT ARROW e = expr1
     { LamE (id,e) }
   | hd = pi_head ARROW cod = expr1
     { let (nm,dom) = hd in PiE (nm,dom,cod) }
@@ -123,6 +123,8 @@ expr2:
 expr3:
   | TYPE
     { TypE }
+  | id = IDENT
+    { VarE (Name id) }
   | id = QNAME
     { VarE id }
 

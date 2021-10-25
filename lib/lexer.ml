@@ -62,7 +62,6 @@ let rec token buf =
   | "@"          -> AT
   | ":"          -> COLON
   | "="          -> EQUAL
-  | "."          -> DOT
   | "\\"         -> LAMBDA
   | 0x03bb       -> LAMBDA
   | "U"          -> TYPE
