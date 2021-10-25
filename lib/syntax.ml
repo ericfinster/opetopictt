@@ -25,75 +25,41 @@ let idx_to_lvl k i = k - i - 1
 type 'a decl = (name * 'a)
 type 'a tele = ('a decl) suite
 
-type 'a dep_term = 'a suite * 'a option
-
-let pp_dep_term pp_a =
-  Fmt.pair ~sep:(Fmt.any " \u{22a2} ")
-    (pp_suite ~sep:(Fmt.any ";") pp_a)
-    (Fmt.option pp_a)
-
-let dep_term_eq (eq : 'a -> 'a -> bool) (sa , ta) (sb , tb) =
-  if (Option.equal eq ta tb) then
-    suite_eq eq sa sb
-  else false
-
 let tele_sem_eq (eq : 'a -> 'a -> bool) :
   'a tele -> 'a tele -> bool =
   fun tla tlb ->
   suite_eq (fun (_,a) (_,b) -> eq a b) tla tlb
 
-(* Not sure we're using this anymore ... *)
-module DepTermBasic =
-struct
+(*****************************************************************************)
+(*                             Qualified Names                               *) 
+(*****************************************************************************)
 
-  type 'a t = 'a dep_term
+type qname =
+  | Name of string
+  | Qual of string * qname
 
-  module SA = SuiteApplicative
-  module SM = SuiteMonad
-  module O = Option
-      
-  let return a =
-    (SA.return a, O.return a)
+let rec qname_eq qnm qnm' =
+  match (qnm , qnm') with
+  | (Name nm , Name nm') ->
+    String.equal nm nm'
+  | (Qual (m,qn) , Qual (m',qn')) ->
+    if (String.equal m m') then
+      qname_eq qn qn'
+    else false
+  | _ -> false
 
-  let bind (ma,mb) ~f =
-    (SM.bind ma ~f:(fun a -> fst (f a)) ,
-     O.bind mb ~f:(fun a -> snd (f a)))
+(*****************************************************************************)
+(*                             Module Descriptions                           *)
+(*****************************************************************************)
 
-  let map (ta : 'a dep_term) ~f:(f: 'a -> 'b) : 'b dep_term =
-    (SA.map (fst ta) ~f:f, O.map (snd ta) ~f:f)
-      
-  let map = `Custom map
-  
-  let apply mf mx =
-    bind mf ~f:(fun f ->
-        bind mx ~f:(fun x ->
-            return (f x)))
-      
-end
+type 'a module_desc = {
+  params   : 'a tele ;
+  entries  : (name * 'a module_entry) suite ; 
+} 
 
-module DepTermApplicative = Applicative.Make(DepTermBasic)
-
-let empty_addrs (n : 'a dep_term nst) : addr list =
-  let empty_addr_nst = map_nst_with_addr n
-      ~f:(fun (_,topt) addr ->
-          match topt with
-          | Some _ -> None
-          | None -> Some addr) in
-  List.filter_opt (nodes_nst empty_addr_nst) 
-  
-let rec sub_terms ((s,a_opt) : 'a dep_term) : 'a dep_term suite =
-  match s with
-  | Emp -> singleton (Emp,a_opt)
-  | Ext (s',a) ->
-    let r = sub_terms (s',Some a) in
-    Ext (r,(s,a_opt))
-
-let rec sub_teles (tl : 'a tele) (ty : 'a) : ('a tele * 'a) suite =
-  match tl with
-  | Emp -> singleton (Emp,ty)
-  | Ext (tl',(_,ty')) ->
-    let rtl = sub_teles tl' ty' in
-    Ext (rtl,(tl,ty))
+and 'a module_entry = 
+  | DefnEntry of 'a * 'a
+  | ModuleEntry of 'a module_desc 
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

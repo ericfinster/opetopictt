@@ -4,6 +4,9 @@
 (*                                                                           *)
 (*****************************************************************************)
 
+(* open Base
+ * open Fmt *)
+
 open Format
     
 open Opetopictt.Io
@@ -30,3 +33,14 @@ let () =
   let _ = check_files empty_ctx [] files in
   ()
 
+
+(* let rec repl_loop _ =
+ *   print_string "#> " ; 
+ *   let str = read_line () in
+ *   if (String.equal str "quit") then
+ *     exit 0
+ *   else
+ *     let _ = Printf.printf "You said: %s\n" str in 
+ *     repl_loop ()
+ * 
+ * let () = repl_loop () *)

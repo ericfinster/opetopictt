@@ -2,66 +2,66 @@
 #  demo.ott - some samples of opetopictt
 #
 
-let id (A : U) (a : A) : A = a
+def id (A : U) (a : A) : A = a
 
-let const (A : U) (B : U) : A -> B -> A
+def const (A : U) (B : U) : A -> B -> A
   = \a.\b.a
 
-let List : U -> U
+def List : U -> U
   = \A. (L : U) -> (A -> L -> L) -> L -> L
 
-let nil : (A : U) -> List A
+def nil : (A : U) -> List A
   = \A. \L. \cons. \nil. nil
 
-let cons : (A : U) -> A -> List A -> List A
+def cons : (A : U) -> A -> List A -> List A
   = \A. \x. \xs. \L. \cons. \nil. cons x (xs L cons nil)
 
-let Bool : U
+def Bool : U
   = (B : U) -> B -> B -> B
 
-let true : Bool
+def true : Bool
   = \B. \t. \f. t
 
-let false : Bool
+def false : Bool
   = \B. \t. \f. f
 
-let not : Bool -> Bool
+def not : Bool -> Bool
   = \b. \B. \t. \f. b B f t
 
-let Eq : (A : U) -> A -> A -> U
+def Eq : (A : U) -> A -> A -> U
   = \A. \x. \y. (P : A -> U) -> P x -> P y
 
-let refl : (A : U) -> (x : A) -> Eq A x x
+def refl : (A : U) -> (x : A) -> Eq A x x
   = \A. \x. \P. \px. px
 
-let list1 : List Bool
+def list1 : List Bool
   = cons Bool (id Bool true) (nil Bool)
 
-let list2 : List Bool
+def list2 : List Bool
   = cons Bool true (cons Bool false (nil Bool))
 
-let Nat : U
+def Nat : U
   = (A : U) -> A -> (A -> A) -> A
 
-let zero : Nat
+def zero : Nat
   = \A. \zero. \succ. zero
 
-let succ : Nat -> Nat
+def succ : Nat -> Nat
   = \n. \A. \zero. \succ. succ (n A zero succ)
 
-let one : Nat
+def one : Nat
   = succ (zero)
 
-let sigma (A : U) (B : A → U) : U
+def sigma (A : U) (B : A → U) : U
   = (a : A) × B a
 
-let pair (A : U) (B : A → U) (a : A) (b : B a) : (a : A) × B a
+def pair (A : U) (B : A → U) (a : A) (b : B a) : (a : A) × B a
   = a , b
 
-let fst_tst (A : U) (B : A → U) (ab : (a : A) × B a) : A
+def fst_tst (A : U) (B : A → U) (ab : (a : A) × B a) : A
   = fst ab
 
-let snd_test (A : U) (B : A → U) (ab : (a : A) × B a) : B (fst ab)
+def snd_test (A : U) (B : A → U) (ab : (a : A) × B a) : B (fst ab)
   = snd ab 
 
 # normalize (A : U) (B : A → U) ⊢ A : U 

@@ -48,11 +48,11 @@ let rec run_cmds cmds =
         let open Value in 
         let* ty' = tcm_check ty TypV in
         let* ty_v = tcm_eval ty' in
-        log_val "ty_v" ty_v pp_value; 
+        (* log_val "ty_v" ty_v pp_value;  *)
         let* tm' = tcm_check tm ty_v in
-        log_val "tm'" tm' pp_term;
+        (* log_val "tm'" tm' pp_term; *)
         let* tm_v = tcm_eval tm' in
-        log_val "tm_v" tm_v pp_value; 
+        (* log_val "tm_v" tm_v pp_value;  *)
         let* tm_nf = tcm_quote tm_v true in
         let* gma = tcm_ctx in 
         let t_nf_expr = term_to_expr (names gma) tm_nf in

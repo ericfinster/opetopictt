@@ -19,7 +19,7 @@ type value =
 
   | RigidV of lvl * spine
   | ExpV of lvl * spine 
-  | TopV of name * spine * value
+  | TopV of qname * spine * value
 
   (* Pi Types *)
   | LamV of name * (value -> value) 
@@ -110,8 +110,7 @@ let rec pp_value ppf v =
     let ppe ppf = pf ppf "exp%d" in 
     pp_spine ppe i ppf sp 
   | TopV (nm,sp,_) ->
-    let pp_nm ppf' n = pf ppf' "%s" n in 
-    pf ppf "%a" (pp_spine pp_nm nm) sp
+    pf ppf "%a" (pp_spine pp_qname nm) sp
       
   | LamV (nm,_) ->
     pf ppf "\\%s.<closure>" nm 

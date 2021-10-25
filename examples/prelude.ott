@@ -3,10 +3,8 @@
 #
 
 def Eq (A : U) (a₀ : A) (a₁ : A) : U
-  = fst [ A
-        @ nd { y } (nd (lf { x }) (lf tt)) 
-        | lf { p }
-        ] a₀ a₁
+  = fst [ A @ nd { y } (nd (lf { x }) (lf tt)) 
+            | lf { p } ] a₀ a₁
 
 def refl (A : U) (a : A) : Eq A a a
   = [ a
@@ -40,7 +38,7 @@ def transport (A : U) (B : A → U)
              ] a₀ a₁ p) b₀
 
 def is-contr (A : U) : U 
-  = (a₀ : A) × ((a₁ : A) → Eq A a₀ a₁)
+  = (a₀ : A) × (a₁ : A) → Eq A a₀ a₁
 
 def is-equiv (A : U) (B : U) (f : A → B) : U
   = (g : B → A) ×
@@ -70,8 +68,4 @@ def Square (A : U) (a₀₀ : A) (a₀₁ : A)
          @ nd { y } (nd (lf { x }) (lf tt)) 
          | lf { p }
          ] a₀₀ a₀₁ p a₁₀ a₁₁ q) r s 
-
-
-
-
 

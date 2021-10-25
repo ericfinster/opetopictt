@@ -20,7 +20,7 @@ open Opetopes.Complex
 type expr =
 
   (* Variables *)
-  | VarE of name
+  | VarE of qname
 
   (* Let *)
   | LetE of name * expr * expr * expr 
@@ -42,6 +42,10 @@ type expr =
   (* The Universe *) 
   | TypE
 
+type defn_expr =
+  | ModuleE of name * expr tele * defn_expr list 
+  | DefE of name * expr tele * expr * expr 
+
 (*****************************************************************************)
 (*                          Parsing Tree Expressions                         *)
 (*****************************************************************************)
@@ -62,10 +66,16 @@ let rec of_cmplx (c : 'a cmplx) : 'a tr_expr suite =
 (*                         Pretty Printing Raw Syntax                        *)
 (*****************************************************************************)
 
+let rec pp_qname ppf qnm =
+  match qnm with
+  | Name nm -> string ppf nm
+  | Qual (m,qn) ->
+    pf ppf "%s.%a" m pp_qname qn 
+
 let rec pp_expr ppf expr =
   let ppe = pp_expr in
   match expr with
-  | VarE nm -> string ppf nm
+  | VarE qnm -> pp_qname ppf qnm
 
   | LetE (nm,ty,tm,exp) ->
     pf ppf "let %s : @[%a@] =@ @[%a@] in @[%a]"
@@ -116,17 +126,3 @@ and expr_pi_parens e =
   | PiE _ -> parens pp_expr
   | _ -> pp_expr
     
-(*****************************************************************************)
-(*                         Expr Syntax Implmentations                        *)
-(*****************************************************************************)
-
-module ExprSyntax = struct
-  type s = expr
-  let var _ _ nm = VarE nm 
-  let app u v = AppE (u,v)
-  let lam nm bdy = LamE (nm,bdy)
-  let pi nm dom cod = PiE (nm,dom,cod)
-  let pp_s = pp_expr
-end
-
-module ExprUtil = SyntaxUtil(ExprSyntax)

@@ -4,6 +4,7 @@
 (*                                                                           *)
 (*****************************************************************************)
 
+open Syntax
 open Parser
 
 let space = [%sedlex.regexp? ' ' | '\t' | '\r']
@@ -11,12 +12,16 @@ let digit = [%sedlex.regexp? '0'..'9']
 let number = [%sedlex.regexp? Plus digit]
 
 (* lower lambda is reserved ... *)
+let upper = [%sedlex.regexp? 'A'..'Z']
+let lower = [%sedlex.regexp? 'a'..'z']
 let greek_lower = [%sedlex.regexp? 0x3B1 .. 0x3BA | 0x3BC .. 0x3C9]
 let greek_upper = [%sedlex.regexp? 0x391 .. 0x3A9]
 let subscripts = [%sedlex.regexp? 0x2080 .. 0x208E | 0x2090 .. 0x209C ]
 
-let letter = [%sedlex.regexp? 'a'..'z'|'A'..'Z'|greek_lower|greek_upper]
+let letter = [%sedlex.regexp? lower|upper|greek_lower|greek_upper]
 let ident = [%sedlex.regexp? letter, Star (letter | subscripts | '_' | '-' | digit)]
+
+let module_name = [%sedlex.regexp? upper, Star(lower | upper)]
 
 exception Lexing_error of ((int * int) option * string)
 
@@ -30,15 +35,22 @@ let lexing_error lexbuf msg =
   let line, column = get_lexing_position lexbuf in
   raise (Lexing_error (Some (line, column), msg))
 
+let rec qname buf =
+  match%sedlex buf with
+  | module_name , '.' -> Qual (Sedlexing.Utf8.lexeme buf , qname buf) 
+  | ident -> Name (Sedlexing.Utf8.lexeme buf)
+  | _ -> lexing_error buf (Printf.sprintf "Unexpected character: %s" (Sedlexing.Utf8.lexeme buf))
+
 let rec token buf =
   match%sedlex buf with
   
   | "import"     -> IMPORT
   | "def"        -> DEF 
-  | "normalize"  -> NORMALIZE
-  | "expand"     -> EXPAND
   | "let"        -> LET
   | "in"         -> IN
+  | "module"     -> MODULE
+  | "where"      -> WHERE
+  | "end"        -> END
   | 0x2192       -> ARROW
   | "->"         -> ARROW
   | "("          -> LPAR
@@ -58,15 +70,14 @@ let rec token buf =
   | "nd"         -> ND
   | "tt"         -> UNIT
   | "|"          -> VBAR
-  | 0x22A2       -> VDASH 
   | 0xd7         -> TIMES
   | ","          -> COMMA
   | "fst"        -> FST
   | "snd"        -> SND
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
-  (* | number -> INT (Base.Int.of_string (Sedlexing.Utf8.lexeme buf)) *)
-
+  | module_name , '.' -> QNAME (Qual (Sedlexing.Utf8.lexeme buf , qname buf))
+               
   | Plus space -> token buf
   | "#",Star (Compl '\n') -> token buf
   | "\n" -> token buf (* Sedlexing.new_line buf ; token buf  *)

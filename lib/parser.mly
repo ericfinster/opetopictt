@@ -2,13 +2,13 @@
 
     open Expr
     open Suite
-    open Cmd
        
 %} 
 
-%token DEF NORMALIZE EXPAND IMPORT
+%token MODULE WHERE END 
+%token DEF IMPORT
 %token LET COLON EQUAL IN
-%token LAMBDA DOT VBAR VDASH
+%token LAMBDA DOT VBAR 
 %token LPAR RPAR LBR RBR
 %token ARROW 
 %token TIMES COMMA FST SND
@@ -16,10 +16,11 @@
 %token TYPE
 %token LF ND UNIT
 %token <string> IDENT
+%token <Syntax.qname> QNAME
 %token EOF
 
 %start prog
-%type <string list * Cmd.cmd list> prog
+%type <string list * Expr.defn_expr list> prog
 
 %%
 
@@ -60,20 +61,18 @@ cmplx(X):
 prog:
   | EOF
     { ([],[]) }
-  | imprts = list(import) defs = nonempty_list(cmd) EOF
+  | imprts = list(import) defs = nonempty_list(defn) EOF
     { (imprts, defs) }
 
 import:
   | IMPORT nm = IDENT
     { nm } 
 
-cmd:
+defn:
+  | MODULE id = IDENT tl = tele WHERE defs = list(defn) END
+    { ModuleE (id,tl,defs) } 
   | DEF id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
-    { Define (id,tl,ty,tm) }
-  | NORMALIZE tl = tele COLON ty = expr VDASH tm = expr
-    { Normalize (tl,ty,tm) } 
-  | EXPAND tl = tele COLON ty = expr VBAR tm = expr VBAR c = cmplx(IDENT)
-    { Expand (tl,ty,tm,c) } 
+    { DefE (id,tl,ty,tm) }
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
@@ -117,7 +116,7 @@ expr2:
 expr3:
   | TYPE
     { TypE }
-  | id = IDENT
+  | id = QNAME
     { VarE id }
 
   | FST e = expr3

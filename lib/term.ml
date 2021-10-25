@@ -20,7 +20,7 @@ type term =
 
   (* Variables and Definitions *)
   | VarT of idx
-  | TopT of name
+  | TopT of qname
   | LetT of name * term * term *term
 
   (* Pi Types *) 
@@ -76,7 +76,7 @@ let rec expand tm cm fa =
 let rec term_eq s t =
   match (s,t) with
   | (VarT i , VarT j) -> i = j
-  | (TopT m , TopT n) -> String.equal m n
+  | (TopT m , TopT n) -> qname_eq m n
   | (LetT (_,tya,tma,bdya), LetT (_,tyb,tmb,bdyb)) ->
     if (term_eq tya tyb) then
       if (term_eq tma tmb) then
@@ -129,7 +129,7 @@ let rec term_to_expr nms tm =
   let tte = term_to_expr in
   match tm with
   | VarT i ->
-    let nm = db_get i nms in VarE nm
+    let nm = db_get i nms in VarE (Name nm)
   | TopT nm -> VarE nm
   | LetT (nm,ty,tm,bdy) ->
     LetE (nm,tte nms ty,tte nms tm,tte nms bdy) 
@@ -189,7 +189,7 @@ let pi_to_tele ty =
 let rec pp_term ppf tm =
   match tm with
   | VarT i -> int ppf i
-  | TopT nm -> string ppf nm
+  | TopT nm -> pp_qname ppf nm
   | LetT (nm,ty,tm,bdy) -> 
     pf ppf "let %s : @[%a@] =@ @[%a@] in @[%a]"
       nm pp_term ty pp_term tm pp_term bdy
