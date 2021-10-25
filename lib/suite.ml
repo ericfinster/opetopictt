@@ -18,7 +18,7 @@ type 'a suite =
   | Emp
   | Ext of 'a suite * 'a
 
-let (|>) a b = Ext (a, b)
+let (|@>) a b = Ext (a, b)
 
 let is_empty s =
   match s with
@@ -61,7 +61,7 @@ let rec length s =
 let rec map_suite s ~f =
   match s with
   | Emp -> Emp
-  | Ext (s',x) -> map_suite s' ~f |> f x
+  | Ext (s',x) -> map_suite s' ~f |@> f x
 
 let map_with_lvl s ~f =
   let rec go s =

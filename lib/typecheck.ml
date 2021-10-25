@@ -18,53 +18,103 @@ open Opetopes.Idt
 open Opetopes.Complex
 
 (*****************************************************************************)
-(*                                  Contexts                                 *)
+(*                           Typechecking Contexts                           *)
 (*****************************************************************************)
 
-type ctx = {
-  top : (name * (value * value)) suite;
-  sec : (name * (value * value)) suite suite; 
-  loc : value suite;
-  typs : (name * value) suite; 
-  lvl : lvl;
-}
+(* Definitions *) 
+type 'a defn =
+  | ModuleDefn of name * 'a tele * 'a defn suite 
+  | TermDefn of name * 'a * 'a 
 
-let empty_ctx = {
-  top = Emp;
-  sec = Emp;
-  loc = Emp;
-  typs = Emp; 
-  lvl = 0;
+let defn_name def =
+  match def with
+  | ModuleDefn (nm,_,_) -> nm
+  | TermDefn (nm,_,_) -> nm
+
+let rec resolve_name nm defs =
+  match defs with
+  | Emp -> failwith "empty defs"
+  | Ext (defs',def) ->
+    if (String.equal nm (defn_name def))
+    then Some def
+    else resolve_name nm defs' 
+
+and resolve_qname qnm defs =
+  match qnm with
+  | Name nm -> resolve_name nm defs
+  | Qual (md,qn) ->
+    match resolve_name md defs with
+    | Some (ModuleDefn (_,_,mdefs)) ->
+      resolve_qname qn mdefs
+    | _ -> None 
+
+
+(* Bindingds *) 
+type 'a binding =
+  | LetBinding of name * 'a * 'a 
+  | VarBinding of name * 'a * 'a
+
+let bound_name b =
+  match b with
+  | LetBinding (nm,_,_) -> nm
+  | VarBinding (nm,_,_) -> nm
+
+let bound_term b =
+  match b with
+  | LetBinding (_,tm,_) -> tm
+  | VarBinding (_,tm,_) -> tm
+
+let get_binding qnm bndgs =
+  match qnm with
+  | Qual _ -> failwith "get binding on qual" 
+  | Name nm -> 
+
+    let rec go bs i = 
+      match bs with
+      | Emp -> None
+      | Ext (bs', LetBinding (nm',tm,ty)) ->
+        if (String.equal nm nm') then
+          Some (i,tm,ty)
+        else go bs' (i+1)
+      | Ext (bs', VarBinding (nm',tm,ty)) ->
+        if (String.equal nm nm') then
+          Some (i,tm,ty)
+        else go bs' (i+1)
+
+    in go bndgs 0
+
+(* The Typchecking Context *) 
+
+type ctx = {
+
+  global_scope  : term defn suite ; 
+  local_scope   : value defn suite ;
+
+  level         : lvl ;
+  bindings      : value binding suite ;
+  
 }
 
 let bind_var gma nm ty =
   { gma with
-    loc = Ext (gma.loc,varV gma.lvl) ;
-    typs = Ext (gma.typs,(nm,ty)) ; 
-    lvl = gma.lvl+1;
+    
+    level = gma.level + 1 ;
+    bindings = gma.bindings |@>
+               VarBinding (nm, varV gma.level , ty)
+               
   }
 
-let bind_let gma nm ty =
-  { gma with 
-    typs = Ext (gma.typs,(nm,ty));
-  } 
-
-let define gma nm tm ty = {
-  top = Ext (gma.top,(nm,(tm,ty)));
-  sec = gma.sec; (* Oh, no, this will chagne ... *) 
-  loc = gma.loc;
-  typs = gma.typs; 
-  lvl = gma.lvl;
-}
-
+let bind_let gma nm ty tm =
+  { gma with
+    
+    level = gma.level + 1;
+    bindings = gma.bindings |@>
+               LetBinding (nm, tm, ty)
+                 
+  }
+    
 let names gma =
-  map_suite gma.typs ~f:fst
-
-(* TODO: Use different error reporting here? *)
-let top_lookup gma nm = 
-  try fst (assoc nm gma.top)
-  with Lookup_error ->
-    raise (Eval_error (str "Unknown id during eval: %s" nm))
+  map_suite gma.bindings ~f:bound_name 
 
 (*****************************************************************************)
 (*                               Typing Errors                               *)
@@ -159,11 +209,13 @@ let tcm_ctx : ctx tcm =
       
 let tcm_eval (t : term) : value tcm =
   let* gma = tcm_ctx in
-  tcm_ok (eval (top_lookup gma) gma.loc t)
+  let loc = map_suite gma.bindings ~f:bound_term in
+  let top _ = failwith ""  in
+  tcm_ok (eval top loc t)
 
 let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
-  tcm_ok (quote ufld gma.lvl v)
+  tcm_ok (quote ufld gma.level v)
 
 let tcm_in_ctx g m _ = m g 
 
@@ -171,9 +223,9 @@ let tcm_with_var_binding nm ty m =
   let* gma = tcm_ctx in
   tcm_in_ctx (bind_var gma nm ty) m 
 
-let tcm_with_let_binding nm ty m =
+let tcm_with_let_binding nm ty tm m =
   let* gma = tcm_ctx in
-  tcm_in_ctx (bind_let gma nm ty) m
+  tcm_in_ctx (bind_let gma nm ty tm) m
 
 let rec tcm_extract_pi (v: value) =
   match v with
@@ -181,7 +233,7 @@ let rec tcm_extract_pi (v: value) =
   | TopV (_,_,v') -> tcm_extract_pi v'
   | _ ->
     let* gma = tcm_ctx in 
-    let e = term_to_expr (names gma) (quote false gma.lvl v) in 
+    let e = term_to_expr (names gma) (quote false gma.level v) in 
     tcm_fail (`ExpectedFunction e) 
 
 let rec tcm_extract_sig (v: value) =
@@ -190,7 +242,7 @@ let rec tcm_extract_sig (v: value) =
   | TopV (_,_,v') -> tcm_extract_sig v'
   | _ ->
     let* gma = tcm_ctx in 
-    let e = term_to_expr (names gma) (quote false gma.lvl v) in 
+    let e = term_to_expr (names gma) (quote false gma.level v) in 
     tcm_fail (`ExpectedProduct e) 
 
 let tcm_ensure (b : bool) (e : typing_error) : unit tcm =
@@ -211,7 +263,8 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     let* ty' = tcm_check ty TypV in
     let* tyv = tcm_eval ty' in
     let* tm' = tcm_check tm tyv in
-    let* bdy' = tcm_with_let_binding nm tyv
+    let* tmv = tcm_eval tm' in 
+    let* bdy' = tcm_with_let_binding nm tyv tmv 
         (tcm_check bdy t) in 
     tcm_ok (LetT (nm,ty',tm',bdy'))
 
@@ -219,7 +272,7 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     let* gma = tcm_ctx in
     tcm_in_ctx (bind_var gma nm a)
       begin
-        let* bdy = tcm_check e (b (varV gma.lvl)) in
+        let* bdy = tcm_check e (b (varV gma.level)) in
         tcm_ok (LamT (nm,bdy))
       end
 
@@ -234,8 +287,8 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     let* gma = tcm_ctx in 
     let* (e',inferred) = tcm_infer e in
 
-    let inferred_nf = quote true gma.lvl inferred in
-    let expected_nf = quote true gma.lvl expected in
+    let inferred_nf = quote true gma.level inferred in
+    let expected_nf = quote true gma.level expected in
 
     if (not (term_eq expected_nf inferred_nf)) 
     then
@@ -248,16 +301,15 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   match e with
 
-  | VarE nm ->
+  | VarE qnm ->
     let* gma = tcm_ctx in
-    begin try
-        let (idx,ty) = assoc_with_idx nm gma.typs in
-        tcm_ok (VarT idx, ty)
-      with Lookup_error ->
-        begin try 
-            let (_, ty) = assoc nm gma.top in
-            tcm_ok (TopT nm, ty)
-          with Lookup_error -> tcm_fail (`NameNotInScope nm)
+    begin match get_binding qnm gma.bindings with
+      | Some (idx,_,ty) -> tcm_ok (VarT idx, ty)
+      | None ->
+        begin match resolve_qname qnm gma.local_scope with
+          | Some (TermDefn (_,_,ty)) -> tcm_ok (TopT qnm , ty) 
+          | Some (ModuleDefn _) -> failwith "module not ok"
+          | _ -> failwith "not in scope error" 
         end
     end
 
@@ -265,7 +317,8 @@ and tcm_infer (e : expr) : (term * value) tcm =
     let* ty' = tcm_check ty TypV in
     let* tyv = tcm_eval ty' in
     let* tm' = tcm_check tm tyv in
-    let* (bdy',bdyty) = tcm_with_let_binding nm tyv
+    let* tmv = tcm_eval tm' in 
+    let* (bdy',bdyty) = tcm_with_let_binding nm tyv tmv 
         (tcm_infer bdy) in 
     tcm_ok (LetT (nm,ty',tm',bdy'),bdyty)
 
