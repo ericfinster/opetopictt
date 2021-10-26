@@ -38,6 +38,11 @@ type qname =
   | Name of string
   | Qual of string * qname
 
+let top_name qnm =
+  match qnm with
+  | Name nm -> nm
+  | Qual (mn,_) -> mn
+    
 let rec qname_eq qnm qnm' =
   match (qnm , qnm') with
   | (Name nm , Name nm') ->
@@ -49,34 +54,46 @@ let rec qname_eq qnm qnm' =
   | _ -> false
 
 (*****************************************************************************)
-(*                               Definitions                                 *)
+(*                                 Modules                                   *)
 (*****************************************************************************)
 
-type 'a defn =
-  | ModuleDefn of name * 'a tele * 'a defn suite 
-  | TermDefn of name * 'a * 'a 
+type 'a module_desc = {
+  params : 'a tele ; 
+  entries : 'a entry_map ; 
+}
 
-let defn_name def =
-  match def with
-  | ModuleDefn (nm,_,_) -> nm
-  | TermDefn (nm,_,_) -> nm
+and 'a module_entry =
+  | ModuleEntry of 'a module_desc
+  | TermEntry of 'a * 'a
 
-let rec resolve_name nm defs =
-  match defs with
-  | Emp -> None 
-  | Ext (defs',def) ->
-    if (String.equal nm (defn_name def))
-    then Some def
-    else resolve_name nm defs' 
+and 'a entry_map =
+  (name * 'a module_entry) suite
 
-and resolve_qname qnm defs =
+let rec resolve_qname qnm ents =
   match qnm with
-  | Name nm -> resolve_name nm defs
-  | Qual (md,qn) ->
-    match resolve_name md defs with
-    | Some (ModuleDefn (_,_,mdefs)) ->
-      resolve_qname qn mdefs
-    | _ -> None 
+  | Name nm ->
+    begin match assoc_opt nm ents with
+      | Some (TermEntry (ty,tm)) -> Some (ty,tm)
+      | _ -> None
+    end
+  | Qual (mn,qn) -> 
+    begin match assoc_opt mn ents with
+      | Some (ModuleEntry md') ->
+        resolve_qname qn md'.entries 
+      | _ -> None
+    end
+
+let rec insert_entry prefix name entry emap =
+  match prefix with
+  | [] -> emap |@> (name,entry)
+  | nm::ps ->
+    update_at nm (fun e ->
+        match e with
+        | ModuleEntry md ->
+          ModuleEntry 
+            { md with entries = 
+                        insert_entry ps name entry md.entries } 
+        | _ -> failwith "invalid prefix") emap 
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

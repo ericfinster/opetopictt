@@ -83,12 +83,12 @@ let rec check_files ctx checked to_check =
     pr "-----------------@,";
     pr "Processing input file: %s@," f;
     let mname = Filename.remove_extension f in
-    begin match tcm_check_module mname Emp (Suite.from_list defs) ctx' with
-      | Ok (tm,_) -> 
+    begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx' with
+      | Ok me -> 
         pr "----------------@,Success!@,";
         let ctx'' = {
           ctx' with
-          global_scope = ctx'.global_scope |@> tm
+          global_scope = ctx'.global_scope |@> (mname,me)
         }  in 
             
         check_files ctx'' (f::checked) fs
@@ -96,4 +96,3 @@ let rec check_files ctx checked to_check =
         pr "@,Typing error: @,@,%a@,@," pp_error err ; 
         empty_ctx 
     end
-

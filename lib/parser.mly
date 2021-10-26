@@ -26,7 +26,7 @@
 %token EOF
 
 %start prog
-%type <string list * Expr.expr Syntax.defn list> prog
+%type <string list * (string * Expr.expr Syntax.module_entry) list> prog
 
 %%
 
@@ -67,19 +67,19 @@ cmplx(X):
 prog:
   | EOF
     { ([],[]) }
-  | imprts = list(import) defs = nonempty_list(defn) EOF
-    { (imprts, defs) }
+  | imprts = list(import) entries = nonempty_list(named_entry) EOF
+    { (imprts, entries) }
 
 import:
   | IMPORT nm = IDENT
     { nm } 
 
-defn:
-  | MODULE id = IDENT tl = tele WHERE defs = list(defn) END
-    { ModuleDefn (id,tl,Suite.from_list defs) } 
+named_entry: 
+  | MODULE id = IDENT tl = tele WHERE entries = list(named_entry) END
+    { (id, ModuleEntry { params = tl ; entries =  Suite.from_list entries }) } 
   | DEF id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
     { let (ty',tm') = abstract_defn tl ty tm
-      in TermDefn (id,ty',tm') }
+      in (id, TermEntry (ty',tm')) }
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR

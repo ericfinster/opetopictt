@@ -200,6 +200,13 @@ let rec assoc k s =
     if (Poly.(=) k k') then v
     else assoc k s'
 
+let rec assoc_opt k s =
+  match s with
+  | Emp -> None
+  | Ext (s',(k',v)) ->
+    if (Poly.(=) k k') then Some v
+    else assoc_opt k s'
+
 let assoc_with_idx k s =
   let rec go i k s =
     match s with
@@ -208,6 +215,24 @@ let assoc_with_idx k s =
       if (Poly.(=) k k') then (i,v)
       else go (i+1) k s'
   in go 0 k s
+
+let assoc_with_idx_opt k s =
+  let rec go i k s =
+    match s with
+    | Emp -> None
+    | Ext (s',(k',v)) ->
+      if (Poly.(=) k k') then Some (i,v)
+      else go (i+1) k s'
+  in go 0 k s
+
+let rec update_at k f s =
+  match s with
+  | Emp -> Emp
+  | Ext (s',(k',v')) ->
+    if (Poly.(=) k k') then
+      Ext (s',(k,f v'))
+    else
+      Ext (update_at k f s',(k',v'))
 
 let singleton a = Ext (Emp, a)
 

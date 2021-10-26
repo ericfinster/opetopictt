@@ -21,78 +21,46 @@ open Opetopes.Complex
 (*                           Typechecking Contexts                           *)
 (*****************************************************************************)
 
-(* Bindingds *) 
-type 'a binding =
-  | LetBinding of name * 'a * 'a 
-  | VarBinding of name * 'a * 'a
-
-let bound_name b =
-  match b with
-  | LetBinding (nm,_,_) -> nm
-  | VarBinding (nm,_,_) -> nm
-
-let bound_term b =
-  match b with
-  | LetBinding (_,tm,_) -> tm
-  | VarBinding (_,tm,_) -> tm
-
-type module_desc = {
-  params  : value tele ;
-  entries : (name * module_entry) suite ; 
-}
-
-and module_entry =
-  | TermEntry of value * value
-  | ModuleEntry of module_desc
-
+(* Elements which can be locally bound *) 
 type bound_element =
-  | BoundVar of lvl * value
+  | BoundVar of value * lvl 
   | BoundName of value * value
-  | BoundModule of module_desc 
 
 let get_binding qnm bndgs =
   match qnm with
+  | Name nm ->
+    begin match assoc_with_idx_opt nm bndgs with
+      | Some (i,BoundVar (ty,_)) -> Some (VarT i , ty)
+      | Some (i,BoundName (ty,_)) -> Some (VarT i , ty)
+      | None -> None 
+    end
   | Qual _ -> None
-  | Name nm -> 
-
-    let rec go bs i = 
-      match bs with
-      | Emp -> None
-      | Ext (bs', LetBinding (nm',tm,ty)) ->
-        if (String.equal nm nm') then
-          Some (i,tm,ty)
-        else go bs' (i+1)
-      | Ext (bs', VarBinding (nm',tm,ty)) ->
-        if (String.equal nm nm') then
-          Some (i,tm,ty)
-        else go bs' (i+1)
-
-    in go bndgs 0
 
 (* The Typchecking Context *) 
-
 type ctx = {
 
-  global_scope  : term defn suite ; 
-  local_scope   : value defn suite ;
-
+  (* This won't be enough: we'll also need the names *) 
+  global_scope  : value entry_map ; 
+  bindings      : (name * bound_element) suite ;
   level         : lvl ;
-  bindings      : value binding suite ;
+  module_params : term tele ;
+  qual_prefix   : string suite ;
   
 }
 
 let empty_ctx = {
   global_scope = Emp ;
-  local_scope = Emp ;
-  level = 0 ;
   bindings = Emp ;
+  level = 0 ;
+  module_params = Emp ;
+  qual_prefix = Emp ;
 } 
   
 let bind_var gma nm ty =
   { gma with
     bindings =
       gma.bindings |@>
-      VarBinding (nm, varV gma.level , ty);
+      (nm , BoundVar (ty, gma.level)) ; 
     level = gma.level + 1 ;
   }
 
@@ -100,18 +68,32 @@ let bind_let gma nm ty tm =
   { gma with
     bindings =
       gma.bindings |@>
-      LetBinding (nm, tm, ty);
+      (nm , BoundName (ty,tm));
     level = gma.level + 1;
   }
 
-let define gma def =
-  { gma with
-    local_scope =
-      gma.local_scope |@> def ; 
-  } 
+(* let define gma def =
+ *   { gma with
+ *     local_scope =
+ *       gma.local_scope |@> def ; 
+ *   }  *)
   
 let names gma =
-  map_suite gma.bindings ~f:bound_name 
+  map_suite gma.bindings ~f:fst
+
+let loc gma =
+  fold_left gma.bindings Emp
+    (fun acc (_,b) ->
+       match b with
+       | BoundVar (_,l) -> acc |@> varV l
+       | BoundName (_,tm) -> acc |@> tm
+    )
+
+(* top level guys are evaluated with no local bindings ... *) 
+let top gma qnm =
+  match resolve_qname qnm gma.global_scope with
+  | Some (_,tm) -> tm 
+  | None -> failwith "unresolved name" 
 
 (*****************************************************************************)
 (*                               Typing Errors                               *)
@@ -205,13 +187,7 @@ let tcm_ctx gma = Ok gma
       
 let tcm_eval (t : term) : value tcm =
   let* gma = tcm_ctx in
-  let loc = map_suite gma.bindings ~f:bound_term in
-  let top qnm =
-    match resolve_qname qnm gma.local_scope with
-    | Some (TermDefn (_,_,tm)) -> tm 
-    | _ -> failwith "unresolved name"
-  in
-  tcm_ok (eval top loc t)
+  tcm_ok (eval (top gma) (loc gma) t)
 
 let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
@@ -227,9 +203,10 @@ let tcm_with_let_binding nm ty tm m =
   let* gma = tcm_ctx in
   tcm_in_ctx (bind_let gma nm ty tm) m
 
-let tcm_with_local_defn def m =
-  let* gma = tcm_ctx in
-  tcm_in_ctx (define gma def) m 
+let tcm_with_local_defn _ _ =
+  failwith "definitions not done"
+  (* let* gma = tcm_ctx in
+   * tcm_in_ctx (define gma def) m  *)
 
 let rec tcm_extract_pi (v: value) =
   match v with
@@ -316,12 +293,11 @@ and tcm_infer (e : expr) : (term * value) tcm =
   | VarE qnm ->
     let* gma = tcm_ctx in
     begin match get_binding qnm gma.bindings with
-      | Some (idx,_,ty) -> tcm_ok (VarT idx, ty)
+      | Some (tm,ty) -> tcm_ok (tm, ty)
       | None ->
         log_val "qnm" qnm pp_qname; 
-        begin match resolve_qname qnm gma.local_scope with
-          | Some (TermDefn (_,ty,_)) -> tcm_ok (TopT qnm , ty) 
-          | Some (ModuleDefn _) -> failwith "module not ok"
+        begin match resolve_qname qnm gma.global_scope with
+          | Some (_,ty) -> tcm_ok (TopT qnm , ty) 
           | _ -> tcm_fail (`NameNotInScope (qnm))
         end
     end
@@ -404,25 +380,28 @@ let rec tcm_in_tele : 'a. expr tele
 
 let rec tcm_check_defns defs =
   match defs with
-  | [] -> tcm_ok (Emp,Emp)
-  | (ModuleDefn (nm,tl,defs))::ds ->
+  | [] -> tcm_ok Emp
+  | (nm , ModuleEntry md)::ds ->
 
     Fmt.pr "----------------@,";
     Fmt.pr "Entering module: %s@," nm;
     
-    let* (tm,vm) = tcm_check_module nm tl defs in
+    let* vm = tcm_check_module_contents
+        nm (to_list md.params) md.entries in
 
     Fmt.pr "----------------@,";
     Fmt.pr "Module %s complete.@," nm; 
+
+    let* gma = tcm_ctx in
+    let* rs = tcm_in_ctx
+        ({ gma with global_scope =
+                      insert_entry (to_list gma.qual_prefix)
+                        nm vm gma.global_scope })
+        (tcm_check_defns ds) in 
     
-    tcm_with_local_defn vm
-      begin
-        let* (tdefs,vdefs) = tcm_check_defns ds in
-        tcm_ok (tdefs |@> tm,
-                vdefs |@> vm)
-      end
+    tcm_ok (rs |@> (nm,vm))
       
-  | (TermDefn (nm,ty,tm))::ds ->
+  | (nm, TermEntry (ty,tm))::ds ->
     
     Fmt.pr "----------------@,";
     Fmt.pr "Checking definition: %s@," nm;
@@ -437,20 +416,38 @@ let rec tcm_check_defns defs =
     let exp = term_to_expr (names gma) tm' in 
     Fmt.pr "Result: @[%a@]@," pp_expr exp ; 
 
-    let tdef = TermDefn (nm,ty',tm') in
-    let vdef = TermDefn (nm,tyv,tmv) in
-    tcm_with_local_defn vdef
-      begin
-        let* (tdefs,vdefs) = tcm_check_defns ds in
-        tcm_ok (tdefs |@> tdef,
-                vdefs |@> vdef) 
-      end
 
-and tcm_check_module nm tl defs =
-  tcm_in_tele tl (fun tt vt ->
-      let* (tds,vds) = tcm_check_defns (to_list defs) in
-      let tm = ModuleDefn (nm,tt,tds) in
-      let vm = ModuleDefn (nm,vt,vds) in
-      tcm_ok (tm,vm)
-    )
+    let (fty,ftm) = TermUtil.abstract_tele_with_type
+                      gma.module_params ty' tm' in 
+
+    (* Hmmm.  But there should be a version which just works on values, no? *)
+    (* Hmmm. Actually, I'm not sure how to do this correctly ... *) 
+    let* ftyv = tcm_eval fty in
+    let* ftmv = tcm_eval ftm in 
     
+    let gma' = { gma with
+                 bindings = gma.bindings |@> (nm, BoundName (tyv,tmv)) } in 
+
+    let* rs = tcm_in_ctx gma'
+        (tcm_check_defns ds) in 
+
+    
+    tcm_ok (rs |@> (nm, TermEntry (ftyv,ftmv))) 
+      
+and tcm_check_module_contents nm params defns =
+  match params with
+  | [] ->
+    let* gma = tcm_ctx in
+    let* defns = tcm_in_ctx ({ gma with qual_prefix = gma.qual_prefix |@> nm })
+        (tcm_check_defns (to_list defns)) in
+    tcm_ok (ModuleEntry { params = Emp ; entries = defns })
+  | (id,ty)::ps ->
+    let* ty_tm = tcm_check ty TypV in
+    let* ty_val = tcm_eval ty_tm in
+    let* gma = tcm_ctx in
+    let gma' = { gma with
+                 bindings = gma.bindings |@> (id, BoundVar (ty_val,gma.level)) ; 
+                 module_params = gma.module_params |@> (id,ty_tm)
+               } in
+    tcm_in_ctx gma' (tcm_check_module_contents nm ps defns)
+        
