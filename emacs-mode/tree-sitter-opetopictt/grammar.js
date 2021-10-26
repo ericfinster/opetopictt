@@ -1,3 +1,24 @@
+//
+//  grammar.js - tree sitter grammar for opetopictt
+
+const digit = /[0-9]/
+const lower_case = /[a-z]/;
+const upper_case = /[A-Z]/;
+const greek_lower = /[\u{03B1}-\u{03BA}|\u{03BC}-\u{03C9}]/u;
+const greek_upper = /[\u{0391}-\u{03A9}]/u; 
+const subscript = /[\u{2080}-\u{208E}|\u{2090}-\u{209C}]/u;
+
+const roman_letter = choice(
+    lower_case,
+    upper_case,
+)
+
+const letter = choice(
+    roman_letter,
+    greek_lower,
+    greek_upper
+);
+
 module.exports = grammar({
     name: 'opetopictt',
 
@@ -10,7 +31,7 @@ module.exports = grammar({
 	
 	source_file: $ => seq(
 	    repeat($.import_stmt),
-	    repeat($._command)
+	    repeat($._entry)
 	),
 
 	comment: $ => token(seq(
@@ -27,16 +48,15 @@ module.exports = grammar({
 	),
 	
 	//
-	//  Commands 
+	//  Top Level Structure
 	//
 	
-	_command: $ => choice(
-	    $.def_command,
-	    $.normalize_command,
-	    $.expand_command
+	_entry: $ => choice(
+	    $.def_entry,
+	    $.module_entry,
 	),
 
-	def_command: $ => seq(
+	def_entry: $ => seq(
 	    'def',
 	    field("name", $.identifier),
 	    field("context", optional($.telescope)),	    
@@ -46,14 +66,18 @@ module.exports = grammar({
 	    field("body", $.expression)
 	),
 
-	normalize_command: $ => seq(
-	    'normalize',
-	    field("context", optional($.telescope)),	    
-	    ':',
-	    field("type", $.expression), 
-	    '\u{22a2}',
-	    field("term", $.expression)
+	module_entry: $ => seq(
+	    'module',
+	    field("name",$.identifier),
+	    field("context",$.telescope),
+	    'where',
+	    field("entries",repeat($._entry)),
+	    'end'
 	),
+
+	//
+	//  Opetopes
+	//
 
 	ident_pd: $ => choice(
 	    'tt',
@@ -65,17 +89,6 @@ module.exports = grammar({
 
 	opetope: $ => sepSeq1('|',$.ident_pd),
 	
-	expand_command: $ => seq(
-	    'expand',
-	    field("context", optional($.telescope)),	    
-	    ':',
-	    field("type", $.expression), 
-	    '|',
-	    field("term", $.expression),
-	    '|',
-	    $.opetope
-	),
-
 	//
 	//  Expressions 
 	// 
@@ -100,7 +113,7 @@ module.exports = grammar({
 	    prec.right(1, seq('let',$.identifier,':',$.expression,
 		  	'=',$.expression,'in',$.expression)),
 	    
-	    prec(2, seq($.lambda,$.identifier,'.',$.expression)),
+	    prec(2, seq($.lambda,$.identifier,$.arrow,$.expression)),
 	    $.pi_type,
 	    $.sig_type,
 	    
@@ -108,6 +121,7 @@ module.exports = grammar({
 	    
 	    prec(4, 'U'),
 	    prec(4, $.identifier),
+	    prec(4, $.qname),
 	    prec(4, seq('(',$.expression,')')),
 	    prec(4, seq('fst',$.expression)),
 	    prec(4, seq('snd',$.expression)),
@@ -149,33 +163,31 @@ module.exports = grammar({
 	lambda: $ => token(choice('\\', '\u{03BB}')),
 	arrow: $ => token(choice('->', '\u{2192}')),
 	times: $ => '\u{d7}',
-	
-	identifier: $ => {
 
-	    const digit = /[0-9]/
-	    const lower_case = /[a-z]/;
-	    const upper_case = /[A-Z]/;
-	    const greek_lower = /[\u{03B1}-\u{03BA}|\u{03BC}-\u{03C9}]/u;
-	    const greek_upper = /[\u{0391}-\u{03A9}]/u; 
-	    const subscript = /[\u{2080}-\u{208E}|\u{2090}-\u{209C}]/u;
-	    		  
-	    const letter = choice(
-		lower_case,
-		upper_case,
-		greek_lower,
-		greek_upper
-	    );
+	module_name: $ => seq(
+	    upper_case,
+	    repeat(roman_letter)
+	),
 
-	    return token(seq(
+	identifier: $ => token(seq(
+	    letter,
+	    repeat(choice(
 		letter,
+		subscript,
+		'_', '-', digit
+	    )))),
+	
+	qname: $ => token(seq(
+	    repeat1(seq(seq(
+		upper_case,
+		repeat(roman_letter)
+	    ),'.')),
+	    seq(letter,
 		repeat(choice(
 		    letter,
 		    subscript,
 		    '_', '-', digit
-		))))
-
-	    
-	}
+		)))))
 	
     }
 

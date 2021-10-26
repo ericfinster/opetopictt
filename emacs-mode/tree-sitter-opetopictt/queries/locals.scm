@@ -1,6 +1,6 @@
 ; locals
 
-(def_command) @local.scope
+(def_entry) @local.scope
 (pi_type) @local.scope
 (sig_type) @local.scope
 

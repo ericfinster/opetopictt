@@ -2,9 +2,10 @@
 
 
 "def"  @keyword
-"normalize" @keyword
-"expand" @keyword
 "import" @keyword
+"module" @keyword
+"where" @keyword
+"end" @keyword
 
 "let"  @keyword
 "in"   @keyword
@@ -20,7 +21,6 @@
 "{" @punctuation.special
 "}" @punctuation.special
 "|" @punctuation.special
-"⊢" @punctuation.special
 "@" @punctuation.special
 
 "lf" @label
@@ -34,7 +34,10 @@
 (var_declaration
  variable: (identifier) @variable)
 
-(def_command
+(module_entry
+ name: (identifier) @label)
+
+(def_entry
  name: (identifier) @function)
 
 ((identifier) @function
