@@ -36,6 +36,20 @@ let bound_term b =
   | LetBinding (_,tm,_) -> tm
   | VarBinding (_,tm,_) -> tm
 
+type module_desc = {
+  params  : value tele ;
+  entries : (name * module_entry) suite ; 
+}
+
+and module_entry =
+  | TermEntry of value * value
+  | ModuleEntry of module_desc
+
+type bound_element =
+  | BoundVar of lvl * value
+  | BoundName of value * value
+  | BoundModule of module_desc 
+
 let get_binding qnm bndgs =
   match qnm with
   | Qual _ -> None

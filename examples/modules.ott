@@ -2,12 +2,42 @@
 # modules.ott - testing modules
 #
 
-module Bleep (A : U) where
+let module Bleep (A : U) = begin 
 
-  def id (a : A) : A = a
-  def id2 (a : A) : A = id a 
+  let id (a : A) : A = a
+  let id2 (a : A) : A = id a 
 
 end 
 
-def id3 (A : U) (a : A) : A =
+let id3 (A : U) (a : A) : A =
   Bleep.id a
+
+
+let module Eric (A : U) (B : A → U) = begin
+
+  let fred (C : (a : A) (b : B a) → U) : U =
+  
+
+end
+
+let module Fred (A : U) = Eric A
+
+let module Eric = with (A : U) define
+
+    let ...
+    let ...
+
+  end 
+
+
+let module Top = begin 
+
+end 
+
+let module Eric = suppose (A : U) (B : A → U) in begin 
+
+end
+
+let module Fred = suppose (A : U) in Eric A 
+
+
