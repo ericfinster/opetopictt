@@ -10,4 +10,4 @@ module Bleep (A : U) where
 end 
 
 def id3 (A : U) (a : A) : A =
-  modules.Bleep.id a
+  Modules.Bleep.id A a

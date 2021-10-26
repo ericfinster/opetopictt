@@ -31,6 +31,18 @@ let tele_sem_eq (eq : 'a -> 'a -> bool) :
   suite_eq (fun (_,a) (_,b) -> eq a b) tla tlb
 
 (*****************************************************************************)
+(*                             Logging functions                             *)
+(*****************************************************************************)
+
+let log_msg ?idt:(i=0) (s : string) =
+  let indt = String.make i ' ' in 
+  Fmt.pr "@[<v>%s@,@]" (indt ^ s)
+    
+let log_val ?idt:(i=0) (s : string) (a : 'a) (pp : 'a Fmt.t) =
+  let indt = String.make i ' ' in 
+  Fmt.pr "@[<v>%s: @[%a@]@,@]" (indt ^ s) pp a
+
+(*****************************************************************************)
 (*                             Qualified Names                               *) 
 (*****************************************************************************)
 
@@ -84,6 +96,9 @@ let rec resolve_qname qnm ents =
     end
 
 let rec insert_entry prefix name entry emap =
+  log_msg "Inserting ..." ; 
+  log_val "prefix" prefix (Fmt.list Fmt.string) ; 
+  log_val "name" name Fmt.string ; 
   match prefix with
   | [] -> emap |@> (name,entry)
   | nm::ps ->
@@ -94,6 +109,23 @@ let rec insert_entry prefix name entry emap =
             { md with entries = 
                         insert_entry ps name entry md.entries } 
         | _ -> failwith "invalid prefix") emap 
+
+
+let rec with_prefix prefix qnm =
+  match prefix with
+  | Emp -> qnm
+  | Ext (ps,p) -> with_prefix ps (Qual (p,qnm))
+    
+let rec all_qnames prefix emap =
+  match emap with
+  | Emp -> Emp
+  | Ext (em',(nm,TermEntry _)) ->
+    let nms = all_qnames prefix em' in
+    Ext (nms, with_prefix prefix (Name nm))
+  | Ext (em',(nm,ModuleEntry md)) ->
+    let nms = all_qnames prefix em' in
+    let mnms = all_qnames (prefix |@> nm) md.entries in
+    append nms mnms 
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)
@@ -108,18 +140,6 @@ let pp_tele pp_el ppf tl =
   let pp_pair ppf (nm,t) =
     Fmt.pf ppf "(%s : %a)" nm pp_el t 
   in pp_suite pp_pair ppf tl
-
-(*****************************************************************************)
-(*                             Logging functions                             *)
-(*****************************************************************************)
-
-let log_msg ?idt:(i=0) (s : string) =
-  let indt = String.make i ' ' in 
-  Fmt.pr "@[<v>%s@,@]" (indt ^ s)
-    
-let log_val ?idt:(i=0) (s : string) (a : 'a) (pp : 'a Fmt.t) =
-  let indt = String.make i ' ' in 
-  Fmt.pr "@[<v>%s: @[%a@]@,@]" (indt ^ s) pp a
 
 
 (*****************************************************************************)

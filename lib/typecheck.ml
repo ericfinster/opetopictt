@@ -295,9 +295,10 @@ and tcm_infer (e : expr) : (term * value) tcm =
     begin match get_binding qnm gma.bindings with
       | Some (tm,ty) -> tcm_ok (tm, ty)
       | None ->
-        log_val "qnm" qnm pp_qname; 
+        log_val "qnm" qnm pp_qname;
+        log_val "names" (all_qnames Emp gma.global_scope) (pp_suite pp_qname) ; 
         begin match resolve_qname qnm gma.global_scope with
-          | Some (_,ty) -> tcm_ok (TopT qnm , ty) 
+          | Some (ty,_) -> tcm_ok (TopT qnm , ty) 
           | _ -> tcm_fail (`NameNotInScope (qnm))
         end
     end

@@ -82,8 +82,13 @@ let rec check_files ctx checked to_check =
     let ctx' = check_files ctx checked imports_to_check in 
     pr "-----------------@,";
     pr "Processing input file: %s@," f;
-    let mname = Filename.remove_extension f in
-    begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx' with
+    let mname = Filename.basename (Filename.remove_extension f) in
+    (* Ohh, we need to already have the empty module here so that things
+       can be inserted  *)
+    let ctx_with_m = { ctx' with
+                       global_scope = ctx'.global_scope |@>
+                                      (mname,ModuleEntry { params = Emp ; entries = Emp }) } in 
+    begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx_with_m with
       | Ok me -> 
         pr "----------------@,Success!@,";
         let ctx'' = {
