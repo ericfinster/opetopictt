@@ -21,6 +21,16 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   def fillB (b₀ : B a₀) : fst BEqv b₀ (compB b₀)
     = fst snd snd BEqv b₀ 
 
+  def ucompB (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+    : Eq (B a₁) (compB b₀) b₁ 
+    = fst (fst snd snd snd BEqv b₀ b₁ q)
+
+  def ufillB (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+    : PathOver (B a₁) (fst BEqv b₀)
+        (compB b₀) b₁ (ucompB b₀ b₁ q)
+        (fillB b₀) q
+    = snd (fst snd snd snd BEqv b₀ b₁ q)
+  
   #
   #  Compositions in the C Fibration
   #
@@ -62,7 +72,5 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
       let q : fst BEqv b₀ b₁ = fillB b₀ in
       let c₀ : C a₀ b₀ = snd ρ in
       (q , fillC b₀ b₁ q c₀)
-
-  
 
 end 
