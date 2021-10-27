@@ -83,21 +83,28 @@ let rec check_files ctx checked to_check =
     pr "-----------------@,";
     pr "Processing input file: %s@," f;
     let mname = Filename.basename (Filename.remove_extension f) in
-    (* Ohh, we need to already have the empty module here so that things
-       can be inserted  *)
-    let ctx_with_m = { ctx' with
-                       global_scope = ctx'.global_scope |@>
-                                      (mname,ModuleEntry { params = Emp ; entries = Emp }) } in 
-    begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx_with_m with
-      | Ok me -> 
+    (* let ctx_with_m = {
+     *   ctx' with
+     *   global_scope =
+     *     ctx'.global_scope |@>
+     *     (mname, ModuleEntry Syntax.empty_module)
+     * } in *)
+    
+    begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx' with
+      | Ok md -> 
         pr "----------------@,Success!@,";
+        
         let ctx'' = {
           ctx' with
-          global_scope = ctx'.global_scope |@> (mname,me)
+          global_scope = ctx'.global_scope |@> (mname, ModuleEntry md)
         }  in 
-            
-        check_files ctx'' (f::checked) fs
+
+        (* For now, we manually import these guys *) 
+        let imported_ctx = open_module (Emp |@> mname) md ctx'' in
+        check_files imported_ctx (f::checked) fs
+          
       | Error err ->
         pr "@,Typing error: @,@,%a@,@," pp_error err ; 
-        empty_ctx 
+        empty_ctx
+        
     end

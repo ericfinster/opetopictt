@@ -317,6 +317,15 @@ let open_at k s =
     Error "Out of range"
   else open_rightmost s >>= move_left_n (l-k-1)
 
+let open_where p s =
+  let rec go s l = 
+    match s with
+    | Emp -> None
+    | Ext (s',a) ->
+      if (p a) then Some (s',a,l)
+      else go s' (a::l)
+  in go s []
+
 (*****************************************************************************)
 (*                               Instances                                   *)
 (*****************************************************************************)

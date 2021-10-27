@@ -37,6 +37,9 @@
 (module_entry
   name: (module_name) @label)
 
+(import_stmt
+  name: (identifier) @label)
+
 (def_entry
   name: (identifier) @function)
 

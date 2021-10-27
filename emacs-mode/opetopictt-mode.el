@@ -77,8 +77,9 @@
    (var_declaration variable: (identifier) @variable.parameter)
    
    (def_entry name: (identifier) @function)
-   (module_entry name: (identifier) @method)
-
+   (module_entry name: (module_name) @label)
+   (import_stmt name: (identifier) @label)
+   
    (qname) @function
    (identifier) @variable
    (comment) @comment

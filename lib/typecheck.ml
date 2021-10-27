@@ -1,3 +1,4 @@
+
 (*****************************************************************************)
 (*                                                                           *)
 (*                           Typechecking Routines                           *)
@@ -64,7 +65,7 @@ let bind_var gma nm ty =
     level = gma.level + 1 ;
   }
 
-let bind_let gma nm ty tm =
+let bind_name gma nm ty tm =
   { gma with
     bindings =
       gma.bindings |@>
@@ -72,12 +73,6 @@ let bind_let gma nm ty tm =
     level = gma.level + 1;
   }
 
-(* let define gma def =
- *   { gma with
- *     local_scope =
- *       gma.local_scope |@> def ; 
- *   }  *)
-  
 let names gma =
   map_suite gma.bindings ~f:fst
 
@@ -99,9 +94,11 @@ let bvars gma =
 
 (* top level guys are evaluated with no local bindings ... *) 
 let top gma qnm =
+  (* log_val "qnm" qnm pp_qname;
+   * log_val "names" (all_qnames Emp gma.global_scope) (pp_suite pp_qname) ;  *)
   match resolve_qname qnm gma.global_scope with
   | Some (_,tm) -> tm 
-  | None -> failwith "unresolved name" 
+  | None -> failwith (Fmt.str "Unresolved name: %a" pp_qname qnm)
 
 (*****************************************************************************)
 (*                               Typing Errors                               *)
@@ -209,12 +206,7 @@ let tcm_with_var_binding nm ty m =
 
 let tcm_with_let_binding nm ty tm m =
   let* gma = tcm_ctx in
-  tcm_in_ctx (bind_let gma nm ty tm) m
-
-let tcm_with_local_defn _ _ =
-  failwith "definitions not done"
-  (* let* gma = tcm_ctx in
-   * tcm_in_ctx (define gma def) m  *)
+  tcm_in_ctx (bind_name gma nm ty tm) m
 
 let rec tcm_extract_pi (v: value) =
   match v with
@@ -402,7 +394,7 @@ let rec tcm_check_defns defs =
     Fmt.pr "----------------@,";
     Fmt.pr "Entering module: %s@," nm;
     
-    let* vm = tcm_check_module_contents
+    let* md' = tcm_check_module_contents
         nm (to_list md.params) md.entries in
 
     Fmt.pr "----------------@,";
@@ -412,10 +404,10 @@ let rec tcm_check_defns defs =
     let* rs = tcm_in_ctx
         ({ gma with global_scope =
                       insert_entry (to_list gma.qual_prefix)
-                        nm vm gma.global_scope })
+                        nm (ModuleEntry md') gma.global_scope })
         (tcm_check_defns ds) in 
     
-    tcm_ok (rs |@> (nm,vm))
+    tcm_ok (rs |@> (nm,ModuleEntry md'))
       
   | (nm, TermEntry (ty,tm))::ds ->
     
@@ -429,10 +421,11 @@ let rec tcm_check_defns defs =
 
     Fmt.pr "Checking complete for %s@," nm;
     let* gma = tcm_ctx in
-    let exp_ty = term_to_expr (names gma) ty' in 
-    let exp_tm = term_to_expr (names gma) tm' in
-    Fmt.pr "Type: @[%a@]@," pp_expr exp_ty ; 
-    Fmt.pr "Result: @[%a@]@," pp_expr exp_tm ; 
+
+    (* let exp_ty = term_to_expr (names gma) ty' in 
+     * let exp_tm = term_to_expr (names gma) tm' in
+     * Fmt.pr "Type: @[%a@]@," pp_expr exp_ty ; 
+     * Fmt.pr "Result: @[%a@]@," pp_expr exp_tm ;  *)
 
     let* glbl_ty = tcm_quote tyv false in
     let* glbl_tm = tcm_quote tmv false in 
@@ -440,11 +433,11 @@ let rec tcm_check_defns defs =
     let (fty,ftm) = TermUtil.abstract_tele_with_type
                       gma.module_params glbl_ty glbl_tm in 
 
-    let fty_exp = term_to_expr Emp fty in
-    let ftm_exp = term_to_expr Emp ftm in
-
-    log_val "fty_exp" fty_exp pp_expr ;
-    log_val "ftm_exp" ftm_exp pp_expr ;
+    (* let fty_exp = term_to_expr Emp fty in
+     * let ftm_exp = term_to_expr Emp ftm in
+     * 
+     * log_val "fty_exp" fty_exp pp_expr ;
+     * log_val "ftm_exp" ftm_exp pp_expr ; *)
     
     (* Evaluate the globalized terms *) 
     let ftyv = eval (top gma) Emp fty in
@@ -465,6 +458,7 @@ let rec tcm_check_defns defs =
                         nm (TermEntry (ftyv,ftmv)) gma.global_scope 
                } in 
 
+    
     let* rs = tcm_in_ctx gma'
         (tcm_check_defns ds) in 
 
@@ -476,12 +470,12 @@ and tcm_check_module_contents nm params defns =
     let* gma = tcm_ctx in
     let* defns = tcm_in_ctx
         ({ gma with
-           qual_prefix = gma.qual_prefix |@> nm ; 
-           global_scope = gma.global_scope |@>
-                          (nm, ModuleEntry empty_module) 
+           qual_prefix = gma.qual_prefix |@> nm ;
+           global_scope = insert_entry (to_list gma.qual_prefix)
+                        nm (ModuleEntry empty_module) gma.global_scope 
          })
         (tcm_check_defns (to_list defns)) in
-    tcm_ok (ModuleEntry { params = Emp ; entries = defns })
+    tcm_ok ({ params = Emp ; entries = defns })
   | (id,ty)::ps ->
     let* ty_tm = tcm_check ty TypV in
     (* BUG: the module parameters could also use global defintiions.
@@ -494,4 +488,18 @@ and tcm_check_module_contents nm params defns =
                  module_params = gma.module_params |@> (id,ty_tm)
                } in
     tcm_in_ctx gma' (tcm_check_module_contents nm ps defns)
-        
+
+let open_module prefix md gma =
+  let new_bindings =
+    fold_left md.entries Emp
+      (fun acc en ->
+         match en with
+         | (nm, TermEntry (ty,tm)) ->
+           let top_tm = TopV (with_prefix prefix (Name nm), EmpSp, tm) in 
+           acc |@> (nm, BoundName (ty, top_tm)) 
+         | _ -> acc) in
+
+  { gma with
+    bindings = append gma.bindings new_bindings ; 
+    level = gma.level + length new_bindings ; 
+  } 

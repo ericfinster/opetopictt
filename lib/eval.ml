@@ -302,8 +302,11 @@ let rec refl_val opvs olvl v pi =
       mk_cell (sig_fib afib bfib nm pi)
         TypV TypV TypV
 
-  | TypV -> mk_cell (typ_fib pi)
-              TypV TypV TypV
+  | TypV ->
+
+    if (is_obj pi) then v else 
+      mk_cell (typ_fib pi)
+        TypV TypV TypV
 
 and refl_sp opvs olvl init sp pi = 
   match sp with

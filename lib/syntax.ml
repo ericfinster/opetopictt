@@ -101,19 +101,19 @@ let rec resolve_qname qnm ents =
     end
 
 let rec insert_entry prefix name entry emap =
-  log_msg "Inserting ..." ; 
-  log_val "prefix" prefix (Fmt.list Fmt.string) ; 
-  log_val "name" name Fmt.string ; 
+  (* log_msg "Inserting ..." ; 
+   * log_val "prefix" prefix (Fmt.list ~sep:(Fmt.any ".") Fmt.string) ; 
+   * log_val "name" name Fmt.string ; *)
   match prefix with
   | [] -> emap |@> (name,entry)
   | nm::ps ->
-    update_at nm (fun e ->
-        match e with
-        | ModuleEntry md ->
-          ModuleEntry 
-            { md with entries = 
-                        insert_entry ps name entry md.entries } 
-        | _ -> failwith "invalid prefix") emap 
+    begin
+      match Suite.open_where (fun (nm',_) -> String.equal nm nm') emap with
+      | Some (l,(_,ModuleEntry md),r) ->
+        let md' = { md with entries = insert_entry ps name entry md.entries } in
+        append_list (Ext (l,(nm,ModuleEntry md'))) r 
+      | _ -> failwith (Fmt.str "Invalid prefix: %s" nm)
+    end
 
 
 let rec with_prefix prefix qnm =
@@ -130,7 +130,7 @@ let rec all_qnames prefix emap =
   | Ext (em',(nm,ModuleEntry md)) ->
     let nms = all_qnames prefix em' in
     let mnms = all_qnames (prefix |@> nm) md.entries in
-    append nms mnms 
+    append (nms |@> with_prefix prefix (Name nm)) mnms 
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)
