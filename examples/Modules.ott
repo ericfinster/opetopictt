@@ -9,5 +9,5 @@ module Bleep (A : U) where
 
 end 
 
-def id3 (A : U) (a : A) : A =
+def id3 (A : U) (a : A) : A = 
   Modules.Bleep.id A a

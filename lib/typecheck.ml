@@ -89,6 +89,14 @@ let loc gma =
        | BoundName (_,tm) -> acc |@> tm
     )
 
+let bvars gma = 
+  fold_left gma.bindings Emp
+    (fun acc (_,b) ->
+       match b with
+       | BoundVar (_,l) -> acc |@> varV l
+       | BoundName _ -> acc 
+    )
+
 (* top level guys are evaluated with no local bindings ... *) 
 let top gma qnm =
   match resolve_qname qnm gma.global_scope with
@@ -438,13 +446,24 @@ let rec tcm_check_defns defs =
     log_val "fty_exp" fty_exp pp_expr ;
     log_val "ftm_exp" ftm_exp pp_expr ;
     
-    (* Ohhh.  But this should be at top level, right? *) 
+    (* Evaluate the globalized terms *) 
     let ftyv = eval (top gma) Emp fty in
     let ftmv = eval (top gma) Emp ftm in 
+
+    (* Synthesizing the global reference ... *) 
+    let term_qname = with_prefix gma.qual_prefix (Name nm) in
+    let term_val = TopV (term_qname,EmpSp,ftmv) in 
+    let global_term = app_args term_val (to_list (bvars gma)) in
+    (* Oh, this doesn't make sense ... *) 
+    (* let global_type = app_args ftyv (to_list (bvars gma)) in  *)
     
+    (* Now bind everything *) 
     let gma' = { gma with
                  bindings = gma.bindings |@>
-                            (nm, BoundName (tyv,tmv)) } in 
+                            (nm, BoundName (tyv,global_term)) ; 
+                 global_scope = insert_entry (to_list gma.qual_prefix)
+                        nm (TermEntry (ftyv,ftmv)) gma.global_scope 
+               } in 
 
     let* rs = tcm_in_ctx gma'
         (tcm_check_defns ds) in 
@@ -455,11 +474,18 @@ and tcm_check_module_contents nm params defns =
   match params with
   | [] ->
     let* gma = tcm_ctx in
-    let* defns = tcm_in_ctx ({ gma with qual_prefix = gma.qual_prefix |@> nm })
+    let* defns = tcm_in_ctx
+        ({ gma with
+           qual_prefix = gma.qual_prefix |@> nm ; 
+           global_scope = gma.global_scope |@>
+                          (nm, ModuleEntry empty_module) 
+         })
         (tcm_check_defns (to_list defns)) in
     tcm_ok (ModuleEntry { params = Emp ; entries = defns })
   | (id,ty)::ps ->
     let* ty_tm = tcm_check ty TypV in
+    (* BUG: the module parameters could also use global defintiions.
+       Doesn't this mean we need to take special action here? *) 
     let* ty_val = tcm_eval ty_tm in
     let* gma = tcm_ctx in
     let gma' = { gma with

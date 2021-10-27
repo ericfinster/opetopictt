@@ -2,7 +2,7 @@
 #  sigma.ott - playing around with sigma
 #
 
-import prelude
+import Prelude
 
 def Σ-eq (A : U) (B : A → U)
      (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
@@ -58,12 +58,12 @@ def transp2-po (A : U) (B : A → U) (C : (a : A) → B a → U)
 def sigma-comp (A : U) (B : A → U) (C : (a : A) → B a → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   : ((b : B a₀) × C a₀ b) → ((b : B a₁) × C a₁ b)
-  = λ pr . (transp A B a₀ a₁ p (fst pr) ,
+  = λ pr → (transp A B a₀ a₁ p (fst pr) ,
             transp2 A B C a₀ a₁ p (fst pr) (snd pr))
 
 def sigma-fill (A : U) (B : A → U) (C : (a : A) → B a → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁) (ρ₀ : (b : B a₀) × C a₀ b)
-  : PathOver A (λ a . (b : B a) × C a b) a₀ a₁ p
+  : PathOver A (λ a → (b : B a) × C a b) a₀ a₁ p
       ρ₀ (sigma-comp A B C a₀ a₁ p ρ₀)
   = (transp-po A B a₀ a₁ p (fst ρ₀),
      transp2-po A B C a₀ a₁ p (fst ρ₀) (snd ρ₀))

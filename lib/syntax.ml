@@ -73,13 +73,18 @@ type 'a module_desc = {
   params : 'a tele ; 
   entries : 'a entry_map ; 
 }
-
+  
 and 'a module_entry =
   | ModuleEntry of 'a module_desc
   | TermEntry of 'a * 'a
 
 and 'a entry_map =
   (name * 'a module_entry) suite
+
+let empty_module = {
+  params = Emp ;
+  entries = Emp ; 
+}
 
 let rec resolve_qname qnm ents =
   match qnm with

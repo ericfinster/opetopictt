@@ -1,5 +1,5 @@
 #
-#  prelude.ott - basic lemmas and definitions
+#  Prelude.ott - basic lemmas and definitions
 #
 
 def Eq (A : U) (a₀ : A) (a₁ : A) : U

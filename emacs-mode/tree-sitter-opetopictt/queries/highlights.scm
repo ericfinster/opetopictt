@@ -35,10 +35,10 @@
  variable: (identifier) @variable)
 
 (module_entry
- name: (identifier) @label)
+  name: (module_name) @label)
 
 (def_entry
- name: (identifier) @function)
+  name: (identifier) @function)
 
 ((identifier) @function
  (#is-not? local))

@@ -68,7 +68,7 @@ module.exports = grammar({
 
 	module_entry: $ => seq(
 	    'module',
-	    field("name",$.identifier),
+	    field("name",$.module_name),
 	    field("context",$.telescope),
 	    'where',
 	    field("entries",repeat($._entry)),
@@ -176,12 +176,28 @@ module.exports = grammar({
 		subscript,
 		'_', '-', digit
 	    )))),
+
+	// qname_id: $ => token.immediate(seq(
+	//     letter,
+	//     repeat(choice(
+	// 	letter,
+	// 	subscript,
+	// 	'_', '-', digit
+	//     )))), 
+
+	// qual_name: $ => seq(
+	//     repeat(seq(
+	// 	$.module_name,
+	// 	token.immediate('.')
+	//     )),
+	//     $.qname_id
+	// ),
 	
 	qname: $ => token(seq(
-	    repeat1(seq(seq(
+	    repeat1(seq(alias(seq(
 		upper_case,
-		repeat(roman_letter)
-	    ),'.')),
+		repeat(roman_letter)), $.module_name),'.')),
+	    
 	    seq(letter,
 		repeat(choice(
 		    letter,
