@@ -1,80 +1,68 @@
 #
-#  sigma.ott - playing around with sigma
+#  Sigma.ott - playing around with sigma
 #
 
 import Prelude
 
-def Σ-eq (A : U) (B : A → U)
-     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-     (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
-  : Eq ((a : A) × B a) (a₀ , b₀) (a₁ , b₁)
-  = p , q
+module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  (B : A → U) (C : (a : A) → B a → U) where
 
-def comp (A : U) (B : A → U)
-  (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-  : B a₀ → B a₁
-  = fst snd ([ B
-             @ nd { y } (nd (lf { x }) (lf tt)) 
-             | lf { p }
-             ] a₀ a₁ p)
+  #
+  #  Compositions in the B Fibration
+  #
+  
+  def BEqv : Eq U (B a₀) (B a₁)
+    = [ B @ nd { y } (nd (lf { x }) (lf tt))
+          | lf { p } ] a₀ a₁ p 
 
+  def compB (b₀ : B a₀) : B a₁
+    = fst snd BEqv b₀ 
 
-def transp (A : U) (B : A → U)
-  (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-  (b₀ : B a₀) : B a₁
-  = fst snd ([ B
-             @ nd { y } (nd (lf { x }) (lf tt)) 
-             | lf { p }
-             ] a₀ a₁ p) b₀
+  def fillB (b₀ : B a₀) : fst BEqv b₀ (compB b₀)
+    = fst snd snd BEqv b₀ 
 
-def transp-po (A : U) (B : A → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₀ : B a₀) : PathOver A B a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
-  = fst snd snd
-      ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
-           | lf { p }
-           ] a₀ a₁ p) b₀ 
+  #
+  #  Compositions in the C Fibration
+  #
 
-def transp2 (A : U) (B : A → U) (C : (a : A) → B a → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₀ : B a₀) (c₀ : C a₀ b₀) : C a₁ (transp A B a₀ a₁ p b₀)
-  = fst snd ([ C @ nd { B } (nd (lf { A }) (lf tt)) 
-                 | lf { C } ] a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
-                                        (transp-po A B a₀ a₁ p b₀)) c₀
+  def CEqv (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+      : Eq U (C a₀ b₀) (C a₁ b₁)
+    = [ C @ nd { y } (nd (lf { x }) (lf tt))
+          | lf { p } ] a₀ a₁ p b₀ b₁ q 
 
-def transp2-po (A : U) (B : A → U) (C : (a : A) → B a → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₀ : B a₀) (c₀ : C a₀ b₀)
-  : PathOverOver A B C a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
-      (transp-po A B a₀ a₁ p b₀) c₀ (transp2 A B C a₀ a₁ p b₀ c₀)
-  = fst snd snd ([ C @ nd { B } (nd (lf { A }) (lf tt)) 
-                     | lf { C } ] a₀ a₁ p b₀ (transp A B a₀ a₁ p b₀)
-                                  (transp-po A B a₀ a₁ p b₀)) c₀
+  def compC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁) (c : C a₀ b₀) : C a₁ b₁
+    = fst snd (CEqv b₀ b₁ q) c 
 
-#
-#  The comp for Σ done manually 
-#
+  def fillC (b₀ : B a₀) (b₁ : B a₁)
+      (q : fst BEqv b₀ b₁) (c : C a₀ b₀)
+    : fst (CEqv b₀ b₁ q) c (compC b₀ b₁ q c)
+    = fst snd snd (CEqv b₀ b₁ q) c
 
-def sigma-comp (A : U) (B : A → U) (C : (a : A) → B a → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-  : ((b : B a₀) × C a₀ b) → ((b : B a₁) × C a₁ b)
-  = λ pr → (transp A B a₀ a₁ p (fst pr) ,
-            transp2 A B C a₀ a₁ p (fst pr) (snd pr))
+  #
+  #  Compositions in the Σ Fibration
+  #
 
-def sigma-fill (A : U) (B : A → U) (C : (a : A) → B a → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁) (ρ₀ : (b : B a₀) × C a₀ b)
-  : PathOver A (λ a → (b : B a) × C a b) a₀ a₁ p
-      ρ₀ (sigma-comp A B C a₀ a₁ p ρ₀)
-  = (transp-po A B a₀ a₁ p (fst ρ₀),
-     transp2-po A B C a₀ a₁ p (fst ρ₀) (snd ρ₀))
+  def ΣP (a : A) : U
+    = (b : B a) × C a b
 
-# def sigma-comp-unique (A : U) (B : A → U) (C : (a : A) → B a → U)
-#     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-#     (ρ₀ : (b : B a₀) × C a₀ b) (ρ₁ : (b : B a₁) × C a₁ b)
-#     (ψ : PathOver A (λ a . (b : B a) × C a b) a₀ a₁ p ρ₀ ρ₁)
-#   : Eq ((b : B a₁) × C a₁ b) (sigma-comp A B C a₀ a₁ p ρ₀) ρ₁
-#   = (fst (fst snd snd snd
-#       ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
-#            | lf { p }
-#            ] a₀ a₁ p) (fst ρ₀) (fst ρ₁) (fst ψ)) , a₀)
+  def ΣEqv : Eq U ((b : B a₀) × (C a₀ b)) ((b : B a₁) × (C a₁ b))
+    = [ ΣP @ nd { y } (nd (lf { x }) (lf tt))
+           | lf { p } ] a₀ a₁ p 
 
+  def compΣ (ρ : ((b : B a₀) × (C a₀ b))) : (b : B a₁) × (C a₁ b)
+    = let b₀ : B a₀ = fst ρ in 
+      let b₁ : B a₁ = compB b₀ in
+      let q : fst BEqv b₀ b₁ = fillB b₀ in
+      let c₀ : C a₀ b₀ = snd ρ in 
+      (b₁ , compC b₀ b₁ q c₀)
+
+  def fillΣ (ρ : ((b : B a₀) × (C a₀ b))) : fst ΣEqv ρ (compΣ ρ)
+    = let b₀ : B a₀ = fst ρ in 
+      let b₁ : B a₁ = compB b₀ in
+      let q : fst BEqv b₀ b₁ = fillB b₀ in
+      let c₀ : C a₀ b₀ = snd ρ in
+      (q , fillC b₀ b₁ q c₀)
+
+  
+
+end 
