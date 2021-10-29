@@ -68,7 +68,6 @@ let parse_file f =
 
 let rec check_files ctx checked to_check =
   let open Typecheck in
-  let open Suite in
   let open Eval in
   let open Syntax in
   match to_check with
@@ -84,31 +83,16 @@ let rec check_files ctx checked to_check =
     let ctx' = check_files ctx checked imports_to_check in 
     pr "-----------------@,";
     pr "Processing input file: %s@," f;
-    let mname = Filename.basename (Filename.remove_extension f) in
-    (* let ctx_with_m = {
-     *   ctx' with
-     *   global_scope =
-     *     ctx'.global_scope |@>
-     *     (mname, ModuleEntry Syntax.empty_module)
-     * } in *)
-    
-    try begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx' with
-      | Ok md -> 
+    (* let mname = Filename.basename (Filename.remove_extension f) in *)
+    try begin match tcm_check_defns defs ctx' with
+      | Ok ctx'' -> 
         pr "----------------@,Success!@,";
-        
-        let ctx'' = {
-          ctx' with
-          global_scope = ctx'.global_scope |@> (mname, ModuleEntry md)
-        }  in 
-
-        (* For now, we manually import these guys *) 
-        let imported_ctx = open_module (Emp |@> mname) md ctx'' in
-        check_files imported_ctx (f::checked) fs
+        check_files ctx'' (f::checked) fs
           
       | Error err ->
         pr "@,Typing error: @,@,%a@,@," pp_error err ; 
         empty_ctx
-        
+      
     end with
     | Eval_error msg -> 
         pr "@,Internal evaluation error: @,@,%s@," msg ; 

@@ -56,10 +56,10 @@ type qname =
   | Name of string
   | Qual of string * qname
 
-let top_name qnm =
+let rec short_name qnm =
   match qnm with
   | Name nm -> nm
-  | Qual (mn,_) -> mn
+  | Qual (_,qn) -> short_name qn
     
 let rec qname_eq qnm qnm' =
   match (qnm , qnm') with
