@@ -325,19 +325,30 @@ and tcm_infer (e : expr) : (term * value) tcm =
     begin match get_binding qnm gma.bindings with
       | Some (tm,ty) -> tcm_ok (tm, ty)
       | None ->
+        log_msg "infering top-level"; 
         log_val "qnm" qnm pp_qname;
-        (* log_val "names" (all_qnames Emp gma.global_scope) (pp_suite pp_qname) ;  *)
         begin match assoc_opt (short_name qnm) gma.global_scope with
-          | Some (ty,_) ->
-            let tyv = eval (top gma) Emp ty in
+          | Some (ty,tm) ->
 
-            let sec_lvl = section_level gma.sections (short_name qnm) in
-            let lvls = List.range 0 (sec_lvl - 1) in 
-            let v_vars = List.map lvls ~f:varV in 
-            let t_vars = List.map lvls ~f:(fun l -> VarT (lvl_to_idx gma.level l)) in 
-            let top_tm = TermUtil.app_args (TopT qnm) (from_list t_vars) in
+            log_val "gty" ty pp_term;
+            log_val "gtm" tm pp_term ;
             
-            tcm_ok (top_tm , app_args tyv v_vars)
+            let tyv = eval (top gma) Emp ty in
+            let sec_lvl = section_level gma.sections (short_name qnm) in
+
+            log_val "sec_lvl" sec_lvl Fmt.int;
+            
+            let lvls = List.range 0 sec_lvl in 
+            log_val "lvls" lvls (Fmt.list Fmt.int) ;
+            
+            let v_vars = List.map lvls ~f:varV in
+            let t_vars = List.map lvls ~f:(fun l -> VarT (lvl_to_idx gma.level l)) in
+            
+            let top_tm = TermUtil.app_args (TopT qnm) (from_list t_vars) in
+
+            log_val "top_tm" top_tm pp_term ;
+
+            tcm_ok (top_tm , app_pi_args tyv v_vars)
               
           | _ -> tcm_fail (`NameNotInScope (qnm))
         end
@@ -437,10 +448,27 @@ let rec tcm_check_defns defs =
         (tcm_check_module_contents
            nm (to_list md.params) md.entries) in
 
+    let gma''' = match gma''.sections with
+      | Emp -> gma''
+      | Ext (Emp,s) ->
+        let l = length s.params in 
+        { gma'' with
+          level = gma''.level - l ; 
+          bindings = fst (grab l gma''.bindings) ;
+          sections = Emp ; 
+        }
+      | Ext (Ext (secs',s),t) ->
+        let l = length t.params in
+        { gma'' with
+          level = gma''.level - l ; 
+          bindings = fst (grab l gma''.bindings) ; 
+          sections = secs' |@> { s with names = append s.names t.names }
+        } in 
+    
     Fmt.pr "----------------@,";
     Fmt.pr "Module %s complete.@," nm; 
 
-    tcm_in_ctx gma''
+    tcm_in_ctx gma''' 
       (tcm_check_defns ds)
       
   | (nm, TermEntry (ty,tm))::ds ->
@@ -502,10 +530,15 @@ let rec tcm_check_defns defs =
      *     (\* (List.map (List.range 0 (length (bvars gma)))
      *      * ~f:(fun l -> varV l)) in  *\) *)
 
-    (* Now bind everything *) 
+    let secs = match gma.sections with
+      | Emp -> Emp
+      | Ext (secs',s) -> secs' |@>
+                         { s with names = s.names |@> nm } in 
+                                   
     let gma' = { gma with
                  global_scope = gma.global_scope |@>
-                                (nm,(fty,ftm)) ; 
+                                (nm,(fty,ftm)) ;
+                 sections = secs ; 
                } in 
 
     

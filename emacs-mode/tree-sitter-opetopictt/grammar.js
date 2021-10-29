@@ -69,7 +69,7 @@ module.exports = grammar({
 	module_entry: $ => seq(
 	    'module',
 	    field("name",$.module_name),
-	    field("context",$.telescope),
+	    field("context", optional($.telescope)),
 	    'where',
 	    field("entries",repeat($._entry)),
 	    'end'

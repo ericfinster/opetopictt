@@ -47,6 +47,18 @@ let rec snd_val t =
   | _ -> raise (Eval_error (Fmt.str "malformed second proj: %a" pp_value t))
 
 
+(* For extracting fibrations from pis *) 
+let app_pi t u =
+  match t with
+  | PiV (_,_,b) -> b u
+  | _ -> raise (Eval_error (Fmt.str "malformed pi app: %a" pp_value u))
+
+let rec app_pi_args t us =
+  match us with
+  | [] -> t
+  | u::us' ->
+    app_pi_args (app_pi t u) us' 
+  
 (*****************************************************************************)
 (*                           Opetopic Utilities                              *)
 (*****************************************************************************)
