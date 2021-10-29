@@ -68,7 +68,9 @@ let parse_file f =
 
 let rec check_files ctx checked to_check =
   let open Typecheck in
-  let open Suite in 
+  let open Suite in
+  let open Eval in
+  let open Syntax in
   match to_check with
   | [] -> ctx
   | f::fs ->
@@ -90,7 +92,7 @@ let rec check_files ctx checked to_check =
      *     (mname, ModuleEntry Syntax.empty_module)
      * } in *)
     
-    begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx' with
+    try begin match tcm_check_module_contents mname [] (Suite.from_list defs) ctx' with
       | Ok md -> 
         pr "----------------@,Success!@,";
         
@@ -107,4 +109,10 @@ let rec check_files ctx checked to_check =
         pr "@,Typing error: @,@,%a@,@," pp_error err ; 
         empty_ctx
         
-    end
+    end with
+    | Eval_error msg -> 
+        pr "@,Internal evaluation error: @,@,%s@," msg ; 
+        empty_ctx
+    | Internal_error msg -> 
+        pr "@,An internal error has occured : @,@,%s@," msg ; 
+        empty_ctx

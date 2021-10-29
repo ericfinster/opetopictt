@@ -497,8 +497,13 @@ let rec eval top loc tm =
   let ev_bnd t v = eval top (Ext (loc,v)) t in 
   match tm with
   
-  | VarT i -> db_get i loc
-
+  | VarT i ->
+    begin try
+        db_get i loc
+      with Lookup_error ->
+        raise (Eval_error (Fmt.str "de Brujin index %d out of range" i))
+    end
+    
   | TopT nm -> TopV (nm,EmpSp,top nm)
   | LetT (_,_,tm,bdy) -> ev_bnd bdy (ev tm) 
 

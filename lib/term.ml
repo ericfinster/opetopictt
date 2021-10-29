@@ -40,35 +40,6 @@ type term =
   (* The Universe *) 
   | TypT
 
-
-(*****************************************************************************)
-(*                             Opetopic Expansion                            *)
-(*****************************************************************************)
-
-let rec expand tm cm fa =
-  match tm with
-  
-  | VarT i ->
-    let n = head_value cm + 1 in
-    let off = value_at cm fa in
-    VarT ((i * n) + off)
-      
-  | TopT nm ->
-    (* Do nothing on top-levels for now *)
-    ReflT (TopT nm, map_cmplx cm ~f:(fun k -> Fmt.str "x%d" k)) 
-
-  | LamT (nm,tm') ->
-    let nms = labels (map_cmplx cm ~f:(fun k -> Fmt.str "%s%d" nm k)) in
-    (* TODO: Check the order here ... *)
-    let rec lams nlst t =
-      begin match nlst with
-        | [] -> t
-        | nm::nms -> LamT (nm,lams nms t)
-      end in
-    lams nms (expand tm' cm fa)
-          
-  | _ -> failwith "" 
-
 (*****************************************************************************)
 (*                               Term Equality                               *)
 (*****************************************************************************)
@@ -127,9 +98,19 @@ let rec term_eq s t =
       
 let rec term_to_expr nms tm =
   let tte = term_to_expr in
+  (* log_val "nms" nms (pp_suite Fmt.string) ; *)
   match tm with
   | VarT i ->
-    let nm = db_get i nms in VarE (Name nm)
+    begin try
+        let nm = db_get i nms in
+        VarE (Name nm)
+      with
+      | Lookup_error ->
+        raise (Internal_error
+                 (Fmt.str "@[<v>Index out of range in term_to_expr: %d@,nms: @[%a@]@]"
+                    i (pp_suite Fmt.string) nms))
+    end
+    
   | TopT nm -> VarE nm
   | LetT (nm,ty,tm,bdy) ->
     LetE (nm,tte nms ty,tte nms tm,tte nms bdy) 

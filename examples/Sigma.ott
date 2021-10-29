@@ -40,13 +40,25 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     = [ C @ nd { y } (nd (lf { x }) (lf tt))
           | lf { p } ] a₀ a₁ p b₀ b₁ q 
 
-  def compC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁) (c : C a₀ b₀) : C a₁ b₁
+  def compC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+      (c : C a₀ b₀) : C a₁ b₁
     = fst snd (CEqv b₀ b₁ q) c 
 
-  def fillC (b₀ : B a₀) (b₁ : B a₁)
-      (q : fst BEqv b₀ b₁) (c : C a₀ b₀)
-    : fst (CEqv b₀ b₁ q) c (compC b₀ b₁ q c)
+  def fillC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+      (c : C a₀ b₀) : fst (CEqv b₀ b₁ q) c (compC b₀ b₁ q c)
     = fst snd snd (CEqv b₀ b₁ q) c
+
+  def ucompC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) (r : fst (CEqv b₀ b₁ q) c₀ c₁)
+    : Eq (C a₁ b₁) (compC b₀ b₁ q c₀) c₁
+    = fst (fst snd snd snd (CEqv b₀ b₁ q) c₀ c₁ r)
+
+  def ufillC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) (r : fst (CEqv b₀ b₁ q) c₀ c₁)
+    : PathOver (C a₁ b₁) (fst (CEqv b₀ b₁ q) c₀)
+        (compC b₀ b₁ q c₀) c₁ (ucompC b₀ b₁ q c₀ c₁ r)
+        (fillC b₀ b₁ q c₀) r
+    = snd (fst snd snd snd (CEqv b₀ b₁ q) c₀ c₁ r)
 
   #
   #  Compositions in the Σ Fibration
@@ -72,5 +84,22 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
       let q : fst BEqv b₀ b₁ = fillB b₀ in
       let c₀ : C a₀ b₀ = snd ρ in
       (q , fillC b₀ b₁ q c₀)
+
+  def ucompΣ (ρ₀ : ΣP a₀) (ρ₁ : ΣP a₁) (φ : fst ΣEqv ρ₀ ρ₁)
+    : Eq (ΣP a₁) (compΣ ρ₀) ρ₁
+    = (ucompB (fst ρ₀) (fst ρ₁) (fst φ),
+       ucompC (fst ρ₀) (fst ρ₁) (fst φ)
+              (snd ρ₀) (snd ρ₁) (snd φ))
+
+  # def ufillC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+  #     (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) (r : fst (CEqv b₀ b₁ q) c₀ c₁)
+  #   : PathOver (C a₁ b₁) (fst (CEqv b₀ b₁ q) c₀)
+  #       (compC b₀ b₁ q c₀) c₁ (ucompC b₀ b₁ q c₀ c₁ r)
+  #       (fillC b₀ b₁ q c₀) r
+  #   = snd (fst snd snd snd (CEqv b₀ b₁ q) c₀ c₁ r)
+
+  # def ucompB (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+  #   : Eq (B a₁) (compB b₀) b₁ 
+  #   = fst (fst snd snd snd BEqv b₀ b₁ q)
 
 end 

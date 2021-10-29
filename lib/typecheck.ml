@@ -69,7 +69,7 @@ let bind_name gma nm ty tm =
   { gma with
     bindings =
       gma.bindings |@>
-      (nm , BoundName (ty,tm));
+      (nm , BoundName (ty, tm));
     level = gma.level + 1;
   }
 
@@ -92,13 +92,17 @@ let bvars gma =
        | BoundName _ -> acc 
     )
 
-(* top level guys are evaluated with no local bindings ... *) 
 let top gma qnm =
   (* log_val "qnm" qnm pp_qname;
    * log_val "names" (all_qnames Emp gma.global_scope) (pp_suite pp_qname) ;  *)
   match resolve_qname qnm gma.global_scope with
   | Some (_,tm) -> tm 
   | None -> failwith (Fmt.str "Unresolved name: %a" pp_qname qnm)
+
+let log_bindings gma =
+  log_val "bindings" (map_suite gma.bindings ~f:fst)
+    (pp_suite Fmt.string) ;
+  log_val "level" gma.level Fmt.int 
 
 (*****************************************************************************)
 (*                               Typing Errors                               *)
@@ -413,31 +417,46 @@ let rec tcm_check_defns defs =
     
     Fmt.pr "----------------@,";
     Fmt.pr "Checking definition: %s@," nm;
-    
+
+    let* gma = tcm_ctx in
+    log_bindings gma;
+
+    log_val "ty" ty pp_expr;
     let* ty' = tcm_check ty TypV in
-    let* tyv = tcm_eval ty' in 
-    let* tm' = tcm_check tm tyv in 
+    log_msg "type check";
+    let* tyv = tcm_eval ty' in
+    log_msg "type eval";
+    let* tm' = tcm_check tm tyv in
+    log_msg "term check";
     let* tmv = tcm_eval tm' in
+    log_msg "term eval";
 
     Fmt.pr "Checking complete for %s@," nm;
-    let* gma = tcm_ctx in
 
     (* let exp_ty = term_to_expr (names gma) ty' in 
      * let exp_tm = term_to_expr (names gma) tm' in
      * Fmt.pr "Type: @[%a@]@," pp_expr exp_ty ; 
-     * Fmt.pr "Result: @[%a@]@," pp_expr exp_tm ;  *)
+     * Fmt.pr "Result: @[%a@]@," pp_expr exp_tm ; *)
 
     let* glbl_ty = tcm_quote tyv false in
     let* glbl_tm = tcm_quote tmv false in 
 
+    log_val "glbl_ty" glbl_ty pp_term;
+    log_val "glbl_tm" glbl_tm pp_term;
+    
     let (fty,ftm) = TermUtil.abstract_tele_with_type
-                      gma.module_params glbl_ty glbl_tm in 
+        gma.module_params glbl_ty glbl_tm in
 
-    (* let fty_exp = term_to_expr Emp fty in
-     * let ftm_exp = term_to_expr Emp ftm in
-     * 
-     * log_val "fty_exp" fty_exp pp_expr ;
-     * log_val "ftm_exp" ftm_exp pp_expr ; *)
+    (* Can we apply the arguments and bind here ? *)
+
+    log_val "fty" fty pp_term;
+    log_val "ftm" ftm pp_term;
+    
+    let fty_exp = term_to_expr Emp fty in
+    let ftm_exp = term_to_expr Emp ftm in
+    
+    log_val "fty_exp" fty_exp pp_expr ;
+    log_val "ftm_exp" ftm_exp pp_expr ;
     
     (* Evaluate the globalized terms *) 
     let ftyv = eval (top gma) Emp fty in
@@ -445,17 +464,21 @@ let rec tcm_check_defns defs =
 
     (* Synthesizing the global reference ... *) 
     let term_qname = with_prefix gma.qual_prefix (Name nm) in
-    let term_val = TopV (term_qname,EmpSp,ftmv) in 
-    let global_term = app_args term_val (to_list (bvars gma)) in
-    (* Oh, this doesn't make sense ... *) 
-    (* let global_type = app_args ftyv (to_list (bvars gma)) in  *)
-    
+    let term_val = TopV (term_qname,EmpSp,ftmv) in
+
+    (* BUG: the indices here are wrong. they should refer to 
+       the global, not local variables *) 
+    let global_term = app_args term_val (to_list (bvars gma)) in 
+        (* (List.map (List.range 0 (length (bvars gma)))
+         * ~f:(fun l -> varV l)) in  *)
+
     (* Now bind everything *) 
     let gma' = { gma with
                  bindings = gma.bindings |@>
                             (nm, BoundName (tyv,global_term)) ; 
                  global_scope = insert_entry (to_list gma.qual_prefix)
-                        nm (TermEntry (ftyv,ftmv)) gma.global_scope 
+                     nm (TermEntry (ftyv,ftmv)) gma.global_scope ; 
+                 level = gma.level + 1 
                } in 
 
     
@@ -481,11 +504,12 @@ and tcm_check_module_contents nm params defns =
     (* BUG: the module parameters could also use global defintiions.
        Doesn't this mean we need to take special action here? *) 
     let* ty_val = tcm_eval ty_tm in
+    let* glbl_ty_tm = tcm_quote ty_val false in 
     let* gma = tcm_ctx in
     let gma' = { gma with
                  bindings = gma.bindings |@> (id, BoundVar (ty_val,gma.level)) ;
                  level = gma.level + 1 ;
-                 module_params = gma.module_params |@> (id,ty_tm)
+                 module_params = gma.module_params |@> (id,glbl_ty_tm)
                } in
     tcm_in_ctx gma' (tcm_check_module_contents nm ps defns)
 
