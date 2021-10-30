@@ -37,6 +37,14 @@ def transport (A : U) (B : A → U)
              | lf { p }
              ] a₀ a₁ p) b₀
 
+def untransport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₁ : B a₁) : B a₀
+  = fst snd snd snd snd  ([ B
+             @ nd { y } (nd (lf { x }) (lf tt)) 
+             | lf { p }
+             ] a₀ a₁ p) b₁
+
 def is-contr (A : U) : U 
   = (a₀ : A) × (a₁ : A) → Eq A a₀ a₁
 
@@ -44,17 +52,91 @@ def is-equiv (A : U) (B : U) (f : A → B) : U
   = (g : B → A) ×
     (h : B → A) ×
     (l : (a : A) → Eq A a (h (f a))) ×
-    ((b : B) → Eq B b (f (g b)))
+    ((b : B) → Eq B (f (g b)) b)
     
 def Equiv (A : U) (B : U) : U
   = (f : A → B) × is-equiv A B f
 
-def eqv (A : U) (B : U)
+def mk-eqv (A : U) (B : U)
     (f : A → B) (g : B → A)
     (l : (a : A) → Eq A a (g (f a)))
-    (r : (b : B) → Eq B b (f (g b))) : Equiv A B
+    (r : (b : B) → Eq B (f (g b)) b) : Equiv A B
   = f , g , g , l , r 
 
+
+#
+#  A Proof of J 
+#
+
+def ucomp (A : U) (a : A) : A
+  = fst snd [ A @ nd { y } (nd (lf { x }) (lf tt)) 
+                | lf { p } ] a
+
+def ufill (A : U) (a : A) : Eq A a (ucomp A a)
+  = fst snd snd [ A @ nd { y } (nd (lf { x }) (lf tt)) 
+                | lf { p } ] a
+
+def upth (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq ((a : A) × (Eq A a₀ a)) (ucomp A a₀ , ufill A a₀) (a₁ , p)
+  = fst snd snd snd
+      [ A @ nd { y } (nd (lf { x }) (lf tt)) 
+          | lf { p } ] a₀ a₁ p
+
+def J (A : U) (a₀ : A) (P : ((a : A) × (Eq A a₀ a)) → U)
+    (d : P (a₀ , refl A a₀))
+    (a₁ : A) (p : Eq A a₀ a₁)
+  : P (a₁ , p)
+  = let u : P (ucomp A a₀ , ufill A a₀)
+          = untransport ((a : A) × (Eq A a₀ a)) P
+              (ucomp A a₀ , ufill A a₀) (a₀ , refl A a₀)
+              (upth A a₀ a₀ (refl A a₀)) d in
+    transport ((a : A) × (Eq A a₀ a)) P
+      (ucomp A a₀ , ufill A a₀) (a₁ , p)
+      (upth A a₀ a₁ p) u
+  
+#
+#  Some groupoid operations
+#
+
+def pth-comp (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
+    (p : Eq A a₀ a₁) (q : Eq A a₁ a₂)
+  : Eq A a₀ a₂
+  = fst snd [ A @ nd { z } (nd (nd { y }
+                   (nd (lf { x }) (lf tt))) (lf tt))
+                | nd { r } (nd (lf { q }) (nd (nd (lf { p })
+                   (nd (lf tt) (lf tt))) (lf tt)))
+                | lf { a }
+                ] a₀ a₁ a₂ p q
+
+def inv (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq A a₁ a₀
+  = J A a₀ (λ pr → Eq A (fst pr) a₀) (refl A a₀) a₁ p 
+
+def ap (A : U) (B : U) (f : A → B)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq B (f a₀) (f a₁)
+  = [ f @ nd { y } (nd (lf { x }) (lf tt)) 
+        | lf { p }
+        ] a₀ a₁ p 
+
+#
+#  Preservation of contractibility by equivalences
+#
+
+def eqv-preserves-contr (A : U) (B : U)
+    (E : Equiv A B) (contr-A : is-contr A)
+  : is-contr B
+  = let f : A → B = fst E in 
+    let g : B → A = fst snd E in
+    let a : A = fst contr-A in 
+    let b : B = f a in
+    let apth : (b₀ : B) → Eq A a (g b₀)
+             = λ b₀ → snd contr-A (g b₀) in
+    let bpth : (b₀ : B) → Eq B b (f (g b₀))
+             = λ b₀ → ap A B f a (g b₀) (apth b₀) in
+    let invpth : (b₀ : B) → Eq B (f (g b₀)) b₀
+               = λ b₀ → snd snd snd snd E b₀ in 
+    (b , λ b₀ → pth-comp B b (f (g b₀)) b₀ (bpth b₀) (invpth b₀)) 
 
 #
 #  Some other shapes ....

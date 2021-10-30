@@ -198,12 +198,12 @@ let pi_pd (nm : name)
     (b : value cmplx * value nst -> value) : value = 
   let open ValSyntax in val_of (
 
-    let frm = Adjoin (at,ah) in 
+    (* let frm = Adjoin (at,ah) in  *)
     let* vc = pi_cmplx nm atnms at in
 
     let ah' = match_nst_with_addr ah ahnms
         ~f:(fun fib cnm addr ->
-            let f = face_at frm (0,addr) in
+            let f = face_at (Adjoin (vc,ah)) (0,addr) in
             let typ = appc fib (tail_of f) in
             (nm ^ cnm, addr, typ)
           ) in 
@@ -439,11 +439,12 @@ and typ_fib o =
     let open ValSyntax in val_of (
 
       let* vc = lam_cmplx "" frm in
-      let fibt = pic "" fnms vc (fun _ -> TypV) in
+      let fvc = ucells_to_fib vc in 
+      let fibt = pic "" fnms fvc (fun _ -> TypV) in
 
       let comp = val_of (
 
-          let* (tv,hv) = pi_pd "" tnms (tail_of vc) nnms (head_of vc) in
+          let* (tv,hv) = pi_pd "" tnms (tail_of fvc) nnms (head_of fvc) in
           
           let cface = face_at (Adjoin (tv,hv)) (0,[]) in
           let cfib = head_value cface in
@@ -454,26 +455,27 @@ and typ_fib o =
 
       let fill fib cmp = val_of (
 
-          let* (tv,hv) = pi_pd "" tnms (tail_of vc) nnms (head_of vc) in
+          let* (tv,hv) = pi_pd "" tnms (tail_of fvc) nnms (head_of fvc) in
 
           let pd_args = List.append (labels tv)
               (nodes_nst_except hv []) in
           let hv' = with_base_value hv
               (app_args cmp pd_args)  in 
 
-          ret (appc fib (Adjoin (tv,hv'))) 
+          ret (appc fib (Adjoin (tv,hv')))
 
         ) in 
-      
+
+      (* TODO: I'm worried about the application of "fst"s to the fibrations here .. *)
       let unique fib cmp fil = val_of (
 
-          let* els = pic "" (Adjoin (fnms,Lf ("el" ^ a))) (Adjoin (vc,Lf fib)) in
+          let* els = pic "" (Adjoin (fnms,Lf ("el" ^ a))) (Adjoin (fvc,Lf fib)) in
 
           let f = head_value els in
           let cface = face_at els (1,[]) in 
           let c = head_value cface in
 
-          let cmpt = appc (head_value vc) (tail_of cface) in
+          let cmpt = appc (head_value fvc) (tail_of cface) in
 
           let tv = tail_of (tail_of els) in
           let hv = head_of (tail_of els) in

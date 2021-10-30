@@ -226,7 +226,10 @@ let tcm_eval (t : term) : value tcm =
 
 let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
-  tcm_ok (quote ufld gma.level v)
+  try tcm_ok (quote ufld gma.level v) with
+  | Eval_error _ ->
+    tcm_fail (`InternalError
+                (Fmt.str "Failed to quote: %a" pp_value v))
 
 let tcm_in_ctx g m _ = m g 
 
@@ -243,8 +246,9 @@ let rec tcm_extract_pi (v: value) =
   | PiV (_,a,b) -> tcm_ok (a, b)
   | TopV (_,_,v') -> tcm_extract_pi v'
   | _ ->
-    let* gma = tcm_ctx in 
-    let e = term_to_expr (names gma) (quote false gma.level v) in 
+    let* gma = tcm_ctx in
+    let* t = tcm_quote v false in 
+    let e = term_to_expr (names gma) t in 
     tcm_fail (`ExpectedFunction e) 
 
 let rec tcm_extract_sig (v: value) =
@@ -252,8 +256,9 @@ let rec tcm_extract_sig (v: value) =
   | SigV (_,a,b) -> tcm_ok (a, b)
   | TopV (_,_,v') -> tcm_extract_sig v'
   | _ ->
-    let* gma = tcm_ctx in 
-    let e = term_to_expr (names gma) (quote false gma.level v) in 
+    let* gma = tcm_ctx in
+    let* t = tcm_quote v false in 
+    let e = term_to_expr (names gma) t in 
     tcm_fail (`ExpectedProduct e) 
 
 let tcm_ensure (b : bool) (e : typing_error) : unit tcm =
@@ -311,9 +316,27 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
 
     if (not (term_eq expected_nf inferred_nf)) 
     then
-      let exp_e = term_to_expr (names gma) expected_nf in
-      let inf_e = term_to_expr (names gma) inferred_nf in
+
+      let inf_folded =
+        begin try quote true gma.level inferred
+          with
+          | Eval_error _ ->
+            raise (Internal_error (Fmt.str "@[<v>@,Inferred val: @[%a@]@,@]"
+                                     pp_value inferred))
+        end in 
+
+      let exp_folded =
+        begin try quote true gma.level expected
+          with
+          | Eval_error _ ->
+            raise (Internal_error (Fmt.str "@[<v>@,Checking: @[%a@]@,Expected val: @[%a@]@,@]"
+                                     pp_expr e pp_value expected))
+        end in 
+      
+      let exp_e = term_to_expr (names gma) exp_folded in
+      let inf_e = term_to_expr (names gma) inf_folded in
       tcm_fail (`TypeMismatch (e,exp_e,inf_e))
+        
     else tcm_ok e'
 
 and tcm_infer (e : expr) : (term * value) tcm =
@@ -325,28 +348,28 @@ and tcm_infer (e : expr) : (term * value) tcm =
     begin match get_binding qnm gma.bindings with
       | Some (tm,ty) -> tcm_ok (tm, ty)
       | None ->
-        log_msg "infering top-level"; 
-        log_val "qnm" qnm pp_qname;
+        (* log_msg "infering top-level"; 
+         * log_val "qnm" qnm pp_qname; *)
         begin match assoc_opt (short_name qnm) gma.global_scope with
-          | Some (ty,tm) ->
+          | Some (ty,_) ->
 
-            log_val "gty" ty pp_term;
-            log_val "gtm" tm pp_term ;
+            (* log_val "gty" ty pp_term;
+             * log_val "gtm" tm pp_term ; *)
             
             let tyv = eval (top gma) Emp ty in
             let sec_lvl = section_level gma.sections (short_name qnm) in
 
-            log_val "sec_lvl" sec_lvl Fmt.int;
+            (* log_val "sec_lvl" sec_lvl Fmt.int; *)
             
             let lvls = List.range 0 sec_lvl in 
-            log_val "lvls" lvls (Fmt.list Fmt.int) ;
+            (* log_val "lvls" lvls (Fmt.list Fmt.int) ; *)
             
             let v_vars = List.map lvls ~f:varV in
             let t_vars = List.map lvls ~f:(fun l -> VarT (lvl_to_idx gma.level l)) in
             
             let top_tm = TermUtil.app_args (TopT qnm) (from_list t_vars) in
 
-            log_val "top_tm" top_tm pp_term ;
+            (* log_val "top_tm" top_tm pp_term ; *)
 
             tcm_ok (top_tm , app_pi_args tyv v_vars)
               
@@ -477,17 +500,17 @@ let rec tcm_check_defns defs =
     Fmt.pr "Checking definition: %s@," nm;
 
     let* gma = tcm_ctx in
-    log_bindings gma;
+    (* log_bindings gma; *)
 
-    log_val "ty" ty pp_expr;
+    (* log_val "ty" ty pp_expr; *)
     let* ty' = tcm_check ty TypV in
-    log_msg "type check";
+    (* log_msg "type check"; *)
     let* tyv = tcm_eval ty' in
-    log_msg "type eval";
+    (* log_msg "type eval"; *)
     let* tm' = tcm_check tm tyv in
-    log_msg "term check";
+    (* log_msg "term check"; *)
     let* tmv = tcm_eval tm' in
-    log_msg "term eval";
+    (* log_msg "term eval"; *)
 
     Fmt.pr "Checking complete for %s@," nm;
 
@@ -496,39 +519,25 @@ let rec tcm_check_defns defs =
      * Fmt.pr "Type: @[%a@]@," pp_expr exp_ty ; 
      * Fmt.pr "Result: @[%a@]@," pp_expr exp_tm ; *)
 
-    let* glbl_ty = tcm_quote tyv false in
-    let* glbl_tm = tcm_quote tmv false in 
+    let* glbl_ty = tcm_quote tyv true in
+    let* glbl_tm = tcm_quote tmv true in 
 
-    log_val "glbl_ty" glbl_ty pp_term;
-    log_val "glbl_tm" glbl_tm pp_term;
+    (* log_val "glbl_ty" glbl_ty pp_term;
+     * log_val "glbl_tm" glbl_tm pp_term; *)
     
     let (fty,ftm) = TermUtil.abstract_tele_with_type
         (section_params gma.sections) glbl_ty glbl_tm in
 
     (* Can we apply the arguments and bind here ? *)
 
-    log_val "fty" fty pp_term;
-    log_val "ftm" ftm pp_term;
+    (* log_val "fty" fty pp_term;
+     * log_val "ftm" ftm pp_term; *)
     
-    let fty_exp = term_to_expr Emp fty in
-    let ftm_exp = term_to_expr Emp ftm in
-    
-    log_val "fty_exp" fty_exp pp_expr ;
-    log_val "ftm_exp" ftm_exp pp_expr ;
-    
-    (* Evaluate the globalized terms *) 
-    (* let ftyv = eval (top gma) Emp fty in
-     * let ftmv = eval (top gma) Emp ftm in 
+    (* let fty_exp = term_to_expr Emp fty in
+     * let ftm_exp = term_to_expr Emp ftm in
      * 
-     * (\* Synthesizing the global reference ... *\) 
-     * let term_qname = with_prefix gma.qual_prefix (Name nm) in
-     * let term_val = TopV (term_qname,EmpSp,ftmv) in
-     * 
-     * (\* BUG: the indices here are wrong. they should refer to 
-     *    the global, not local variables *\) 
-     * let global_term = app_args term_val (to_list (bvars gma)) in 
-     *     (\* (List.map (List.range 0 (length (bvars gma)))
-     *      * ~f:(fun l -> varV l)) in  *\) *)
+     * log_val "fty_exp" fty_exp pp_expr ;
+     * log_val "ftm_exp" ftm_exp pp_expr ; *)
 
     let secs = match gma.sections with
       | Emp -> Emp
