@@ -220,3 +220,17 @@ def Σ-contr (A : U) (B : A → U)
                                a₀ a₁ apth b₀ b₁))
     in (ctr , pth) 
             
+
+def Σ-diamond (A : U) (B : A → U) (C : A → U)
+    (D : (a : A) → (b : B a) → (c : C a) → U)
+  : Equiv ((ab : (a : A) × B a) × (c : C (fst ab)) × D (fst ab) (snd ab) c)
+          ((ac : (a : A) × C a) × (b : B (fst ac)) × D (fst ac) b (snd ac))
+  = let S : U = (ab : (a : A) × B a) × (c : C (fst ab)) × D (fst ab) (snd ab) c in
+    let T : U = (ac : (a : A) × C a) × (b : B (fst ac)) × D (fst ac) b (snd ac) in
+    let f : S → T = λ s → ((fst fst s , fst snd s) , (snd fst s , snd snd s)) in
+    let g : T → S = λ t → ((fst fst t , fst snd t) , (snd fst t , snd snd t)) in
+    let l : (s : S) → Eq S s (g (f s)) = λ s → refl S s in
+    let r : (t : T) → Eq T (f (g t)) t = λ t → refl T t in
+    mk-eqv S T f g l r
+    
+          
