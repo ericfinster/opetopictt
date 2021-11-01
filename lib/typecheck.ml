@@ -14,6 +14,7 @@ open Term
 open Value
 open Eval
 open Syntax
+open Reflexivity
 
 open Opetopes.Idt
 open Opetopes.Complex
@@ -227,7 +228,7 @@ let tcm_eval (t : term) : value tcm =
 let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
   try tcm_ok (quote ufld gma.level v) with
-  | Eval_error _ ->
+  | Internal_error _ ->
     tcm_fail (`InternalError
                 (Fmt.str "Failed to quote: %a" pp_value v))
 
@@ -317,10 +318,14 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     if (not (term_eq expected_nf inferred_nf)) 
     then
 
+      (* BUG! Trying to print the folded versions here can lead to the 
+         quoting of expansion variables.  I don't see why, but we have 
+         to fix that at some point ... *)
+      
       let inf_folded =
         begin try quote true gma.level inferred
           with
-          | Eval_error _ ->
+          | Internal_error _ ->
             raise (Internal_error (Fmt.str "@[<v>@,Inferred val: @[%a@]@,@]"
                                      pp_value inferred))
         end in 
@@ -328,7 +333,7 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
       let exp_folded =
         begin try quote true gma.level expected
           with
-          | Eval_error _ ->
+          | Internal_error _ ->
             raise (Internal_error (Fmt.str "@[<v>@,Checking: @[%a@]@,Expected val: @[%a@]@,@]"
                                      pp_expr e pp_value expected))
         end in 

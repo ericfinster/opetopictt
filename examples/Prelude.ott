@@ -139,15 +139,33 @@ def eqv-preserves-contr (A : U) (B : U)
     (b , λ b₀ → pth-comp B b (f (g b₀)) b₀ (bpth b₀) (invpth b₀)) 
 
 #
-#  Some other shapes ....
+#  A couple Σ lemmas
 #
 
-def Square (A : U) (a₀₀ : A) (a₀₁ : A)
-    (a₁₀ : A) (a₁₁ : A)
-    (p : Eq A a₀₀ a₀₁) (q : Eq A a₁₀ a₁₁)
-    (r : Eq A a₀₀ a₁₀) (s : Eq A a₀₁ a₁₁) : U
-  = fst ([ Eq A
-         @ nd { y } (nd (lf { x }) (lf tt)) 
-         | lf { p }
-         ] a₀₀ a₀₁ p a₁₀ a₁₁ q) r s 
+def prod-swap (A : U) (B : U)
+  : Equiv (A × B) (B × A)
+  = let f : (A × B) → B × A
+          = λ ab → (snd ab , fst ab) in
+    let g : (B × A) → A × B
+          = λ ba → (snd ba , fst ba) in
+    let l : (ab : A × B) → Eq (A × B) ab (g (f ab))
+          = λ ab → refl (A × B) ab  in
+    let r : (ba : B × A) → Eq (B × A) (f (g ba)) ba
+          = λ ba → refl (B × A) ba in 
+    mk-eqv (A × B) (B × A) f g l r 
 
+def Σ-contr (A : U) (B : A → U)
+    (a-contr : is-contr A)
+    (b-contr : (a : A) → is-contr (B a))
+  : is-contr ((a : A) × B a)
+  = let a₀ : A = fst a-contr in
+    let b₀ : B a₀ = fst (b-contr a₀) in 
+    let ctr : (a : A) × B a
+            = (a₀ , b₀) in
+    let pth : (p : (a : A) × B a) → Eq ((a : A) × B a) ctr p
+            = λ p → (snd a-contr (fst p) , U)
+    # from here, transport (snd p) along the path, and
+    # then transport the filling path over along the
+    # equality with the result
+    in (ctr , pth) 
+            

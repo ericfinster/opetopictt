@@ -68,7 +68,6 @@ let parse_file f =
 
 let rec check_files ctx checked to_check =
   let open Typecheck in
-  let open Eval in
   let open Syntax in
   match to_check with
   | [] -> ctx
@@ -94,9 +93,6 @@ let rec check_files ctx checked to_check =
         empty_ctx
       
     end with
-    | Eval_error msg -> 
-        pr "@,Internal evaluation error: @,@,%s@," msg ; 
-        empty_ctx
     | Internal_error msg -> 
         pr "@,An internal error has occured : @,@,%s@," msg ; 
         empty_ctx
