@@ -89,37 +89,23 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
       let c₀ : C a₀ b₀ = snd ρ in
       (q , fillC b₀ b₁ q c₀)
 
-  def ucompΣ (ρ₀ : ΣP a₀) (ρ₁ : ΣP a₁) (φ : fst ΣEqv ρ₀ ρ₁)
-    : Eq (ΣP a₁) (compΣ ρ₀) ρ₁
-    = let b₀ : B a₀ = fst ρ₀ in 
-      let b₁ : B a₁ = fst ρ₁ in
-      let q : fst BEqv b₀ b₁ = fst φ in
-      let c₀ : C a₀ b₀ = snd ρ₀ in
+  # def ucompΣ (ρ₀ : ΣP a₀) (ρ₁ : ΣP a₁) (φ : fst ΣEqv ρ₀ ρ₁)
+  #   : Eq (ΣP a₁) (compΣ ρ₀) ρ₁
+  #   = let b₀ : B a₀ = fst ρ₀ in 
+  #     let b₁ : B a₁ = fst ρ₁ in
+  #     let q : fst BEqv b₀ b₁ = fst φ in
+  #     let c₀ : C a₀ b₀ = snd ρ₀ in
       
-      let cb : B a₁ = compB b₀ in
-      let fb : fst BEqv b₀ cb = fillB b₀ in
+  #     let cb : B a₁ = compB b₀ in
+  #     let fb : fst BEqv b₀ cb = fillB b₀ in
       
-      let Q : ((b : B a₁) × (fst BEqv b₀ b)) → U
-            = λ pr → (c : C a₁ (fst pr)) × fst (CEqv b₀ (fst pr) (snd pr)) c₀ c in
+  #     let Q : ((b : B a₁) × (fst BEqv b₀ b)) → U
+  #           = λ pr → (c : C a₁ (fst pr)) × fst (CEqv b₀ (fst pr) (snd pr)) c₀ c in
 
-      let blorp : (c : C a₁ b₁) × fst (CEqv b₀ cb fb) c₀ c
-
-# ef transport (A : U) (B : A → U)
-#     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-#     (b₀ : B a₀) : B a₁
-#   = fst snd ([ B
-#              @ nd { y } (nd (lf { x }) (lf tt)) 
-#              | lf { p }
-#              ] a₀ a₁ p) b₀
-
-  # def pairPthB (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-  #   : Eq ((b : B a₁) × (fst BEqv b₀ b)) (compB b₀ , fillB b₀) (b₁ , q)
-  #   = fst snd snd snd BEqv b₀ b₁ q
+  #     let blorp : (c : C a₁ b₁) × fst (CEqv b₀ cb fb) c₀ c
 
 
-      (ucompB (fst ρ₀) (fst ρ₁) (fst φ),
-       ucompC (fst ρ₀) (fst ρ₁) (fst φ)
-              (snd ρ₀) (snd ρ₁) (snd φ))
+
 
 
 

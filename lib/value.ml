@@ -214,13 +214,16 @@ let pair a b =
 let val_of (m : value valm) : value =
   m (fun v -> v) 
 
+let prod (u : value) (v : value) =
+  SigV ("",u,fun _ -> v)
+
 (* Take the non-dependent product of a list of type values *)
-let rec prod tys =
+let rec list_prod tys =
   match tys with
   | [] -> failwith "empty product"
   | ty :: [] -> ty
   | ty :: tys' -> 
-    SigV ("",ty,fun _ -> prod tys')
+    SigV ("",ty,fun _ -> list_prod tys')
 
 (*****************************************************************************)
 (*                            Opetopic Combinators                           *)

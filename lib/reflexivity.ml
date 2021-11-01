@@ -71,72 +71,38 @@ and pi_fib acmplx bcmplx nm pi = val_of (
 and univ_fib o =
   match get_cmplx_opt o with
   | Obj _ -> TypV
-  | Arr _ ->
+  | Arr _ -> val_of (
 
-    let efib atyp btyp = val_of (
-        let* _ = pi "a" atyp in
-        let* _ = pi "b" btyp in
-        ret TypV 
-      ) in
-
-    let to_cmp atyp btyp _ = val_of (
-        let* _ = pi "a" atyp in
-        ret btyp 
-      ) in 
-
-    let to_fill atyp _ eqv cmp = val_of (
-        let* a = pi "a" atyp in
-        ret (eqv <@ a <@ (cmp <@ a))
-      ) in 
-
-    let to_unique atyp btyp eqv cmp fill = val_of (
-        let* a = pi "a" atyp in
-        let* b = pi "b" btyp in
-        let* e = pi "e" (eqv <@ a <@ b) in
-
-        ret (id_typ
-               (SigV ("b'", btyp, fun b' -> eqv <@ a <@ b'))
-             <@ PairV (cmp <@ a, fill <@ a)
-             <@ PairV (b,e))
-
-      ) in 
-
-    let from_cmp atyp btyp _ = val_of (
-        let* _ = pi "b" btyp in
-        ret atyp 
-      ) in 
-
-    let from_fill _ btyp eqv cmp = val_of (
-        let* b = pi "b" btyp in
-        ret (eqv <@ (cmp <@ b) <@ b)
-      ) in 
-
-    let from_unique atyp btyp eqv cmp fill = val_of (
-        let* a = pi "a" atyp in
-        let* b = pi "b" btyp in
-        let* e = pi "e" (eqv <@ a <@ b) in
-
-        ret (id_typ
-               (SigV ("a'", atyp, fun a' -> eqv <@ a' <@ b))
-             <@ PairV (cmp <@ b, fill <@ b)
-             <@ PairV (a,e))
-
-      ) in 
-
-    val_of (
       let* atyp = lam "A" in
       let* btyp = lam "B" in
-      let* eqv = sigma "E" (efib atyp btyp) in
-      let* tcmp = sigma "to_cmp" (to_cmp atyp btyp eqv) in
-      let* tfill = sigma "to_fill" (to_fill atyp btyp eqv tcmp) in
-      let* _ = sigma "to_unique" (to_unique atyp btyp eqv tcmp tfill) in 
-      let* fcmp = sigma "from_cmp" (from_cmp atyp btyp eqv) in
-      let* ffill = sigma "from_fill" (from_fill atyp btyp eqv fcmp) in
-      ret (from_unique atyp btyp eqv fcmp ffill)
-    )
+      
+      let* e = sigma "E" (val_of (
+          let* _ = pi "a" atyp in
+          let* _ = pi "b" btyp in
+          ret TypV)) in
 
-  | Cell (t,n,a) -> 
+      let u = val_of (
+          let* a = pi "a" atyp in
+          ret (is_contr (val_of (
+              let* b = sigma "b" btyp in
+              ret (e <@ a <@ b)
+            )))) in
 
+      let v = val_of (
+          let* b = pi "b" btyp in
+          ret (is_contr (val_of (
+              let* a = sigma "a" atyp in
+              ret (e <@ a <@ b)
+            )))) in 
+
+      ret (prod u v)
+
+    ) 
+
+  | Cell (t,n,_) -> 
+
+    (* TODO: This needs more testing now that it has been rewritten 
+             in this newer, more succinct style ... *) 
     let tnms = map_cmplx t ~f:(fun nm -> "el" ^ nm) in
     let nnms = map_nst n ~f:(fun nm -> "el" ^ nm) in
     let fnms = Adjoin (tnms,nnms) in 
@@ -145,65 +111,25 @@ and univ_fib o =
     val_of (
 
       let* vc = lam_cmplx "" frm in
-      let fvc = ucells_to_fib vc in 
-      let fibt = pic "" fnms fvc (fun _ -> TypV) in
+      let fvc = ucells_to_fib vc in
 
-      let comp = val_of (
+      let* e = sigma "E" (val_of (
+          let* _ = pic "" fnms fvc in
+          ret TypV
+        )) in 
 
-          let* (tv,hv) = pi_pd "" tnms (tail_of fvc) nnms (head_of fvc) in
+      let* (tv,hv) = pi_pd "" tnms (tail_of fvc) nnms (head_of fvc) in
 
-          let cface = face_at (Adjoin (tv,hv)) (0,[]) in
-          let cfib = head_value cface in
+      let cface = face_at (Adjoin (tv,hv)) (0,[]) in
+      let cfib = head_value cface in
 
-          ret (appc cfib (tail_of cface))
+      ret (is_contr (val_of (
 
-        ) in 
+          let* cmp = sigma "cmp" (appc cfib (tail_of cface)) in
+          let hv' = with_base_value hv cmp in 
+          ret (appc e (Adjoin (tv,hv')))
 
-      let fill fib cmp = val_of (
-
-          let* (tv,hv) = pi_pd "" tnms (tail_of fvc) nnms (head_of fvc) in
-
-          let pd_args = List.append (labels tv)
-              (nodes_nst_except hv []) in
-          let hv' = with_base_value hv
-              (app_args cmp pd_args)  in 
-
-          ret (appc fib (Adjoin (tv,hv')))
-
-        ) in 
-
-      (* TODO: I'm worried about the application of "fst"s to the fibrations here .. *)
-      let unique fib cmp fil = val_of (
-
-          let* els = pic "" (Adjoin (fnms,Lf ("el" ^ a))) (Adjoin (fvc,Lf fib)) in
-
-          let f = head_value els in
-          let cface = face_at els (1,[]) in 
-          let c = head_value cface in
-
-          let cmpt = appc (head_value fvc) (tail_of cface) in
-
-          let tv = tail_of (tail_of els) in
-          let hv = head_of (tail_of els) in
-          let pd_args = List.append (labels tv)
-              (nodes_nst_except hv []) in
-
-          let cmp_el = app_args cmp pd_args in
-          let fil_el = app_args fil pd_args in 
-
-          ret (id_typ
-                 (SigV ("c'", cmpt, fun c' ->
-                      appc fib (replace_at (tail_of els) (0,[]) c')))
-
-               <@ PairV (cmp_el , fil_el)
-               <@ PairV (c,f))
-
-        ) in 
-
-      let* fib = sigma "fib" fibt in
-      let* cmp = sigma "cmp" comp in
-      let* fil = sigma "fil" (fill fib cmp) in 
-      ret (unique fib cmp fil)
+        )))
 
     ) 
 
