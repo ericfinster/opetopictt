@@ -282,6 +282,8 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
 
   match (e , t) with
 
+  (* TODO: this means that if you are checking with a defined type, 
+     then the error will always be unfolded.  That's a bit annoying .. *) 
   | (e , TopV (_,_,tv)) -> tcm_check e tv
 
   | (LetE (nm,ty,tm,bdy), _) ->
@@ -317,27 +319,9 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
 
     if (not (term_eq expected_nf inferred_nf)) 
     then
-
-      (* BUG! Trying to print the folded versions here can lead to the 
-         quoting of expansion variables.  I don't see why, but we have 
-         to fix that at some point ... *)
       
-      let inf_folded =
-        begin try quote true gma.level inferred
-          with
-          | Internal_error _ ->
-            raise (Internal_error (Fmt.str "@[<v>@,Inferred val: @[%a@]@,@]"
-                                     pp_value inferred))
-        end in 
-
-      let exp_folded =
-        begin try quote true gma.level expected
-          with
-          | Internal_error _ ->
-            raise (Internal_error (Fmt.str "@[<v>@,Checking: @[%a@]@,Expected val: @[%a@]@,@]"
-                                     pp_expr e pp_value expected))
-        end in 
-      
+      let inf_folded = quote false gma.level inferred in
+      let exp_folded = quote false gma.level expected in 
       let exp_e = term_to_expr (names gma) exp_folded in
       let inf_e = term_to_expr (names gma) inf_folded in
       tcm_fail (`TypeMismatch (e,exp_e,inf_e))

@@ -29,12 +29,18 @@ and is_contr tA = val_of (
     ret (id_typ tA <@ a <@ b) 
   )
 
+and has_all_paths tA = val_of (
+    let* a = pi "a" tA in
+    let* b = pi "b" tA in
+    ret (id_typ tA <@ a <@ b)
+  )
+
 (*****************************************************************************)
 (*                         Implementation of Sigma                           *)
 (*****************************************************************************)
 
 and sig_fib afib bfib nm pi = val_of (
-    
+
     let* pc = lamc nm (tail_of pi) in
     let fstc = map_cmplx pc ~f:fst_val in
     let atyp = appc (fst_val afib) fstc in
@@ -61,8 +67,8 @@ and pi_fib acmplx bcmplx nm pi = val_of (
 (*****************************************************************************)
 (*                       Implementation of the Universe                      *)
 (*****************************************************************************)
-    
-and typ_fib o =
+
+and univ_fib o =
   match get_cmplx_opt o with
   | Obj _ -> TypV
   | Arr _ ->
@@ -72,7 +78,7 @@ and typ_fib o =
         let* _ = pi "b" btyp in
         ret TypV 
       ) in
-    
+
     let to_cmp atyp btyp _ = val_of (
         let* _ = pi "a" atyp in
         ret btyp 
@@ -145,10 +151,10 @@ and typ_fib o =
       let comp = val_of (
 
           let* (tv,hv) = pi_pd "" tnms (tail_of fvc) nnms (head_of fvc) in
-          
+
           let cface = face_at (Adjoin (tv,hv)) (0,[]) in
           let cfib = head_value cface in
-          
+
           ret (appc cfib (tail_of cface))
 
         ) in 
@@ -191,9 +197,9 @@ and typ_fib o =
 
                <@ PairV (cmp_el , fil_el)
                <@ PairV (c,f))
-            
+
         ) in 
-      
+
       let* fib = sigma "fib" fibt in
       let* cmp = sigma "cmp" comp in
       let* fil = sigma "fil" (fill fib cmp) in 
@@ -207,31 +213,37 @@ and typ_fib o =
 
 and refl_val opvs olvl v pi =
   match v with
-  
+
   | RigidV (k,sp) ->
-    
+
     let init = if (is_obj pi) then EmpSp
       else ReflSp (EmpSp,pi) in
     let sp' = refl_sp opvs olvl init sp pi in
     RigidV (k,sp')
-      
+
   | ExpV (k,sp) ->
     let sp' = refl_sp opvs olvl EmpSp sp pi in 
     run_sp (head_value (nth k opvs)) sp'
-      
+
   | TopV (nm,sp,tv) ->
-    TopV (nm, ReflSp (sp,pi), refl_val opvs olvl tv pi)
+    (* We treat top here just like rigid above.  This seems to have
+       fixed some un-evaluated exp vars.  But I'm not 100% sure on
+       this .... *) 
+    let init = if (is_obj pi) then EmpSp
+      else ReflSp (EmpSp,pi) in
+    let sp' = refl_sp opvs olvl init sp pi in
+    TopV (nm, sp', refl_val opvs olvl tv pi)
 
   | LamV (nm,bdy) ->
 
     if (is_obj pi) then v else 
-    
+
       lam_cmplx nm pi (fun vc ->
           refl_val (Ext (opvs,vc)) (olvl+1)
             (bdy (expV olvl)) pi)
 
   | PairV (a,b) ->
-          
+
     if (is_obj pi) then v else 
 
       let a' = refl_val opvs olvl a pi in
@@ -244,7 +256,7 @@ and refl_val opvs olvl v pi =
 
       let acmplx = refl_faces opvs olvl a pi in
       let bcmplx vc = refl_val (Ext (opvs,vc)) (olvl+1)
-                          (b (expV olvl)) pi in 
+          (b (expV olvl)) pi in 
 
       mk_cell (pi_fib acmplx bcmplx nm pi)
         TypV TypV TypV 
@@ -255,7 +267,7 @@ and refl_val opvs olvl v pi =
 
       let afib = refl_val opvs olvl a pi in
       let bfib vc = refl_val (Ext (opvs, vc)) (olvl+1)
-             (b (expV olvl)) pi in
+          (b (expV olvl)) pi in
 
       mk_cell (sig_fib afib bfib nm pi)
         TypV TypV TypV
@@ -263,7 +275,7 @@ and refl_val opvs olvl v pi =
   | TypV ->
 
     if (is_obj pi) then v else 
-      mk_cell (typ_fib pi)
+      mk_cell (univ_fib pi)
         TypV TypV TypV
 
 and refl_sp opvs olvl init sp pi = 

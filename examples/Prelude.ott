@@ -12,42 +12,6 @@ def refl (A : U) (a : A) : Eq A a a
     | lf { p }
     ]
 
-def PathOver (A : U) (B : A → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₀ : B a₀) (b₁ : B a₁) : U
-  = fst ([ B
-         @ nd { y } (nd (lf { x }) (lf tt)) 
-         | lf { p }
-         ] a₀ a₁ p) b₀ b₁
-
-def PathOverOver (A : U) (B : A → U) (C : (a : A) → B a → U) 
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
-    (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
-  = fst ([ C
-         @ nd { y } (nd (lf { x }) (lf tt)) 
-         | lf { p }
-         ] a₀ a₁ p b₀ b₁ q) c₀ c₁ 
-
-def transport (A : U) (B : A → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₀ : B a₀) : B a₁
-  = fst snd ([ B
-             @ nd { y } (nd (lf { x }) (lf tt)) 
-             | lf { p }
-             ] a₀ a₁ p) b₀
-
-def untransport (A : U) (B : A → U)
-    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-    (b₁ : B a₁) : B a₀
-  = fst snd snd snd snd  ([ B
-             @ nd { y } (nd (lf { x }) (lf tt)) 
-             | lf { p }
-             ] a₀ a₁ p) b₁
-
-def is-contr (A : U) : U 
-  = (a₀ : A) × (a₁ : A) → Eq A a₀ a₁
-
 def is-equiv (A : U) (B : U) (f : A → B) : U
   = (g : B → A) ×
     (h : B → A) ×
@@ -63,6 +27,56 @@ def mk-eqv (A : U) (B : U)
     (r : (b : B) → Eq B (f (g b)) b) : Equiv A B
   = f , g , g , l , r 
 
+
+#
+#  PathOver and transport
+#
+
+def PathOver (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) : U
+  = fst ([ B
+         @ nd { y } (nd (lf { x }) (lf tt)) 
+         | lf { p }
+         ] a₀ a₁ p) b₀ b₁
+
+def transport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) : B a₁
+  = fst snd ([ B
+             @ nd { y } (nd (lf { x }) (lf tt)) 
+             | lf { p }
+             ] a₀ a₁ p) b₀
+
+def transport-po (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀)
+  : PathOver A B a₀ a₁ p b₀ (transport A B a₀ a₁ p b₀)
+  = fst snd snd
+      ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
+           | lf { p }
+           ] a₀ a₁ p) b₀
+
+def untransport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₁ : B a₁) : B a₀
+  = fst snd snd snd snd  ([ B
+             @ nd { y } (nd (lf { x }) (lf tt)) 
+             | lf { p }
+             ] a₀ a₁ p) b₁
+
+#
+#  Contractibility and Propositions
+#
+
+def is-contr (A : U) : U 
+  = (a₀ : A) × (a₁ : A) → Eq A a₀ a₁
+
+def is-prop (A : U) : U
+  = (a₀ : A) → (a₁ : A) → is-contr (Eq A a₀ a₁)
+
+def has-all-paths (A : U) : U
+  = (a₀ : A) → (a₁ : A) → Eq A a₀ a₁ 
 
 #
 #  A Proof of J 
@@ -90,9 +104,10 @@ def J (A : U) (a₀ : A) (P : ((a : A) × (Eq A a₀ a)) → U)
           = untransport ((a : A) × (Eq A a₀ a)) P
               (ucomp A a₀ , ufill A a₀) (a₀ , refl A a₀)
               (upth A a₀ a₀ (refl A a₀)) d in
-    transport ((a : A) × (Eq A a₀ a)) P
-      (ucomp A a₀ , ufill A a₀) (a₁ , p)
-      (upth A a₀ a₁ p) u
+    let t : P (a₁ , p)
+          = transport ((a : A) × (Eq A a₀ a)) P
+              (ucomp A a₀ , ufill A a₀) (a₁ , p)
+              (upth A a₀ a₁ p) u in t 
   
 #
 #  Some groupoid operations
@@ -119,6 +134,41 @@ def ap (A : U) (B : U) (f : A → B)
         | lf { p }
         ] a₀ a₁ p 
 
+#
+#  Some lemmas which make use of J 
+#
+
+def contr-has-all-paths (A : U) (a-contr : is-contr A)
+  : has-all-paths A
+  = λ a₀ → λ a₁ →
+      (let ctr : A = fst a-contr in
+       let a₀-ctr : Eq A a₀ ctr
+                  = inv A ctr a₀ (snd a-contr a₀) in
+       let ctr-a₁ : Eq A ctr a₁
+                  = snd a-contr a₁ in 
+       pth-comp A a₀ ctr a₁ a₀-ctr ctr-a₁)
+
+def has-all-paths-over (A : U) (B : A → U)
+    (hap : (a : A) → has-all-paths (B a))
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) 
+  : PathOver A B a₀ a₁ p b₀ b₁
+  = let tb : B a₁ = transport A B a₀ a₁ p b₀ in
+    let fb : PathOver A B a₀ a₁ p b₀ tb
+           = transport-po A B a₀ a₁ p b₀ in 
+    let pth : Eq (B a₁) tb b₁ = hap a₁ tb b₁ in
+    transport (B a₁) (PathOver A B a₀ a₁ p b₀)
+      tb b₁ pth fb 
+
+def contr-has-all-paths-over (A : U) (B : A → U)
+    (b-contr : (a : A) → is-contr (B a))
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) 
+  : PathOver A B a₀ a₁ p b₀ b₁
+  = has-all-paths-over A B
+      (λ a → contr-has-all-paths (B a) (b-contr a))
+      a₀ a₁ p b₀ b₁
+      
 #
 #  Preservation of contractibility by equivalences
 #
@@ -163,9 +213,10 @@ def Σ-contr (A : U) (B : A → U)
     let ctr : (a : A) × B a
             = (a₀ , b₀) in
     let pth : (p : (a : A) × B a) → Eq ((a : A) × B a) ctr p
-            = λ p → (snd a-contr (fst p) , U)
-    # from here, transport (snd p) along the path, and
-    # then transport the filling path over along the
-    # equality with the result
+            = λ p → (let a₁ : A = fst p in
+                     let b₁ : B a₁ = snd p in
+                     let apth : Eq A a₀ a₁ = snd a-contr a₁ in
+                     (apth , contr-has-all-paths-over A B b-contr
+                               a₀ a₁ apth b₀ b₁))
     in (ctr , pth) 
             
