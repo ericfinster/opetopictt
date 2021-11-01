@@ -7,66 +7,14 @@ import Prelude
 module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   (B : A → U) (C : (a : A) → B a → U) where
 
-  #
-  #  Compositions in the B Fibration
-  #
-  
   def BEqv : Eq U (B a₀) (B a₁)
     = [ B @ nd { y } (nd (lf { x }) (lf tt))
           | lf { p } ] a₀ a₁ p 
-
-  def compB (b₀ : B a₀) : B a₁
-    = fst snd BEqv b₀ 
-
-  def fillB (b₀ : B a₀) : fst BEqv b₀ (compB b₀)
-    = fst snd snd BEqv b₀ 
-
-  def ucompB (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-    : Eq (B a₁) (compB b₀) b₁ 
-    = fst (fst snd snd snd BEqv b₀ b₁ q)
-
-  def ufillB (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-    : PathOver (B a₁) (fst BEqv b₀)
-        (compB b₀) b₁ (ucompB b₀ b₁ q)
-        (fillB b₀) q
-    = snd (fst snd snd snd BEqv b₀ b₁ q)
-
-  def pairPthB (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-    : Eq ((b : B a₁) × (fst BEqv b₀ b)) (compB b₀ , fillB b₀) (b₁ , q)
-    = fst snd snd snd BEqv b₀ b₁ q
-
-  #
-  #  Compositions in the C Fibration
-  #
 
   def CEqv (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
       : Eq U (C a₀ b₀) (C a₁ b₁)
     = [ C @ nd { y } (nd (lf { x }) (lf tt))
           | lf { p } ] a₀ a₁ p b₀ b₁ q 
-
-  def compC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-      (c : C a₀ b₀) : C a₁ b₁
-    = fst snd (CEqv b₀ b₁ q) c 
-
-  def fillC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-      (c : C a₀ b₀) : fst (CEqv b₀ b₁ q) c (compC b₀ b₁ q c)
-    = fst snd snd (CEqv b₀ b₁ q) c
-
-  def ucompC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) (r : fst (CEqv b₀ b₁ q) c₀ c₁)
-    : Eq (C a₁ b₁) (compC b₀ b₁ q c₀) c₁
-    = fst (fst snd snd snd (CEqv b₀ b₁ q) c₀ c₁ r)
-
-  def ufillC (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
-      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) (r : fst (CEqv b₀ b₁ q) c₀ c₁)
-    : PathOver (C a₁ b₁) (fst (CEqv b₀ b₁ q) c₀)
-        (compC b₀ b₁ q c₀) c₁ (ucompC b₀ b₁ q c₀ c₁ r)
-        (fillC b₀ b₁ q c₀) r
-    = snd (fst snd snd snd (CEqv b₀ b₁ q) c₀ c₁ r)
-
-  #
-  #  Compositions in the Σ Fibration
-  #
 
   def ΣP (a : A) : U
     = (b : B a) × C a b
@@ -75,38 +23,38 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     = [ ΣP @ nd { y } (nd (lf { x }) (lf tt))
            | lf { p } ] a₀ a₁ p 
 
-  def compΣ (ρ : ((b : B a₀) × (C a₀ b))) : (b : B a₁) × (C a₁ b)
-    = let b₀ : B a₀ = fst ρ in 
-      let b₁ : B a₁ = compB b₀ in
-      let q : fst BEqv b₀ b₁ = fillB b₀ in
-      let c₀ : C a₀ b₀ = snd ρ in 
-      (b₁ , compC b₀ b₁ q c₀)
+  # def claim (b₀ : B a₀) (c₀ : C a₀ b₀) (b₁ : B a₁) (c₁ : C a₁ b₁)
+  #   : Eq U (fst ΣEqv (b₀ , c₀) (b₁ , c₁)) ((p : fst BEqv b₀ b₁) × fst (CEqv b₀ b₁ p) c₀ c₁)
+  #   = refl U ((p : fst BEqv b₀ b₁) × fst (CEqv b₀ b₁ p) c₀ c₁)
 
-  def fillΣ (ρ : ((b : B a₀) × (C a₀ b))) : fst ΣEqv ρ (compΣ ρ)
-    = let b₀ : B a₀ = fst ρ in 
-      let b₁ : B a₁ = compB b₀ in
-      let q : fst BEqv b₀ b₁ = fillB b₀ in
-      let c₀ : C a₀ b₀ = snd ρ in
-      (q , fillC b₀ b₁ q c₀)
+  def goal-quad (b₀ : B a₀) (c₀ : C a₀ b₀) : U
+    = (bc : (b₁ : B a₁) × (C a₁ b₁)) ×
+          ((p : fst BEqv b₀ (fst bc)) × fst (CEqv b₀ (fst bc) p) c₀ (snd bc))
 
-  # def ucompΣ (ρ₀ : ΣP a₀) (ρ₁ : ΣP a₁) (φ : fst ΣEqv ρ₀ ρ₁)
-  #   : Eq (ΣP a₁) (compΣ ρ₀) ρ₁
-  #   = let b₀ : B a₀ = fst ρ₀ in 
-  #     let b₁ : B a₁ = fst ρ₁ in
-  #     let q : fst BEqv b₀ b₁ = fst φ in
-  #     let c₀ : C a₀ b₀ = snd ρ₀ in
-      
-  #     let cb : B a₁ = compB b₀ in
-  #     let fb : fst BEqv b₀ cb = fillB b₀ in
-      
-  #     let Q : ((b : B a₁) × (fst BEqv b₀ b)) → U
-  #           = λ pr → (c : C a₁ (fst pr)) × fst (CEqv b₀ (fst pr) (snd pr)) c₀ c in
+  def have-quad (b₀ : B a₀) (c₀ : C a₀ b₀) : U
+    = (bq : (b₁ : B a₁) × fst BEqv b₀ b₁) ×
+          ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁)
 
-  #     let blorp : (c : C a₁ b₁) × fst (CEqv b₀ cb fb) c₀ c
+  def quad-eqv (b₀ : B a₀) (c₀ : C a₀ b₀)
+    : Equiv (have-quad b₀ c₀) (goal-quad b₀ c₀)
+    = Σ-diamond (B a₁) (fst BEqv b₀) (C a₁)
+        (λ b₁ → λ q → λ c₁ → fst (CEqv b₀ b₁ q) c₀ c₁)
 
+  def under-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
+    : is-contr ((b₁ : B a₁) × fst BEqv b₀ b₁)
+    = fst snd BEqv b₀
 
+  def over-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
+      (bq : (b₁ : B a₁) × fst BEqv b₀ b₁)
+    : is-contr ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁)
+    = fst snd (CEqv b₀ (fst bq) (snd bq)) c₀
 
-
-
+  def have-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
+    : is-contr (have-quad b₀ c₀)
+    = Σ-contr ((b₁ : B a₁) × fst BEqv b₀ b₁)
+              (λ bq → ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁))
+              (under-contr b₀ c₀)
+              # (λ bq → fst snd (CEqv b₀ (fst bq) (snd bq)) c₀)
+              (over-contr b₀ c₀)
 
 end 
