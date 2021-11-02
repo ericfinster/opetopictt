@@ -38,7 +38,7 @@ and spine =
   | AppSp of spine * value
   | FstSp of spine
   | SndSp of spine
-  | ReflSp of spine * string cmplx 
+  | ReflSp of spine * name* name cmplx 
 
 let varV k = RigidV (k,EmpSp)
 let expV k = ExpV (k,EmpSp) 
@@ -83,7 +83,7 @@ and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
     pf ppf "fst @[%a@]" (pp_spine pp_a a) sp' 
   | SndSp sp' ->
     pf ppf "snd @[%a@]" (pp_spine pp_a a) sp'
-  | ReflSp (sp',pi) ->
+  | ReflSp (sp',_,pi) ->
     let open Opetopes.Idt.IdtConv in
     pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
       (pp_spine pp_a a) sp' (pp_suite ~sep:(any "@;| ")

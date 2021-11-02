@@ -73,14 +73,16 @@ type ctx = {
   bindings      : (name * bound_element) suite ;
   sections      : section_desc suite ; 
   level         : lvl ;
-    
+  shapes        : (name * name cmplx) suite ;
+  
 }
 
 let empty_ctx = {
   global_scope = Emp ;
   bindings = Emp ;
   level = 0 ;
-  sections = Emp; 
+  sections = Emp;
+  shapes = Emp; 
 } 
 
 
@@ -228,9 +230,10 @@ let tcm_eval (t : term) : value tcm =
 let tcm_quote (v : value) (ufld : bool) : term tcm =
   let* gma = tcm_ctx in
   try tcm_ok (quote ufld gma.level v) with
-  | Internal_error _ ->
+  | Internal_error msg ->
     tcm_fail (`InternalError
-                (Fmt.str "Failed to quote: %a" pp_value v))
+                (Fmt.str "@[<v>Failed to quote: %a@,Message: %s@,@]"
+                   pp_value v msg))
 
 let tcm_in_ctx g m _ = m g 
 
@@ -412,19 +415,39 @@ and tcm_infer (e : expr) : (term * value) tcm =
 
   | TypE -> tcm_ok (TypT , TypV)
 
-  | ReflE (u,pi) ->
+  (* TODO: this is ugly, these next two should be combined ... *) 
+  | ReflE (u, First nm) ->
+    let* gma = tcm_ctx in
+    begin match assoc_opt nm gma.shapes with
+      | None -> tcm_fail (`NameNotInScope (Name nm))
+      | Some pi' ->
+        
+        let* (u',ut) = tcm_infer u in
+
+        if (is_obj pi') then tcm_ok (ReflT (u',nm,pi') , ut) else
+
+          let rt = fst_val (refl_val Emp 0 ut nm pi') in
+
+          let* uv = tcm_eval u' in
+          let uc = map_cmplx (face_cmplx (tail_of pi'))
+              ~f:(fun f -> refl_val Emp 0 uv "" f) in 
+
+          tcm_ok (ReflT (u',nm,pi') , app_args rt (labels uc))
+    end
+      
+  | ReflE (u, Second pi) ->
     let* (u',ut) = tcm_infer u in
     let* pi' = tcm_to_cmplx pi in
 
-    if (is_obj pi') then tcm_ok (ReflT (u',pi') , ut) else
+    if (is_obj pi') then tcm_ok (ReflT (u',"",pi') , ut) else
       
-      let rt = fst_val (refl_val Emp 0 ut pi') in
+      let rt = fst_val (refl_val Emp 0 ut "" pi') in
       
       let* uv = tcm_eval u' in
       let uc = map_cmplx (face_cmplx (tail_of pi'))
-          ~f:(fun f -> refl_val Emp 0 uv f) in 
+          ~f:(fun f -> refl_val Emp 0 uv "" f) in 
 
-      tcm_ok (ReflT (u',pi') , app_args rt (labels uc))
+      tcm_ok (ReflT (u',"",pi') , app_args rt (labels uc))
 
   | _ -> tcm_fail (`InferrenceFailed e) 
 
@@ -543,7 +566,18 @@ let rec tcm_check_defns defs =
     tcm_in_ctx gma' (tcm_check_defns ds) 
 
     (* tcm_ok (rs |@> (nm, TermEntry (ftyv,ftmv)))  *)
+
+  | (nm, ShapeEntry (First pi))::ds ->
+    let* pi' = tcm_to_cmplx pi in
+    let* gma = tcm_ctx in 
+    tcm_in_ctx { gma with shapes = gma.shapes |@> (nm, pi') }
+      (tcm_check_defns ds)
       
+  | (nm, ShapeEntry (Second _))::ds ->
+    log_msg (Fmt.str "Skipping already checked shape %s" nm) ;
+    tcm_check_defns ds 
+
+
 and tcm_check_module_contents nm params defns =
   match params with
   | [] ->

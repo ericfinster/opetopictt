@@ -21,7 +21,7 @@ open ValSyntax
 
 let rec id_typ v =
   let arr = arr_cmplx "x" "y" "p" in 
-  fst_val (refl_val Emp 0 v arr)
+  fst_val (refl_val Emp 0 v "arr" arr)
 
 and is_contr tA = val_of (
     let* a = sigma "a" tA in
@@ -94,7 +94,7 @@ and univ_fib o =
               let* a = sigma "a" atyp in
               ret (e <@ a <@ b)
             )))) in 
-
+      
       ret (prod u v)
 
     ) 
@@ -137,18 +137,18 @@ and univ_fib o =
 (*                               Reflexivity                                 *)
 (*****************************************************************************)
 
-and refl_val opvs olvl v pi =
+and refl_val opvs olvl v pi_nm pi =
   match v with
 
   | RigidV (k,sp) ->
 
     let init = if (is_obj pi) then EmpSp
-      else ReflSp (EmpSp,pi) in
-    let sp' = refl_sp opvs olvl init sp pi in
+      else ReflSp (EmpSp,pi_nm,pi) in
+    let sp' = refl_sp opvs olvl init sp pi_nm pi in
     RigidV (k,sp')
 
   | ExpV (k,sp) ->
-    let sp' = refl_sp opvs olvl EmpSp sp pi in 
+    let sp' = refl_sp opvs olvl EmpSp sp pi_nm pi in 
     run_sp (head_value (nth k opvs)) sp'
 
   | TopV (nm,sp,tv) ->
@@ -156,9 +156,9 @@ and refl_val opvs olvl v pi =
        fixed some un-evaluated exp vars.  But I'm not 100% sure on
        this .... *) 
     let init = if (is_obj pi) then EmpSp
-      else ReflSp (EmpSp,pi) in
-    let sp' = refl_sp opvs olvl init sp pi in
-    TopV (nm, sp', refl_val opvs olvl tv pi)
+      else ReflSp (EmpSp,pi_nm,pi) in
+    let sp' = refl_sp opvs olvl init sp pi_nm pi in
+    TopV (nm, sp', refl_val opvs olvl tv pi_nm pi)
 
   | LamV (nm,bdy) ->
 
@@ -166,14 +166,14 @@ and refl_val opvs olvl v pi =
 
       lam_cmplx nm pi (fun vc ->
           refl_val (Ext (opvs,vc)) (olvl+1)
-            (bdy (expV olvl)) pi)
+            (bdy (expV olvl)) pi_nm pi)
 
   | PairV (a,b) ->
 
     if (is_obj pi) then v else 
 
-      let a' = refl_val opvs olvl a pi in
-      let b' = refl_val opvs olvl b pi in
+      let a' = refl_val opvs olvl a pi_nm pi in
+      let b' = refl_val opvs olvl b pi_nm pi in
       PairV (a',b') 
 
   | PiV (nm,a,b) ->
@@ -182,7 +182,7 @@ and refl_val opvs olvl v pi =
 
       let acmplx = refl_faces opvs olvl a pi in
       let bcmplx vc = refl_val (Ext (opvs,vc)) (olvl+1)
-          (b (expV olvl)) pi in 
+          (b (expV olvl)) pi_nm pi in 
 
       mk_cell (pi_fib acmplx bcmplx nm pi)
         TypV TypV TypV 
@@ -191,9 +191,9 @@ and refl_val opvs olvl v pi =
 
     if (is_obj pi) then v else 
 
-      let afib = refl_val opvs olvl a pi in
+      let afib = refl_val opvs olvl a pi_nm pi in
       let bfib vc = refl_val (Ext (opvs, vc)) (olvl+1)
-          (b (expV olvl)) pi in
+          (b (expV olvl)) pi_nm pi in
 
       mk_cell (sig_fib afib bfib nm pi)
         TypV TypV TypV
@@ -204,19 +204,19 @@ and refl_val opvs olvl v pi =
       mk_cell (univ_fib pi)
         TypV TypV TypV
 
-and refl_sp opvs olvl init sp pi = 
+and refl_sp opvs olvl init sp pi_nm pi = 
   match sp with
   | EmpSp -> init
-  | FstSp sp' -> FstSp (refl_sp opvs olvl init sp' pi)
-  | SndSp sp' -> SndSp (refl_sp opvs olvl init sp' pi)
+  | FstSp sp' -> FstSp (refl_sp opvs olvl init sp' pi_nm pi)
+  | SndSp sp' -> SndSp (refl_sp opvs olvl init sp' pi_nm pi)
   | AppSp (sp',arg) -> 
-    let sp'' = refl_sp opvs olvl init sp' pi in
+    let sp'' = refl_sp opvs olvl init sp' pi_nm pi in
     let argc = refl_faces opvs olvl arg pi in
     List.fold (labels argc) ~init:sp''
       ~f:(fun spa arg -> AppSp (spa,arg))
-  | ReflSp (sp',pi') ->
-    let sp'' = refl_sp opvs olvl init sp' pi in
-    ReflSp (sp'',pi')
+  | ReflSp (sp',pi_nm',pi') ->
+    let sp'' = refl_sp opvs olvl init sp' pi_nm pi in
+    ReflSp (sp'',pi_nm',pi')
 
 and run_sp v sp =
   match sp with
@@ -224,14 +224,14 @@ and run_sp v sp =
   | FstSp sp' -> fst_val (run_sp v sp')
   | SndSp sp' -> snd_val (run_sp v sp')
   | AppSp (sp',arg) -> app_val (run_sp v sp') arg
-  | ReflSp (sp',pi) -> refl_val Emp 0 (run_sp v sp') pi 
+  | ReflSp (sp',pi_nm,pi) -> refl_val Emp 0 (run_sp v sp') pi_nm pi 
 
 and refl_faces opvs olvl v pi =
   map_cmplx_with_addr pi
     ~f:(fun _ fa ->
         let face_env = map_suite opvs
             ~f:(fun c -> face_at c fa) in
-        refl_val face_env olvl v (face_at pi fa))
+        refl_val face_env olvl v "" (face_at pi fa))
 
 and mk_cell fib comp fill unique =
   PairV (fib, PairV (comp,PairV (fill,unique)))

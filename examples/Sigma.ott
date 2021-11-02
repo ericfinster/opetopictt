@@ -8,24 +8,65 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   (B : A → U) (C : (a : A) → B a → U) where
 
   def BEqv : Eq U (B a₀) (B a₁)
-    = [ B @ nd { y } (nd (lf { x }) (lf tt))
-          | lf { p } ] a₀ a₁ p 
+    = [ B @ arr ] a₀ a₁ p 
+
+  def BF : B a₀ → B a₁ → U = fst BEqv
 
   def CEqv (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
       : Eq U (C a₀ b₀) (C a₁ b₁)
-    = [ C @ nd { y } (nd (lf { x }) (lf tt))
-          | lf { p } ] a₀ a₁ p b₀ b₁ q 
+    = [ C @ arr ] a₀ a₁ p b₀ b₁ q 
+        
+  def CF (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
+    = fst (CEqv b₀ b₁ q) c₀ c₁ 
 
-  def ΣP (a : A) : U
-    = (b : B a) × C a b
 
-  def ΣEqv : Eq U ((b : B a₀) × (C a₀ b)) ((b : B a₁) × (C a₁ b))
-    = [ ΣP @ nd { y } (nd (lf { x }) (lf tt))
-           | lf { p } ] a₀ a₁ p 
+  module Exists (b₀ : B a₀) (c₀ : C a₀ b₀) where
 
-  # def claim (b₀ : B a₀) (c₀ : C a₀ b₀) (b₁ : B a₁) (c₁ : C a₁ b₁)
-  #   : Eq U (fst ΣEqv (b₀ , c₀) (b₁ , c₁)) ((p : fst BEqv b₀ b₁) × fst (CEqv b₀ b₁ p) c₀ c₁)
-  #   = refl U ((p : fst BEqv b₀ b₁) × fst (CEqv b₀ b₁ p) c₀ c₁)
+    def exists-goal : U
+      = (bc : (b₁ : B a₁) × (C a₁ b₁)) ×
+          ((p : BF b₀ (fst bc)) × CF b₀ (fst bc) p c₀ (snd bc))
+
+    def b₁ : B a₁ = fst fst (fst snd BEqv b₀)
+    def q : BF b₀ b₁ = snd fst (fst snd BEqv b₀)
+    
+    def c₁ : C a₁ b₁ = fst fst (fst snd (CEqv b₀ b₁ q) c₀)
+    def r : CF b₀ b₁ q c₀ c₁ = snd fst (fst snd (CEqv b₀ b₁ q) c₀)
+
+    def comp-exists : exists-goal
+      = ((b₁ , c₁) , (q , r))
+
+    module IsUnique (b₁₁ : B a₁) (q₁ : BF b₀ b₁₁) (c₁₁ : C a₁ b₁₁) (r₁ : CF b₀ b₁₁ q₁ c₀ c₁₁) where
+
+      def ub : Eq (B a₁) b₁ b₁₁
+        = fst (snd (fst snd BEqv b₀) (b₁₁ , q₁))
+
+      def uq : PathOver (B a₁) (BF b₀) b₁ b₁₁ ub q q₁
+        = snd (snd (fst snd BEqv b₀) (b₁₁ , q₁))
+
+      # def uc : PathOver (B a₁) (C a₁) b₁ b₁₁ ub c₁ c₁₁
+      #   = let tc₁ : C a₁ b₁₁ = transport (B a₁) (C a₁) b₁ b₁₁ ub c₁ in
+      #     let tr : CF b₀ b₁₁ q₁ b₀ c₁₁
+      #            =  
+
+          
+      #     let fc₁ : PathOver (B a₁) (C a₁) b₁ b₁₁ ub c₁ tc₁
+      #             = transport-po (B a₁) (C a₁) b₁ b₁₁ ub c₁ in
+          # let e : Eq (C a₁ b₁₁) tc₁ c₁₁
+          #       = 
+
+    end 
+
+  end
+
+
+  # def ΣP (a : A) : U
+  #   = (b : B a) × C a b
+
+  # def ΣEqv : Eq U ((b : B a₀) × (C a₀ b)) ((b : B a₁) × (C a₁ b))
+  #   = [ ΣP @ nd { y } (nd (lf { x }) (lf tt))
+  #          | lf { p } ] a₀ a₁ p 
+
 
   def goal-quad (b₀ : B a₀) (c₀ : C a₀ b₀) : U
     = (bc : (b₁ : B a₁) × (C a₁ b₁)) ×
@@ -49,12 +90,13 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     : is-contr ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁)
     = fst snd (CEqv b₀ (fst bq) (snd bq)) c₀
 
-  def have-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
-    : is-contr (have-quad b₀ c₀)
-    = Σ-contr ((b₁ : B a₁) × fst BEqv b₀ b₁)
-              (λ bq → ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁))
-              (under-contr b₀ c₀)
-              # (λ bq → fst snd (CEqv b₀ (fst bq) (snd bq)) c₀)
-              (over-contr b₀ c₀)
+  # def have-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
+  #   : is-contr (have-quad b₀ c₀)
+  #   = Σ-contr ((b₁ : B a₁) × fst BEqv b₀ b₁)
+  #             (λ bq → ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁))
+  #             (under-contr b₀ c₀)
+  #             (over-contr b₀ c₀)
+
+  # Oh. Because this uses J in the base type, ooh. That might be more problematic....
 
 end 

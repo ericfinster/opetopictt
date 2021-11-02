@@ -8,6 +8,7 @@ open Suite
 open Base
 
 open Opetopes.Idt
+open IdtConv        
 open Opetopes.Complex
 
 (*****************************************************************************)
@@ -83,6 +84,8 @@ type 'a module_desc = {
 and 'a module_entry =
   | ModuleEntry of 'a module_desc
   | TermEntry of 'a * 'a
+  (* This is a bit of a hack here ... *)                  
+  | ShapeEntry of (name tr_expr suite , name cmplx) Either.t 
 
 and 'a entry_map =
   (name * 'a module_entry) suite
@@ -136,7 +139,10 @@ let rec all_qnames prefix emap =
   | Ext (em',(nm,ModuleEntry md)) ->
     let nms = all_qnames prefix em' in
     let mnms = all_qnames (prefix |@> nm) md.entries in
-    append (nms |@> with_prefix prefix (Name nm)) mnms 
+    append (nms |@> with_prefix prefix (Name nm)) mnms
+  | Ext (em',(nm,ShapeEntry _)) ->
+    let nms = all_qnames prefix em' in
+    Ext (nms, with_prefix prefix (Name nm))
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)

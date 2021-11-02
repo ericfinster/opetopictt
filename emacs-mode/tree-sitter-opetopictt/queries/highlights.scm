@@ -6,6 +6,7 @@
 "module" @keyword
 "where" @keyword
 "end" @keyword
+"shape" @keyword
 
 "let"  @keyword
 "in"   @keyword

@@ -35,7 +35,7 @@ type term =
   | SigT of name * term * term
 
   (* Opetopic Reflexivity *)
-  | ReflT of term * string cmplx 
+  | ReflT of term * name * name cmplx 
 
   (* The Universe *) 
   | TypT
@@ -78,7 +78,7 @@ let rec term_eq s t =
       term_eq va vb
     else false
 
-  | (ReflT (a,pi), ReflT (b,rho)) ->
+  | (ReflT (a,_,pi), ReflT (b,_,rho)) ->
     if (term_eq a b) then
       (* ignore namings .. *) 
       cmplx_eq (fun _ _ -> true) pi rho
@@ -140,8 +140,10 @@ let rec term_to_expr nms tm =
       else nm in 
     SigE (nm',tte nms u, tte (Ext (nms,nm')) v)
 
-  | ReflT (a,pi) ->
-    ReflE (tte nms a, of_cmplx pi)
+  | ReflT (a,nm,pi) ->
+    if (String.equal nm "") then 
+      ReflE (tte nms a, Second (of_cmplx pi))
+    else ReflE (tte nms a, First nm)
 
   | TypT -> TypE
 
@@ -196,11 +198,15 @@ let rec pp_term ppf tm =
     pf ppf "(%s : %a)@, \u{d7} %a"
       nm pp_term a pp_term b 
 
-  | ReflT (a,pi) ->
+  | ReflT (a,nm,pi) ->
     let open Opetopes.Idt.IdtConv in
-    pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
-      pp_term a (pp_suite ~sep:(any "@;| ")
-       (Fmt.box (pp_tr_expr Fmt.string))) (of_cmplx pi)
+    if (String.equal nm "") then 
+      pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
+        pp_term a (pp_suite ~sep:(any "@;| ")
+                     (Fmt.box (pp_tr_expr Fmt.string))) (of_cmplx pi)
+    else
+      pf ppf "[ @[%a@] %@ %s ]"
+        pp_term a nm
 
   | TypT -> pf ppf "U"
 

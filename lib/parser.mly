@@ -12,7 +12,7 @@
 %} 
 
 %token MODULE WHERE END 
-%token DEF IMPORT
+%token DEF IMPORT SHAPE
 %token LET COLON EQUAL IN
 %token LAMBDA VBAR 
 %token LPAR RPAR LBR RBR
@@ -80,6 +80,8 @@ named_entry:
   | DEF id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
     { let (ty',tm') = abstract_defn tl ty tm
       in (id, TermEntry (ty',tm')) }
+  | SHAPE id = IDENT EQUAL pi = cmplx(IDENT)
+    { (id, ShapeEntry (First pi)) } 
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
@@ -133,8 +135,10 @@ expr3:
   | SND e = expr3
     { SndE e }
 
+  | LBRKT e = expr AT nm = IDENT RBRKT
+    { ReflE (e, First nm) } 
   | LBRKT e = expr AT pi = cmplx(IDENT) RBRKT
-    { ReflE (e,pi) } 
+    { ReflE (e, Second pi) } 
 
   | LPAR t = expr RPAR
     { t }

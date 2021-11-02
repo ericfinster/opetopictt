@@ -49,6 +49,7 @@ let rec token buf =
   match%sedlex buf with
   
   | "import"     -> IMPORT
+  | "shape"      -> SHAPE
   | "def"        -> DEF 
   | "let"        -> LET
   | "in"         -> IN

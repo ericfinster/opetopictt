@@ -69,7 +69,7 @@
 (defconst opetopictt-mode-tree-sitter-patterns
   [ ;; Keywords
    
-   [ "def" "let" "in" "import" "module" "where" "end" ] @keyword
+   [ "def" "let" "in" "import" "module" "where" "end" "shape" ] @keyword
    [ ":" "=" "(" ")" "," ] @punctuation
    [ "[" "]" "{" "}" "|" "@" "lf" "nd" "tt" ] @punctuation.special
    [ "U" "fst" "snd" ] @constant
@@ -79,6 +79,7 @@
    (def_entry name: (identifier) @function)
    (module_entry name: (module_name) @label)
    (import_stmt name: (identifier) @label)
+   (shape_entry name: (identifier) @function)
    
    (qname) @function
    (identifier) @variable

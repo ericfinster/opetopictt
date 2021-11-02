@@ -54,6 +54,7 @@ module.exports = grammar({
 	_entry: $ => choice(
 	    $.def_entry,
 	    $.module_entry,
+	    $.shape_entry
 	),
 
 	def_entry: $ => seq(
@@ -74,6 +75,13 @@ module.exports = grammar({
 	    field("entries",repeat($._entry)),
 	    'end'
 	),
+
+	shape_entry: $ => seq(
+	    'shape',
+	    field("name",$.identifier),
+	    "=",
+	    field("shape",$.opetope)
+	), 
 
 	//
 	//  Opetopes
@@ -125,6 +133,7 @@ module.exports = grammar({
 	    prec(4, seq('(',$.expression,')')),
 	    prec(4, seq('fst',$.expression)),
 	    prec(4, seq('snd',$.expression)),
+	    prec(4, seq('[',$.expression,'@',$.identifier,']')),
 	    prec(4, seq('[',$.expression,'@',$.opetope,']'))
 	    
 	),

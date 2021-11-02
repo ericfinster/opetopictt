@@ -41,7 +41,7 @@ let rec eval top loc tm =
   | FstT u -> fst_val (ev u)
   | SndT u -> snd_val (ev u)
       
-  | ReflT (u,pi) -> refl_val Emp 0 (ev u) pi
+  | ReflT (u,nm,pi) -> refl_val Emp 0 (ev u) nm pi
       
   | TypT -> TypV
 
@@ -79,7 +79,7 @@ and quote_sp ufld k t sp =
     FstT (qcs t sp')
   | SndSp sp' ->
     SndT (qcs t sp')
-  | ReflSp (sp',pi) ->
-    ReflT (qcs t sp',pi)
+  | ReflSp (sp',pi_nm,pi) ->
+    ReflT (qcs t sp',pi_nm,pi)
 
 

@@ -2,15 +2,29 @@
 #  Prelude.ott - basic lemmas and definitions
 #
 
+# Some basic shapes 
+shape arr = nd { y } (nd (lf { x }) (lf tt)) 
+          | lf { p }
+
+shape simplex = nd { z } (nd (nd { y }
+                   (nd (lf { x }) (lf tt))) (lf tt))
+              | nd { r } (nd (lf { q }) (nd (nd (lf { p })
+                   (nd (lf tt) (lf tt))) (lf tt)))
+              | lf { a }
+
+#
+#  Equality
+#
+
 def Eq (A : U) (a₀ : A) (a₁ : A) : U
-  = fst [ A @ nd { y } (nd (lf { x }) (lf tt)) 
-            | lf { p } ] a₀ a₁
+  = fst [ A @ arr ] a₀ a₁
 
 def refl (A : U) (a : A) : Eq A a a
-  = [ a
-    @ nd { y } (nd (lf { x }) (lf tt)) 
-    | lf { p }
-    ]
+  = [ a @ arr ] 
+
+#
+#  Equivalences 
+#
 
 def is-equiv (A : U) (B : U) (f : A → B) : U
   = (g : B → A) ×
@@ -35,44 +49,32 @@ def mk-eqv (A : U) (B : U)
 def PathOver (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) (b₁ : B a₁) : U
-  = fst ([ B
-         @ nd { y } (nd (lf { x }) (lf tt)) 
-         | lf { p }
-         ] a₀ a₁ p) b₀ b₁
+  = fst ([ B @ arr ] a₀ a₁ p) b₀ b₁
 
 def transport (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀) : B a₁
-  = fst fst (fst snd
-      ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
-           | lf { p }
-           ] a₀ a₁ p) b₀)
+  = fst fst (fst snd ([ B @ arr ] a₀ a₁ p) b₀)
 
 def transport-po (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₀ : B a₀)
   : PathOver A B a₀ a₁ p b₀ (transport A B a₀ a₁ p b₀)
   = snd fst (fst snd 
-      ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
-           | lf { p }
-           ] a₀ a₁ p) b₀)
+      ([ B @ arr ] a₀ a₁ p) b₀)
 
 def untransport (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₁ : B a₁) : B a₀
   = fst fst (snd snd
-      ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
-           | lf { p }
-           ] a₀ a₁ p) b₁)
+      ([ B @ arr ] a₀ a₁ p) b₁)
 
 def untransport-po (A : U) (B : A → U)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     (b₁ : B a₁)
   : PathOver A B a₀ a₁ p (untransport A B a₀ a₁ p b₁) b₁
   = snd fst (snd snd
-      ([ B @ nd { y } (nd (lf { x }) (lf tt)) 
-           | lf { p }
-           ] a₀ a₁ p) b₁)
+      ([ B @ arr ] a₀ a₁ p) b₁)
            
 #
 #  Contractibility and Propositions
@@ -92,20 +94,15 @@ def has-all-paths (A : U) : U
 #
 
 def ucomp (A : U) (a : A) : A
-  = fst fst (fst snd
-      [ A @ nd { y } (nd (lf { x }) (lf tt)) 
-          | lf { p } ] a)
+  = fst fst (fst snd [ A @ arr ] a)
 
 def ufill (A : U) (a : A) : Eq A a (ucomp A a)
-  = snd fst (fst snd
-      [ A @ nd { y } (nd (lf { x }) (lf tt)) 
-          | lf { p } ] a)
+  = snd fst (fst snd [ A @ arr ] a)
           
 def upth (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   : Eq ((a : A) × (Eq A a₀ a)) (ucomp A a₀ , ufill A a₀) (a₁ , p)
   = snd (fst snd
-      [ A @ nd { y } (nd (lf { x }) (lf tt)) 
-          | lf { p } ] a₀) (a₁ , p)
+      [ A @ arr ] a₀) (a₁ , p)
 
 def J (A : U) (a₀ : A) (P : ((a : A) × (Eq A a₀ a)) → U)
     (d : P (a₀ , refl A a₀))
@@ -128,12 +125,7 @@ def pth-comp (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
     (p : Eq A a₀ a₁) (q : Eq A a₁ a₂)
   : Eq A a₀ a₂
   = fst fst (snd
-      [ A @ nd { z } (nd (nd { y }
-               (nd (lf { x }) (lf tt))) (lf tt))
-          | nd { r } (nd (lf { q }) (nd (nd (lf { p })
-               (nd (lf tt) (lf tt))) (lf tt)))
-          | lf { a }
-          ] a₀ a₁ a₂ p q)
+      [ A @ simplex ] a₀ a₁ a₂ p q)
 
 def inv (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   : Eq A a₁ a₀
@@ -142,9 +134,7 @@ def inv (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
 def ap (A : U) (B : U) (f : A → B)
     (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   : Eq B (f a₀) (f a₁)
-  = [ f @ nd { y } (nd (lf { x }) (lf tt)) 
-        | lf { p }
-        ] a₀ a₁ p 
+  = [ f @ arr ] a₀ a₁ p 
 
 #
 #  Some lemmas which make use of J 
