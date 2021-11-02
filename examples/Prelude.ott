@@ -2,15 +2,18 @@
 #  Prelude.ott - basic lemmas and definitions
 #
 
-# Some basic shapes 
-shape arr = nd { y } (nd (lf { x }) (lf tt)) 
-          | lf { p }
+# Some basic shapes
 
-shape simplex = nd { z } (nd (nd { y }
-                   (nd (lf { x }) (lf tt))) (lf tt))
-              | nd { r } (nd (lf { q }) (nd (nd (lf { p })
-                   (nd (lf tt) (lf tt))) (lf tt)))
-              | lf { a }
+shape arr
+  = nd { y } (nd (lf { x }) (lf tt)) 
+  | lf { p }
+
+shape simplex
+  = nd { z } (nd (nd { y }
+      (nd (lf { x }) (lf tt))) (lf tt))
+  | nd { r } (nd (lf { q }) (nd (nd (lf { p })
+      (nd (lf tt) (lf tt))) (lf tt)))
+  | lf { a }
 
 #
 #  Equality
@@ -40,7 +43,6 @@ def mk-eqv (A : U) (B : U)
     (l : (a : A) → Eq A a (g (f a)))
     (r : (b : B) → Eq B (f (g b)) b) : Equiv A B
   = f , g , g , l , r 
-
 
 #
 #  PathOver and transport
@@ -75,7 +77,7 @@ def untransport-po (A : U) (B : A → U)
   : PathOver A B a₀ a₁ p (untransport A B a₀ a₁ p b₁) b₁
   = snd fst (snd snd
       ([ B @ arr ] a₀ a₁ p) b₁)
-           
+
 #
 #  Contractibility and Propositions
 #
@@ -235,4 +237,4 @@ def Σ-diamond (A : U) (B : A → U) (C : A → U)
     let r : (t : T) → Eq T (f (g t)) t = λ t → refl T t in
     mk-eqv S T f g l r
     
-          
+         

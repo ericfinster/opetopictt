@@ -323,8 +323,8 @@ let rec tcm_check (e : expr) (t : value) : term tcm =
     if (not (term_eq expected_nf inferred_nf)) 
     then
       
-      let inf_folded = quote false gma.level inferred in
-      let exp_folded = quote false gma.level expected in 
+      let inf_folded = quote true gma.level inferred in
+      let exp_folded = quote true gma.level expected in 
       let exp_e = term_to_expr (names gma) exp_folded in
       let inf_e = term_to_expr (names gma) inf_folded in
       tcm_fail (`TypeMismatch (e,exp_e,inf_e))

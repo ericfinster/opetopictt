@@ -4,6 +4,23 @@
 
 import Prelude
 
+module DiamondTransport (A : U) (B : A → U) (C : A → U)
+  (D : (a : A) → B a → C a → U) where
+
+  def diamond-transp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₀ : D a₀ b₀ c₀) : D a₁ b₁ c₁
+    = fst fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
+
+  def diamond-untransp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₁ : D a₁ b₁ c₁) : D a₀ b₀ c₀
+    = fst fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
+
+end
+
 module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   (B : A → U) (C : (a : A) → B a → U) where
 
@@ -20,42 +37,69 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
       (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
     = fst (CEqv b₀ b₁ q) c₀ c₁ 
 
-
   module Exists (b₀ : B a₀) (c₀ : C a₀ b₀) where
 
     def exists-goal : U
       = (bc : (b₁ : B a₁) × (C a₁ b₁)) ×
           ((p : BF b₀ (fst bc)) × CF b₀ (fst bc) p c₀ (snd bc))
 
-    def b₁ : B a₁ = fst fst (fst snd BEqv b₀)
-    def q : BF b₀ b₁ = snd fst (fst snd BEqv b₀)
+    def b : B a₁ = fst fst (fst snd BEqv b₀)
+    def q : BF b₀ b = snd fst (fst snd BEqv b₀)
     
-    def c₁ : C a₁ b₁ = fst fst (fst snd (CEqv b₀ b₁ q) c₀)
-    def r : CF b₀ b₁ q c₀ c₁ = snd fst (fst snd (CEqv b₀ b₁ q) c₀)
+    def c : C a₁ b = fst fst (fst snd (CEqv b₀ b q) c₀)
+    def r : CF b₀ b q c₀ c = snd fst (fst snd (CEqv b₀ b q) c₀)
 
     def comp-exists : exists-goal
-      = ((b₁ , c₁) , (q , r))
+      = ((b , c) , (q , r))
 
-    module IsUnique (b₁₁ : B a₁) (q₁ : BF b₀ b₁₁) (c₁₁ : C a₁ b₁₁) (r₁ : CF b₀ b₁₁ q₁ c₀ c₁₁) where
+    module IsUnique (b₁ : B a₁) (c₁ : C a₁ b₁) (q₁ : BF b₀ b₁) (r₁ : CF b₀ b₁ q₁ c₀ c₁) where
 
-      def ub : Eq (B a₁) b₁ b₁₁
-        = fst (snd (fst snd BEqv b₀) (b₁₁ , q₁))
+      def unique-goal : U
+        = Eq exists-goal comp-exists ((b₁ , c₁) , (q₁ , r₁))
 
-      def uq : PathOver (B a₁) (BF b₀) b₁ b₁₁ ub q q₁
-        = snd (snd (fst snd BEqv b₀) (b₁₁ , q₁))
+      def ub : Eq (B a₁) b b₁
+        = fst (snd (fst snd BEqv b₀) (b₁ , q₁))
 
-      # def uc : PathOver (B a₁) (C a₁) b₁ b₁₁ ub c₁ c₁₁
-      #   = let tc₁ : C a₁ b₁₁ = transport (B a₁) (C a₁) b₁ b₁₁ ub c₁ in
-      #     let tr : CF b₀ b₁₁ q₁ b₀ c₁₁
-      #            =  
+      def uq : PathOver (B a₁) (BF b₀) b b₁ ub q q₁
+        = snd (snd (fst snd BEqv b₀) (b₁ , q₁))
 
-          
-      #     let fc₁ : PathOver (B a₁) (C a₁) b₁ b₁₁ ub c₁ tc₁
-      #             = transport-po (B a₁) (C a₁) b₁ b₁₁ ub c₁ in
-          # let e : Eq (C a₁ b₁₁) tc₁ c₁₁
-          #       = 
+      def uc : PathOver (B a₁) (C a₁) b b₁ ub c c₁
+        = let tc₁ : C a₁ b = untransport (B a₁) (C a₁) b b₁ ub c₁ in
+          let fc₁ : PathOver (B a₁) (C a₁) b b₁ ub tc₁ c₁
+                  = untransport-po (B a₁) (C a₁) b b₁ ub c₁ in
+          let tr₁ : CF b₀ b q c₀ tc₁
+                  = diamond-untransp (B a₁) (BF b₀) (C a₁) 
+                      (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+                      b b₁ ub q q₁ uq tc₁ c₁ fc₁ r₁ in
+                      
+          let claim : Eq ((c : C a₁ b) × CF b₀ b q c₀ c) (c , r) (tc₁ , tr₁)
+                    = snd (fst snd (CEqv b₀ b q) c₀) (tc₁ , tr₁) in
+                      
+          untransport (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+            c tc₁ (fst claim) fc₁ 
+
+
+  # def diamond-untransp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  #     (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+  #     (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+  #     (d₁ : D a₁ b₁ c₁) : D a₀ b₀ c₀
+  #   = fst fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
 
     end 
+
+
+
+# module DiamondTransport (A : U) (B : A → U) (C : A → U)
+#   (D : (a : A) → B a → C a → U) where
+
+#   def diamond-transp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+#       (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+#       (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+#       (d₀ : D a₀ b₀ c₀) : D a₁ b₁ c₁
+#     = fst fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
+
+# end
+
 
   end
 
