@@ -117,10 +117,10 @@ module.exports = grammar({
 
 	pair: $ => prec.right(1,seq($.expression,',',$.expression)),
 	
-	let_expr: $ => prec.right(1, seq('let',$.identifier,':',$.expression,
+	let_expr: $ => prec.right(1, seq('let',field("name",$.identifier),':',$.expression,
 		  			 '=',$.expression,'in',$.expression)),
 
-	lam: $ => prec(2, seq($.lambda,$.identifier,$.arrow,$.expression)), 
+	lam: $ => prec(2, seq($.lambda,field("variable",$.identifier),$.arrow,$.expression)), 
 	app: $ => prec.left(3,seq($.expression, $.expression)), 
 
 	fst: $ => prec(4, seq('fst',$.expression)),

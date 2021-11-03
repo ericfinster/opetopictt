@@ -75,6 +75,8 @@
    [ "U" "fst" "snd" ] @constant
 
    (var_declaration variable: (identifier) @variable.parameter)
+   (let_expr name: (identifier) @variable.parameter)
+   (lam variable: (identifier) @variable.parameter)
 
    (\lambda) @punctuation.special
    
@@ -83,6 +85,7 @@
    (import_stmt name: (identifier) @label)
    (shape_entry name: (identifier) @function)
 
+   
    (app \. (expression (identifier) @function))
    
    (qname) @function
