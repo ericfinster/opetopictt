@@ -114,27 +114,39 @@ module.exports = grammar({
 
 	pi_type: $ => prec(2, seq($.pi_head,$.times,$.expression)),
 	sig_type: $ => prec(2, seq($.pi_head,$.arrow,$.expression)),
+
+	pair: $ => prec.right(1,seq($.expression,',',$.expression)),
+	
+	let_expr: $ => prec.right(1, seq('let',$.identifier,':',$.expression,
+		  			 '=',$.expression,'in',$.expression)),
+
+	lam: $ => prec(2, seq($.lambda,$.identifier,$.arrow,$.expression)), 
+	app: $ => prec.left(3,seq($.expression, $.expression)), 
+
+	fst: $ => prec(4, seq('fst',$.expression)),
+	snd: $ => prec(4, seq('snd',$.expression)),
+	refl: $ => prec(4,choice(
+	    seq('[',$.expression,'@',$.identifier,']'),
+	    seq('[',$.expression,'@',$.opetope,']'))),
 	
 	expression: $ => choice(
 
-	    prec.right(1, seq($.expression,',',$.expression)),
-	    prec.right(1, seq('let',$.identifier,':',$.expression,
-		  	'=',$.expression,'in',$.expression)),
+	    $.pair,
+	    $.let_expr,
 	    
-	    prec(2, seq($.lambda,$.identifier,$.arrow,$.expression)),
+	    $.lam,
 	    $.pi_type,
 	    $.sig_type,
 	    
-	    prec.left(3,seq($.expression, $.expression)),
+	    $.app,
 	    
 	    prec(4, 'U'),
 	    prec(4, $.identifier),
 	    prec(4, $.qname),
 	    prec(4, seq('(',$.expression,')')),
-	    prec(4, seq('fst',$.expression)),
-	    prec(4, seq('snd',$.expression)),
-	    prec(4, seq('[',$.expression,'@',$.identifier,']')),
-	    prec(4, seq('[',$.expression,'@',$.opetope,']'))
+	    $.fst,
+	    $.snd,
+	    $.refl
 	    
 	),
 

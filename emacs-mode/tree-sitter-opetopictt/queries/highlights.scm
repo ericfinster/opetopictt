@@ -35,18 +35,15 @@
 (var_declaration
  variable: (identifier) @variable)
 
-(module_entry
-  name: (module_name) @label)
+(def_entry name: (identifier) @function)
+(module_entry name: (module_name) @label)
+(import_stmt name: (identifier) @label)
+(shape_entry name: (identifier) @function)
 
-(import_stmt
-  name: (identifier) @label)
+(app . (expression (identifier) @function))
 
-(def_entry
-  name: (identifier) @function)
-
-((identifier) @function
- (#is-not? local))
-
+(qname) @function
+(identifier) @variable
 (comment) @comment
 
 

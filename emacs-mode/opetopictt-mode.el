@@ -80,6 +80,8 @@
    (module_entry name: (module_name) @label)
    (import_stmt name: (identifier) @label)
    (shape_entry name: (identifier) @function)
+
+   (app \. (expression (identifier) @function))
    
    (qname) @function
    (identifier) @variable

@@ -51,7 +51,6 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     : CF b₀ b₁ q c₀ (CComp b₀ b₁ q c₀)
     = snd fst (fst snd (CEq b₀ b₁ q) c₀)
 
-
   module Exists (σ₀ : (b : B a₀) → C a₀ b) where
 
     def exists-goal : U
@@ -74,7 +73,10 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
         diamond-transp (B a₀) (λ b₂ → BF b₂ b₁) (C a₀)
           (λ b₂ → λ q₂ → λ c₂ → CF b₂ b₁ q₂ c₂ (σ b₁))
           lb₁ b₀ (BULift b₀ b₁ q) wb₁ q (BUWit b₀ b₁ q)
-          (σ₀ lb₁) (σ₀ b₀) ([ σ₀ @ arr ] lb₁ b₀ (BULift b₀ b₁ q)) claim 
+          (σ₀ lb₁) (σ₀ b₀) ([ σ₀ @ arr ] lb₁ b₀ (BULift b₀ b₁ q)) claim
+
+    def comp-exists : exists-goal
+      = (σ , ω) 
 
   end
   
