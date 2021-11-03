@@ -237,4 +237,45 @@ def Σ-diamond (A : U) (B : A → U) (C : A → U)
     let r : (t : T) → Eq T (f (g t)) t = λ t → refl T t in
     mk-eqv S T f g l r
     
-         
+#
+#  Diamond Transport - Extremely Useful for defining Kan operations
+#
+
+module DiamondTransport (A : U) (B : A → U) (C : A → U)
+  (D : (a : A) → B a → C a → U) where
+
+  def diamond-fib (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : PathOver A C a₀ a₁ p c₀ c₁)
+      (d₀ : D a₀ b₀ c₀) (d₁ : D a₁ b₁ c₁) : U
+    = fst ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀ d₁ 
+
+  def diamond-transp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₀ : D a₀ b₀ c₀) : D a₁ b₁ c₁
+    = fst fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
+
+  def diamond-transp-po (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₀ : D a₀ b₀ c₀)
+    : diamond-fib a₀ a₁ p b₀ b₁ q c₀ c₁ r d₀
+        (diamond-transp a₀ a₁ p b₀ b₁ q c₀ c₁ r d₀)
+    = snd fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
+
+  def diamond-untransp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₁ : D a₁ b₁ c₁) : D a₀ b₀ c₀
+    = fst fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
+
+  def diamond-untransp-po (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₁ : D a₁ b₁ c₁)
+    : diamond-fib a₀ a₁ p b₀ b₁ q c₀ c₁ r 
+        (diamond-untransp a₀ a₁ p b₀ b₁ q c₀ c₁ r d₁) d₁
+    = snd fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
+    
+end

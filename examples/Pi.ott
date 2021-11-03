@@ -25,6 +25,16 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   def BWit (b₁ : B a₁) : BF (BLift b₁) b₁
     = snd fst (snd snd BEq b₁)
 
+  def BULift (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+    : Eq (B a₀) (BLift b₁) b₀ 
+    = fst (snd (snd snd BEq b₁) (b₀ , q))
+
+  def BUWit (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+    : PathOver (B a₀) (λ b → BF b b₁)
+        (BLift b₁) b₀ (BULift b₀ b₁ q)
+        (BWit b₁) q
+    = snd (snd (snd snd BEq b₁) (b₀ , q))
+
   def CEq (b₀ : B a₀) (b₁ : B a₁) (q : fst BEq b₀ b₁)
       : Eq U (C a₀ b₀) (C a₁ b₁)
     = [ C @ arr ] a₀ a₁ p b₀ b₁ q 
@@ -61,9 +71,10 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
         let wb₁ : BF lb₁ b₁ = BWit b₁ in 
         let claim : CF lb₁ b₁ wb₁ (σ₀ lb₁) (σ b₁)
           = CFill lb₁ b₁ wb₁ (σ₀ lb₁) in
-        b₀
-        # and now the result is a diamond transport in the
-        # three differing arguments ...
+        diamond-transp (B a₀) (λ b₂ → BF b₂ b₁) (C a₀)
+          (λ b₂ → λ q₂ → λ c₂ → CF b₂ b₁ q₂ c₂ (σ b₁))
+          lb₁ b₀ (BULift b₀ b₁ q) wb₁ q (BUWit b₀ b₁ q)
+          (σ₀ lb₁) (σ₀ b₀) ([ σ₀ @ arr ] lb₁ b₀ (BULift b₀ b₁ q)) claim 
 
   end
   
