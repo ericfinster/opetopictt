@@ -75,6 +75,8 @@
    [ "U" "fst" "snd" ] @constant
 
    (var_declaration variable: (identifier) @variable.parameter)
+
+   (\lambda) @punctuation.special
    
    (def_entry name: (identifier) @function)
    (module_entry name: (module_name) @label)
@@ -88,19 +90,6 @@
    (comment) @comment
    
   ])
-
-
-;; (var_declaration
-;;  variable: (identifier) @variable)
-
-;; (let_command
-;;  name: (identifier) @function)
-
-;; ((identifier) @function
-;;  (#is-not? local))
-
-;; (comment) @comment
-
 
 ;;;###autoload
 (define-derived-mode opetopictt-mode prog-mode "Opetopictt"
