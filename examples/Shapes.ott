@@ -40,6 +40,14 @@ shape unit-right
   = nd { y } (nd (lf { x }) (lf tt))
   | nd { g } (nd (nd { u } (lf tt)) (nd (nd (lf { f })
       (nd (lf tt) (lf tt))) (lf tt)))
-  | nd { c } (nd (lf { i }) (nd (nd (lf { n }) (lf tt))
+  | nd { c } (nd (lf { s }) (nd (nd (lf { n }) (lf tt))
       (nd (nd (lf tt) (nd (lf tt) (lf tt))) (lf tt))))
+  | lf { p }
+
+shape unit-left
+  = nd { y } (nd (lf { x }) (lf tt))
+  | nd { g } (nd (lf { f }) (nd (nd (nd { u } (lf tt))
+      (nd (lf tt) (lf tt))) (lf tt)))
+  | nd { c } (nd (lf { s }) (nd (lf tt) (nd (nd (nd (lf { n }) (lf tt))
+      (nd (lf tt) (lf tt))) (lf tt))))
   | lf { p }
