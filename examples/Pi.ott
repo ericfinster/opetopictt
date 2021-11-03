@@ -1,0 +1,71 @@
+#
+#  Pi.ott - Kan operations in Pi
+#
+
+import Prelude
+
+module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  (B : A → U) (C : (a : A) → B a → U) where
+
+  def BEq : Eq U (B a₀) (B a₁)
+    = [ B @ arr ] a₀ a₁ p 
+
+  def BF : B a₀ → B a₁ → U
+    = fst BEq
+  
+  def BComp (b₀ : B a₀) : B a₁
+    = fst fst (fst snd BEq b₀)
+
+  def BFill (b₀ : B a₀) : BF b₀ (BComp b₀)
+    = snd fst (fst snd BEq b₀)
+
+  def BLift (b₁ : B a₁) : B a₀
+    = fst fst (snd snd BEq b₁)
+
+  def BWit (b₁ : B a₁) : BF (BLift b₁) b₁
+    = snd fst (snd snd BEq b₁)
+
+  def CEq (b₀ : B a₀) (b₁ : B a₁) (q : fst BEq b₀ b₁)
+      : Eq U (C a₀ b₀) (C a₁ b₁)
+    = [ C @ arr ] a₀ a₁ p b₀ b₁ q 
+        
+  def CF (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
+    = fst (CEq b₀ b₁ q) c₀ c₁ 
+
+  def CComp (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁) (c₀ : C a₀ b₀)
+    : C a₁ b₁
+    = fst fst (fst snd (CEq b₀ b₁ q) c₀)
+
+  def CFill (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁) (c₀ : C a₀ b₀)
+    : CF b₀ b₁ q c₀ (CComp b₀ b₁ q c₀)
+    = snd fst (fst snd (CEq b₀ b₁ q) c₀)
+
+
+  module Exists (σ₀ : (b : B a₀) → C a₀ b) where
+
+    def exists-goal : U
+      = (σ₁ : (b : B a₁) → C a₁ b) ×
+          (b₀ : B a₀) →
+          (b₁ : B a₁) →
+          (q : BF b₀ b₁) →
+          CF b₀ b₁ q (σ₀ b₀) (σ₁ b₁)
+
+    def σ (b₁ : B a₁) : C a₁ b₁
+      = let b₀ : B a₀ = BLift b₁ in
+        CComp b₀ b₁ (BWit b₁) (σ₀ b₀)
+
+    def ω (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁) 
+      : CF b₀ b₁ q (σ₀ b₀) (σ b₁)
+      = let lb₁ : B a₀ = BLift b₁ in
+        let wb₁ : BF lb₁ b₁ = BWit b₁ in 
+        let claim : CF lb₁ b₁ wb₁ (σ₀ lb₁) (σ b₁)
+          = CFill lb₁ b₁ wb₁ (σ₀ lb₁) in
+        b₀
+        # and now the result is a diamond transport in the
+        # three differing arguments ...
+
+  end
+  
+end
+
