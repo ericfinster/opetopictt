@@ -7,11 +7,11 @@ import Prelude
 module DiamondTransport (A : U) (B : A → U) (C : A → U)
   (D : (a : A) → B a → C a → U) where
 
-  def diamond-transp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
-      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
-      (d₀ : D a₀ b₀ c₀) : D a₁ b₁ c₁
-    = fst fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
+  def diamond-fib (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : PathOver A C a₀ a₁ p c₀ c₁)
+      (d₀ : D a₀ b₀ c₀) (d₁ : D a₁ b₁ c₁) : U
+    = fst ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀ d₁ 
 
   def diamond-untransp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
       (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
@@ -19,6 +19,14 @@ module DiamondTransport (A : U) (B : A → U) (C : A → U)
       (d₁ : D a₁ b₁ c₁) : D a₀ b₀ c₀
     = fst fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
 
+  def diamond-untransp-po (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₁ : D a₁ b₁ c₁)
+    : diamond-fib a₀ a₁ p b₀ b₁ q c₀ c₁ r 
+        (diamond-untransp a₀ a₁ p b₀ b₁ q c₀ c₁ r d₁) d₁
+    = snd fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
+    
 end
 
 module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
@@ -63,84 +71,60 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
       def uq : PathOver (B a₁) (BF b₀) b b₁ ub q q₁
         = snd (snd (fst snd BEqv b₀) (b₁ , q₁))
 
+      # A couple intermediate terms
+
+      def tc₁ : C a₁ b = untransport (B a₁) (C a₁) b b₁ ub c₁
+      
+      def fc₁ : PathOver (B a₁) (C a₁) b b₁ ub tc₁ c₁
+        = untransport-po (B a₁) (C a₁) b b₁ ub c₁
+        
+      def tr₁ : CF b₀ b q c₀ tc₁
+        = diamond-untransp (B a₁) (BF b₀) (C a₁) 
+            (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+            b b₁ ub q q₁ uq tc₁ c₁ fc₁ r₁ 
+
+      def fr₁ : diamond-fib (B a₁) (BF b₀) (C a₁)
+                 (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+                 b b₁ ub q q₁ uq tc₁ c₁ fc₁ tr₁ r₁
+        = diamond-untransp-po (B a₁) (BF b₀) (C a₁) 
+            (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+            b b₁ ub q q₁ uq tc₁ c₁ fc₁ r₁ 
+
+      # The above transport data gives us a frame competitor for (c, r)
+      # which is therefore unique
+      def cr-unique : Eq ((c : C a₁ b) × CF b₀ b q c₀ c) (c , r) (tc₁ , tr₁)
+        = snd (fst snd (CEqv b₀ b q) c₀) (tc₁ , tr₁) 
+
+      # Now we have the uniqueness witness for c 
       def uc : PathOver (B a₁) (C a₁) b b₁ ub c c₁
-        = let tc₁ : C a₁ b = untransport (B a₁) (C a₁) b b₁ ub c₁ in
-          let fc₁ : PathOver (B a₁) (C a₁) b b₁ ub tc₁ c₁
-                  = untransport-po (B a₁) (C a₁) b b₁ ub c₁ in
-          let tr₁ : CF b₀ b q c₀ tc₁
-                  = diamond-untransp (B a₁) (BF b₀) (C a₁) 
-                      (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
-                      b b₁ ub q q₁ uq tc₁ c₁ fc₁ r₁ in
-                      
-          let claim : Eq ((c : C a₁ b) × CF b₀ b q c₀ c) (c , r) (tc₁ , tr₁)
-                    = snd (fst snd (CEqv b₀ b q) c₀) (tc₁ , tr₁) in
-                      
-          untransport (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
-            c tc₁ (fst claim) fc₁ 
+        = untransport (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+            c tc₁ (fst cr-unique) fc₁ 
 
+      def uc-po : PathOver (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+                    c tc₁ (fst cr-unique) uc fc₁
+        = untransport-po (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+            c tc₁ (fst cr-unique) fc₁ 
+        
+      def ur-typ : U
+        = diamond-fib (B a₁) (BF b₀) (C a₁)
+            (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+            b b₁ ub q q₁ uq c c₁ uc r r₁
 
-  # def diamond-untransp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-  #     (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
-  #     (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
-  #     (d₁ : D a₁ b₁ c₁) : D a₀ b₀ c₀
-  #   = fst fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
+      # And one last transport gives us the uniqueness of r
+      def ur : ur-typ
+        = diamond-untransp (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+            (CF b₀ b q c₀) (λ x → λ y → λ z →
+              diamond-fib (B a₁) (BF b₀) (C a₁)
+                  (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+                  b b₁ ub q q₁ uq x c₁ y z r₁)
+             c tc₁ (fst cr-unique) uc fc₁ uc-po r tr₁ (snd cr-unique) fr₁
 
+      # Finally, we put it all together
+      def comp-is-unique : unique-goal
+        = ((ub,uc),(uq,ur))
+        
     end 
 
-
-
-# module DiamondTransport (A : U) (B : A → U) (C : A → U)
-#   (D : (a : A) → B a → C a → U) where
-
-#   def diamond-transp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
-#       (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
-#       (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
-#       (d₀ : D a₀ b₀ c₀) : D a₁ b₁ c₁
-#     = fst fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
-
-# end
-
-
   end
-
-
-  # def ΣP (a : A) : U
-  #   = (b : B a) × C a b
-
-  # def ΣEqv : Eq U ((b : B a₀) × (C a₀ b)) ((b : B a₁) × (C a₁ b))
-  #   = [ ΣP @ nd { y } (nd (lf { x }) (lf tt))
-  #          | lf { p } ] a₀ a₁ p 
-
-
-  def goal-quad (b₀ : B a₀) (c₀ : C a₀ b₀) : U
-    = (bc : (b₁ : B a₁) × (C a₁ b₁)) ×
-          ((p : fst BEqv b₀ (fst bc)) × fst (CEqv b₀ (fst bc) p) c₀ (snd bc))
-
-  def have-quad (b₀ : B a₀) (c₀ : C a₀ b₀) : U
-    = (bq : (b₁ : B a₁) × fst BEqv b₀ b₁) ×
-          ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁)
-
-  def quad-eqv (b₀ : B a₀) (c₀ : C a₀ b₀)
-    : Equiv (have-quad b₀ c₀) (goal-quad b₀ c₀)
-    = Σ-diamond (B a₁) (fst BEqv b₀) (C a₁)
-        (λ b₁ → λ q → λ c₁ → fst (CEqv b₀ b₁ q) c₀ c₁)
-
-  def under-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
-    : is-contr ((b₁ : B a₁) × fst BEqv b₀ b₁)
-    = fst snd BEqv b₀
-
-  def over-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
-      (bq : (b₁ : B a₁) × fst BEqv b₀ b₁)
-    : is-contr ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁)
-    = fst snd (CEqv b₀ (fst bq) (snd bq)) c₀
-
-  # def have-contr (b₀ : B a₀) (c₀ : C a₀ b₀)
-  #   : is-contr (have-quad b₀ c₀)
-  #   = Σ-contr ((b₁ : B a₁) × fst BEqv b₀ b₁)
-  #             (λ bq → ((c₁ : C a₁ (fst bq)) × fst (CEqv b₀ (fst bq) (snd bq)) c₀ c₁))
-  #             (under-contr b₀ c₀)
-  #             (over-contr b₀ c₀)
-
-  # Oh. Because this uses J in the base type, ooh. That might be more problematic....
 
 end 
