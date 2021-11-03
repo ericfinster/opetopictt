@@ -4,7 +4,6 @@
 
 import Prelude
 
-
 module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   (B : A → U) (C : (a : A) → B a → U) where
 

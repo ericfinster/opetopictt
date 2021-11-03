@@ -2,18 +2,7 @@
 #  Prelude.ott - basic lemmas and definitions
 #
 
-# Some basic shapes
-
-shape arr
-  = nd { y } (nd (lf { x }) (lf tt)) 
-  | lf { p }
-
-shape simplex
-  = nd { z } (nd (nd { y }
-      (nd (lf { x }) (lf tt))) (lf tt))
-  | nd { r } (nd (lf { q }) (nd (nd (lf { p })
-      (nd (lf tt) (lf tt))) (lf tt)))
-  | lf { a }
+import Shapes
 
 #
 #  Equality

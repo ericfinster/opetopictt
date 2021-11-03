@@ -569,7 +569,8 @@ let rec tcm_check_defns defs =
 
   | (nm, ShapeEntry (First pi))::ds ->
     let* pi' = tcm_to_cmplx pi in
-    let* gma = tcm_ctx in 
+    log_msg (Fmt.str "Defined shape: %s" nm) ; 
+    let* gma = tcm_ctx in
     tcm_in_ctx { gma with shapes = gma.shapes |@> (nm, pi') }
       (tcm_check_defns ds)
       

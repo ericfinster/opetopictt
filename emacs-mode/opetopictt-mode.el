@@ -77,8 +77,7 @@
    (var_declaration variable: (identifier) @variable.parameter)
    (let_expr name: (identifier) @variable.parameter)
    (lam variable: (identifier) @variable.parameter)
-
-   (\lambda) @punctuation.special
+   (\lambda) @variable.parameter
    
    (def_entry name: (identifier) @function)
    (module_entry name: (module_name) @label)

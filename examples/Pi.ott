@@ -78,6 +78,27 @@ module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
     def comp-exists : exists-goal
       = (σ , ω) 
 
+    module IsUnique (σ₁ : (b : B a₁) → C a₁ b)
+      (ω₁ : (b₀ : B a₀) → (b₁ : B a₁) → (q : BF b₀ b₁) →
+            CF b₀ b₁ q (σ₀ b₀) (σ₁ b₁)) where
+
+      def unique-goal : U
+        = Eq exists-goal (σ , ω) (σ₁ , ω₁)
+
+      def uσ (b₁₀ : B a₁) (b₁₁ : B a₁) (q₁ : Eq (B a₁) b₁₀ b₁₁)
+        : PathOver (B a₁) (C a₁) b₁₀ b₁₁ q₁ (σ b₁₀) (σ₁ b₁₁)
+        = let lb₁₀ : B a₀ = BLift b₁₀ in
+          let wb₁₀ : BF lb₁₀ b₁₀ = BWit b₁₀ in
+          let wb₁₁ : BF lb₁₀ b₁₁
+                  = transport (B a₁) (BF lb₁₀) b₁₀ b₁₁ q₁ wb₁₀ in
+          let and-so : CF lb₁₀ b₁₁ wb₁₁ (σ₀ lb₁₀) (σ₁ b₁₁)
+                     = ω₁ lb₁₀ b₁₁ wb₁₁  in 
+          b₁₀
+           
+
+
+    end 
+
   end
   
 end
