@@ -84,6 +84,7 @@ let rec token buf =
   | "infer"      -> INFER
   | "normalize"  -> NORMALIZE
   | "assume"     -> ASSUME
+  | "load"       -> LOAD 
   | ";"          -> ENDCMD 
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)

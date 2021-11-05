@@ -5,6 +5,7 @@
 (*****************************************************************************)
 
 open Opetopictt.Io
+open Opetopictt.Cmd
 open Opetopictt.Eval        
 open Opetopictt.Term
 open Opetopictt.Expr
@@ -24,77 +25,80 @@ let current_context = ref empty_ctx
 (*                              Main Entry Point                             *)
 (*****************************************************************************)
 
+let run_tc tc_action =
+  let gma = ! current_context in 
+  begin try begin match tc_action gma with
+    | Ok res -> Some res
+    | Error err -> Fmt.pr "@,@,%a@,@," pp_error err ; None
+  end
+    with
+    | Internal_error msg -> 
+      Fmt.pr "@,An internal error has occured : @,@,%s@," msg ; 
+      None
+  end
+
 let rec repl_loop _ =
   Fmt.pr "@[#> @]@?" ; 
-  let str = read_line () in
-  try begin match parse_cmd (str ^ ";") with
-    | Quit -> Format.print_flush () ; exit 0
-    | Infer e ->
-      let gma = ! current_context in 
-      begin try begin match tcm_infer e gma with
-        | Ok (_,typv) ->
-          let typt = quote false gma.level typv in 
-          let typ_expr = term_to_expr (names gma) typt in
-          Fmt.pr "Inferred type: @[%a@]@," pp_expr typ_expr ;
-          repl_loop ()
-        | Error err ->
-          Fmt.pr "@,Typing error: @,@,%a@,@," pp_error err ; 
-          repl_loop ()
-      end
-        with
-        | Internal_error msg -> 
-          Fmt.pr "@,An internal error has occured : @,@,%s@," msg ; 
-          repl_loop ()
-      end
-    | Normalize e ->
-      let gma = ! current_context in 
-      begin try begin match tcm_infer e gma with
-        | Ok (tm,_) ->
-          let tmv = eval (top gma) (loc gma) tm in 
-          let tm_nf = quote true gma.level tmv in 
-          let typ_expr = term_to_expr (names gma) tm_nf in
-          Fmt.pr "Normalized expression: @[%a@]@," pp_expr typ_expr ;
-          repl_loop ()
-        | Error err ->
-          Fmt.pr "@,Typing error: @,@,%a@,@," pp_error err ; 
-          repl_loop ()
-      end
-        with
-        | Internal_error msg -> 
-          Fmt.pr "@,An internal error has occured : @,@,%s@," msg ; 
-          repl_loop ()
-      end
-    | Assume tl -> 
-      let gma = ! current_context in
-      let m = tcm_in_tele tl (fun _ _ -> tcm_ctx) in 
-      begin try begin match m gma with
-        | Ok gma' ->
-          current_context := gma' ; 
-          Fmt.pr "Context ok@," ; 
-          repl_loop ()
-        | Error err ->
-          Fmt.pr "@,Typing error: @,@,%a@,@," pp_error err ; 
-          repl_loop ()
-      end
-        with
-        | Internal_error msg -> 
-          Fmt.pr "@,An internal error has occured : @,@,%s@," msg ; 
-          repl_loop ()
-      end
-      
-  end with
-  | Parse_error (Some (line,pos), err) ->
-    Fmt.pr "@[<v>Parse error: %s@,Line: %d, Pos: %d@,@]" err line pos;
-    repl_loop ()
+  match parse_cmd (read_line () ^ ";") with
+
+  | Nop -> repl_loop () 
+
+  | Load fnm ->
+    Format.open_vbox 0 ; 
+    let gma' = check_files (! current_context) [] [fnm ^ ".ott"] in
+    current_context := gma' ;
+    repl_loop () 
+    
+  | Quit -> Format.print_flush () ; exit 0
+
+  | Infer e ->
+    begin match run_tc (tcm_infer e) with
+      | Some (_, typv) ->
+        let gma = ! current_context in 
+        let typt = quote false gma.level typv in 
+        let typ_expr = term_to_expr (names gma) typt in
+        Fmt.pr "Inferred type: @[%a@]@," pp_expr typ_expr ;
+        repl_loop ()
+      | None -> repl_loop ()
+    end
+
+  | Normalize e ->
+    begin match run_tc (tcm_infer e) with
+      | Some (tm,_) ->
+        let gma = ! current_context in 
+        let tmv = eval (top gma) (loc gma) tm in 
+        let tm_nf = quote true gma.level tmv in 
+        let typ_expr = term_to_expr (names gma) tm_nf in
+        Fmt.pr "Normalized expression: @[%a@]@," pp_expr typ_expr ;
+        repl_loop ()
+      | None -> repl_loop ()           
+    end
+
+  | Assume tl ->
+    begin match run_tc (tcm_in_tele tl (fun _ _ -> tcm_ctx)) with
+      | Some gma' -> 
+        current_context := gma' ; 
+        Fmt.pr "Context ok@," ; 
+        repl_loop ()
+      | None -> repl_loop ()
+    end
+
+
+and parse_cmd s =
+  try 
+    let lexbuf = Sedlexing.Utf8.from_string s in
+    let chkpt = Opetopictt.Parser.Incremental.cmd
+        (fst (Sedlexing.lexing_positions lexbuf)) in
+    parse lexbuf chkpt
+  with 
+  | Parse_error (Some (_,pos), err) ->
+    Fmt.pr "@[<v>Parse error: %s@, Pos: %d@,@]" err pos; Nop
   | Parse_error (None, err) ->
-    Fmt.pr "@[<v>Parse error: %s@]" err;
-    repl_loop ()
-  | Lexing_error (Some (line,pos), err) ->
-    Fmt.pr "@[<v>Lexing error: %s@,Line: %d, Pos: %d@,@]" err line pos;
-    repl_loop ()
+    Fmt.pr "@[<v>Parse error: %s@]" err; Nop
+  | Lexing_error (Some (_,pos), err) ->
+    Fmt.pr "@[<v>Lexing error: %s@,Pos: %d@,@]" err pos; Nop
   | Lexing_error (None, err) ->
-    Fmt.pr "@[<v>Lexing error: %s@,@]" err;
-    repl_loop ()
+    Fmt.pr "@[<v>Lexing error: %s@,@]" err; Nop
 
 let () =
   (* initialize the pretty printer *)

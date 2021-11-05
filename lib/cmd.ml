@@ -8,8 +8,9 @@ open Expr
 open Syntax 
   
 type cmd =
-  | Quit 
+  | Quit
+  | Nop 
   | Infer of expr
   | Normalize of expr
   | Assume of expr tele
-
+  | Load of name 

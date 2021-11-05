@@ -3,7 +3,8 @@
 #
 
 shape arr
-  = nd { y } (nd (lf { x }) (lf tt)) | lf { p }
+  = nd { y } (nd (lf { x }) (lf tt))
+  | lf { p }
 
 shape drop
   = lf { x }

@@ -29,7 +29,7 @@
 %start prog
 %type <string list * (string * Expr.expr Syntax.module_entry) list> prog
 
-%token QUIT ENDCMD
+%token QUIT ENDCMD LOAD
 %token INFER ASSUME NORMALIZE
 
 %start cmd
@@ -80,6 +80,8 @@ cmd:
     { Assume tl }
   | NORMALIZE e = expr ENDCMD
     { Normalize e } 
+  | LOAD fnm = IDENT ENDCMD
+    { Load fnm } 
 
 prog:
   | EOF
