@@ -4,6 +4,13 @@
 (*                                                                           *)
 (*****************************************************************************)
 
+open Expr
+
+type cmd =
+  | Quit 
+  | Infer of expr
+  | Normalize of expr 
+
 (* open Base
  * open Expr
  * open Term

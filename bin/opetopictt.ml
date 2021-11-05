@@ -16,7 +16,7 @@ open Opetopictt.Typecheck
 (*                                  Options                                  *)
 (*****************************************************************************)
     
-let usage = "catt [options] [file]"
+let usage = "opetopictt [options] [file]"
 
 let spec_list = []
 

@@ -79,6 +79,11 @@ let rec token buf =
   | "fst"        -> FST
   | "snd"        -> SND
 
+  (* tokens for commands *)
+  | "quit"       -> QUIT
+  | "infer"      -> INFER
+  | ";"          -> ENDCMD 
+
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
   | module_name , '.' ->
     let mndot = Sedlexing.Utf8.lexeme buf in

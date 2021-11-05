@@ -1,9 +1,10 @@
 %{
 
+    open Cmd 
     open Expr
     open Suite
     open Syntax
-
+       
     let abstract_defn tl ty tm =
       fold_right tl (ty,tm)
 	(fun (nm,ty) (ty',tm') ->
@@ -27,6 +28,12 @@
 
 %start prog
 %type <string list * (string * Expr.expr Syntax.module_entry) list> prog
+
+%token QUIT ENDCMD
+%token INFER 
+
+%start cmd
+%type <Cmd.cmd> cmd 
 
 %%
 
@@ -63,6 +70,12 @@ tr_expr(V):
 cmplx(X):
   | c = non_empty_suite(tr_expr(X),VBAR) 
     { c } 
+
+cmd:
+  | QUIT
+    { Quit } 
+  | INFER e = expr ENDCMD
+    { Infer e } 
 
 prog:
   | EOF

@@ -39,17 +39,48 @@ and has_all_paths tA = val_of (
 (*                         Implementation of Sigma                           *)
 (*****************************************************************************)
 
-and sig_fib afib bfib nm pi = val_of (
+(* 
+ * aeq is a cell in the universe of shape pi
+ * beq is a fibration over that of the same shape
+ *)
+
+and sig_fib aeq beq nm pi = val_of (
 
     let* pc = lamc nm (tail_of pi) in
     let fstc = map_cmplx pc ~f:fst_val in
-    let atyp = appc (fst_val afib) fstc in
+    let atyp = appc (fst_val aeq) fstc in
     let* afst = sigma (nm ^ head_value pi) atyp in
     let sndc = map_cmplx pc ~f:snd_val in
-    let bres = fst_val (bfib (Adjoin (fstc, Lf afst))) in
+    let bres = fst_val (beq (Adjoin (fstc, Lf afst))) in
     ret (appc bres sndc)
 
   )
+        
+and sig_kan aeq beq _ pi = 
+  match get_cmplx_opt pi with
+  | Obj _ -> raise (Internal_error "Sigma kan on object")
+  | Arr (snm,_,_) -> val_of (
+
+      (* so, ab is the incoming pair ... *) 
+      let* ab = lam snm in
+      
+      let a0 = fst_val ab in
+      let b0 = snd_val ab in 
+
+      let a_out_cont = fst_val (snd_val aeq) <@ a0 in
+      
+      let a = fst_val (fst_val a_out_cont) in
+      let p = snd_val (fst_val a_out_cont) in
+
+      let b_out_contr = fst_val (snd_val (beq (arr_cmplx a0 a p))) <@ b0 in 
+
+      let b = fst_val (fst_val b_out_contr) in
+      let q = snd_val (fst_val b_out_contr) in
+
+      ret (PairV (PairV (a, b), PairV (p, q)))
+      
+    )
+  | _ -> raise (Internal_error "higher sigma kan ops unimplemented")
 
 (*****************************************************************************)
 (*                           Implementation of Pi                            *)

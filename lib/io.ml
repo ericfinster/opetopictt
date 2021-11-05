@@ -66,6 +66,11 @@ let parse_file f =
     pr "Lexing error: %s@," err;
     exit (-1)
 
+let parse_cmd s =
+  let lexbuf = Sedlexing.Utf8.from_string s in
+  let chkpt = Parser.Incremental.cmd (fst (Sedlexing.lexing_positions lexbuf)) in
+  parse lexbuf chkpt
+
 let rec check_files ctx checked to_check =
   let open Typecheck in
   let open Syntax in
