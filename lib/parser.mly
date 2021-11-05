@@ -30,7 +30,7 @@
 %type <string list * (string * Expr.expr Syntax.module_entry) list> prog
 
 %token QUIT ENDCMD
-%token INFER 
+%token INFER ASSUME NORMALIZE
 
 %start cmd
 %type <Cmd.cmd> cmd 
@@ -75,7 +75,11 @@ cmd:
   | QUIT
     { Quit } 
   | INFER e = expr ENDCMD
-    { Infer e } 
+    { Infer e }
+  | ASSUME tl = tele ENDCMD
+    { Assume tl }
+  | NORMALIZE e = expr ENDCMD
+    { Normalize e } 
 
 prog:
   | EOF

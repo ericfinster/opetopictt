@@ -82,6 +82,8 @@ let rec token buf =
   (* tokens for commands *)
   | "quit"       -> QUIT
   | "infer"      -> INFER
+  | "normalize"  -> NORMALIZE
+  | "assume"     -> ASSUME
   | ";"          -> ENDCMD 
 
   | ident -> IDENT (Sedlexing.Utf8.lexeme buf)
