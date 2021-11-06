@@ -45,7 +45,7 @@ let rec repl_loop _ =
 
   | Load fnm ->
     Format.open_vbox 0 ; 
-    let gma' = check_files (! current_context) [] [fnm ^ ".ott"] in
+    let gma' = check_files empty_ctx [] [fnm ^ ".ott"] in
     current_context := gma' ;
     repl_loop () 
     
@@ -57,7 +57,7 @@ let rec repl_loop _ =
         let gma = ! current_context in 
         let typt = quote false gma.level typv in 
         let typ_expr = term_to_expr (names gma) typt in
-        Fmt.pr "Inferred type: @[%a@]@," pp_expr typ_expr ;
+        Fmt.pr "@[%a@]@," pp_expr typ_expr ;
         repl_loop ()
       | None -> repl_loop ()
     end
@@ -69,7 +69,7 @@ let rec repl_loop _ =
         let tmv = eval (top gma) (loc gma) tm in 
         let tm_nf = quote true gma.level tmv in 
         let typ_expr = term_to_expr (names gma) tm_nf in
-        Fmt.pr "Normalized expression: @[%a@]@," pp_expr typ_expr ;
+        Fmt.pr "@[%a@]@," pp_expr typ_expr ;
         repl_loop ()
       | None -> repl_loop ()           
     end

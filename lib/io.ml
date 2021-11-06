@@ -80,12 +80,12 @@ let rec check_files ctx checked to_check =
           then None
           else Some fnm) imprts in
     let ctx' = check_files ctx checked imports_to_check in 
-    pr "-----------------@,";
-    pr "Processing input file: %s@," f;
+    (* pr "-----------------@,"; *)
+    pr "Processing module: %s@," f;
     (* let mname = Filename.basename (Filename.remove_extension f) in *)
     try begin match tcm_check_defns defs ctx' with
       | Ok ctx'' -> 
-        pr "----------------@,Success!@,";
+        (* pr "----------------@,Success!@,"; *)
         check_files ctx'' (f::checked) fs
           
       | Error err ->

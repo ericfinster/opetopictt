@@ -501,7 +501,7 @@ let rec tcm_check_defns defs =
         } in 
     
     Fmt.pr "----------------@,";
-    Fmt.pr "Module %s complete.@," nm; 
+    Fmt.pr "Module %s complete.@," nm;
 
     tcm_in_ctx gma''' 
       (tcm_check_defns ds)
@@ -569,13 +569,13 @@ let rec tcm_check_defns defs =
 
   | (nm, ShapeEntry (First pi))::ds ->
     let* pi' = tcm_to_cmplx pi in
-    log_msg (Fmt.str "Defined shape: %s" nm) ; 
+    (* log_msg (Fmt.str "Defined shape: %s" nm) ;  *)
     let* gma = tcm_ctx in
     tcm_in_ctx { gma with shapes = gma.shapes |@> (nm, pi') }
       (tcm_check_defns ds)
       
-  | (nm, ShapeEntry (Second _))::ds ->
-    log_msg (Fmt.str "Skipping already checked shape %s" nm) ;
+  | (_, ShapeEntry (Second _))::ds ->
+    (* log_msg (Fmt.str "Skipping already checked shape %s" nm) ; *)
     tcm_check_defns ds 
 
 
