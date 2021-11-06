@@ -258,8 +258,10 @@ and run_sp v sp =
   | ReflSp (sp',pi_nm,pi) -> refl_val Emp 0 (run_sp v sp') pi_nm pi 
 
 and refl_faces opvs olvl v pi =
+  (* let dim = dim_cmplx pi in  *)
   map_cmplx_with_addr pi
     ~f:(fun _ fa ->
+        (* if (dim = fst fa) then v else  *)
         let face_env = map_suite opvs
             ~f:(fun c -> face_at c fa) in
         refl_val face_env olvl v "" (face_at pi fa))
