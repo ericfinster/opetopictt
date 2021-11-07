@@ -424,13 +424,13 @@ and tcm_infer (e : expr) : (term * value) tcm =
         
         let* (u',ut) = tcm_infer u in
 
-        if (is_obj pi') then tcm_ok (ReflT (u',nm,pi') , ut) else
+        if (is_obj pi') then tcm_fail (`InternalError "refl obj") else
 
           let rt = fst_val (refl_val Emp 0 ut nm pi') in
 
           let* uv = tcm_eval u' in
           let uc = map_cmplx (face_cmplx (tail_of pi'))
-              ~f:(fun f -> refl_val Emp 0 uv "" f) in 
+              ~f:(fun f -> if (is_obj f) then uv else refl_val Emp 0 uv "" f) in 
 
           tcm_ok (ReflT (u',nm,pi') , app_args rt (labels uc))
     end
@@ -439,13 +439,13 @@ and tcm_infer (e : expr) : (term * value) tcm =
     let* (u',ut) = tcm_infer u in
     let* pi' = tcm_to_cmplx pi in
 
-    if (is_obj pi') then tcm_ok (ReflT (u',"",pi') , ut) else
+    if (is_obj pi') then tcm_fail (`InternalError "refl obj")  else
       
       let rt = fst_val (refl_val Emp 0 ut "" pi') in
       
       let* uv = tcm_eval u' in
       let uc = map_cmplx (face_cmplx (tail_of pi'))
-          ~f:(fun f -> refl_val Emp 0 uv "" f) in 
+          ~f:(fun f -> if (is_obj f) then uv else refl_val Emp 0 uv "" f) in 
 
       tcm_ok (ReflT (u',"",pi') , app_args rt (labels uc))
 

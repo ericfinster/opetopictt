@@ -92,8 +92,7 @@ def ufill (A : U) (a : A) : Eq A a (ucomp A a)
           
 def upth (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
   : Eq ((a : A) × (Eq A a₀ a)) (ucomp A a₀ , ufill A a₀) (a₁ , p)
-  = snd (fst snd
-      [ A @ arr ] a₀) (a₁ , p)
+  = snd (fst snd [ A @ arr ] a₀) (a₁ , p)
 
 def J (A : U) (a₀ : A) (P : ((a : A) × (Eq A a₀ a)) → U)
     (d : P (a₀ , refl A a₀))

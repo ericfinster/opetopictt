@@ -267,7 +267,7 @@ let rec do_pis nl cm b =
    fibration b *)
 let rec pi_cmplx (nm : name) (cnms : name cmplx)
     (a : value cmplx) (b : value cmplx -> value) : value =
-  
+  if (is_obj a) then raise (Internal_error "obj in pi cmplx") else 
   match (a,cnms) with
   | (Base n , Base nms) ->
 

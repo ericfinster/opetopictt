@@ -12,7 +12,8 @@ open Opetopictt.Expr
 open Opetopictt.Lexer
 open Opetopictt.Syntax
 open Opetopictt.Typecheck
-       
+open Opetopictt.Suite       
+
 (*****************************************************************************)
 (*                                  Options                                  *)
 (*****************************************************************************)
@@ -67,7 +68,8 @@ let rec repl_loop _ =
       | Some (tm,_) ->
         let gma = ! current_context in 
         let tmv = eval (top gma) (loc gma) tm in 
-        let tm_nf = quote true gma.level tmv in 
+        let tm_nf = quote true gma.level tmv in
+        (* Fmt.pr "@[%a@]@," pp_term tm_nf ; *)
         let typ_expr = term_to_expr (names gma) tm_nf in
         Fmt.pr "@[%a@]@," pp_expr typ_expr ;
         repl_loop ()
@@ -83,6 +85,37 @@ let rec repl_loop _ =
       | None -> repl_loop ()
     end
 
+  | Let (id,None,tm) ->
+    begin match run_tc (tcm_infer tm) with
+      | Some (tm',ty) ->
+        let gma = ! current_context in 
+        let tmv = eval (top gma) (loc gma) tm' in
+        let gma' = { gma with
+                     bindings = gma.bindings |@>
+                                (id,BoundName (ty,tmv)) } in 
+        current_context := gma' ; 
+        repl_loop ()
+      | None -> repl_loop ()           
+    end
+
+  | Let (id,Some ty,tm) ->
+    let m =
+      let* ty' = tcm_check ty TypV in
+      let* tyv = tcm_eval ty' in 
+      let* tm' = tcm_check tm tyv in
+      tcm_ok (tyv,tm') in
+    
+    begin match run_tc m with
+      | Some (tyv,tm') ->
+        let gma = ! current_context in 
+        let tmv = eval (top gma) (loc gma) tm' in
+        let gma' = { gma with
+                     bindings = gma.bindings
+                                |@> (id,BoundName (tyv,tmv)) }  in
+        current_context := gma' ; 
+        repl_loop ()
+      | None -> repl_loop ()           
+    end
 
 and parse_cmd s =
   try 

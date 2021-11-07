@@ -81,7 +81,11 @@ cmd:
   | NORMALIZE e = expr ENDCMD
     { Normalize e } 
   | LOAD fnm = IDENT ENDCMD
-    { Load fnm } 
+    { Load fnm }
+  | LET id = IDENT EQUAL tm = expr ENDCMD
+    { Let (id,None,tm) }
+  | LET id = IDENT COLON ty = expr EQUAL tm = expr ENDCMD
+    { Let (id,Some ty,tm) } 
 
 prog:
   | EOF

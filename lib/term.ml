@@ -36,6 +36,7 @@ type term =
 
   (* Opetopic Reflexivity *)
   | ReflT of term * name * name cmplx 
+  | ExpT of idx 
 
   (* The Universe *) 
   | TypT
@@ -144,6 +145,7 @@ let rec term_to_expr nms tm =
     if (String.equal nm "") then 
       ReflE (tte nms a, Second (of_cmplx pi))
     else ReflE (tte nms a, First nm)
+  | ExpT idx -> ExpE idx 
 
   | TypT -> TypE
 
@@ -207,6 +209,7 @@ let rec pp_term ppf tm =
     else
       pf ppf "[ @[%a@] %@ %s ]"
         pp_term a nm
+  | ExpT idx -> pf ppf "*exp* %d" idx 
 
   | TypT -> pf ppf "U"
 

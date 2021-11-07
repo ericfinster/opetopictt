@@ -38,6 +38,7 @@ type expr =
 
   (* Opetopic Reflexivity *) 
   | ReflE of expr * (name , name tr_expr suite) Either.t 
+  | ExpE of idx 
 
   (* The Universe *) 
   | TypE
@@ -108,7 +109,8 @@ let rec pp_expr ppf expr =
   | ReflE (a,Second pi) ->
     pf ppf "[ %a @[<v>%@ %a@] ]"
       pp_expr a (pp_suite ~sep:(any "@;| ")
-                   (Fmt.box (pp_tr_expr Fmt.string))) pi 
+                   (Fmt.box (pp_tr_expr Fmt.string))) pi
+  | ExpE idx -> pf ppf "*exp* %d" idx 
 
   | TypE -> pf ppf "U"
 

@@ -42,7 +42,8 @@ let rec eval top loc tm =
   | SndT u -> snd_val (ev u)
       
   | ReflT (u,nm,pi) -> refl_val Emp 0 (ev u) nm pi
-      
+  | ExpT _ -> raise (Internal_error "eval on exp") 
+
   | TypT -> TypV
 
 (*****************************************************************************)
@@ -55,7 +56,7 @@ let rec quote ufld k v =
   match v with
 
   | RigidV (l,sp) -> qcs (VarT (lvl_to_idx k l)) sp
-  | ExpV _ -> raise (Internal_error "quoting an expvar")
+  | ExpV (l,sp) -> qcs (ExpT (lvl_to_idx k l) ) sp 
 
   | TopV (_,_,tv) when ufld -> qc tv
   | TopV (nm,sp,_) -> qcs (TopT nm) sp

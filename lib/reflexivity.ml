@@ -169,31 +169,25 @@ and univ_fib o =
 (*****************************************************************************)
 
 and refl_val opvs olvl v pi_nm pi =
+  (* log_val "pi" pi (pp_cmplx Fmt.string) ;  *)
+  (* if (is_obj pi) then
+   *   raise (Internal_error "refl on object")
+   * else *)
   match v with
 
   | RigidV (k,sp) ->
-
-    let init = if (is_obj pi) then EmpSp
-      else ReflSp (EmpSp,pi_nm,pi) in
-    let sp' = refl_sp opvs olvl init sp pi_nm pi in
+    let sp' = refl_sp opvs olvl sp pi_nm pi in
     RigidV (k,sp')
 
   | ExpV (k,sp) ->
-    let sp' = refl_sp opvs olvl EmpSp sp pi_nm pi in 
+    let sp' = refl_sp opvs olvl sp pi_nm pi in 
     run_sp (head_value (nth k opvs)) sp'
 
   | TopV (nm,sp,tv) ->
-    (* We treat top here just like rigid above.  This seems to have
-       fixed some un-evaluated exp vars.  But I'm not 100% sure on
-       this .... *) 
-    let init = if (is_obj pi) then EmpSp
-      else ReflSp (EmpSp,pi_nm,pi) in
-    let sp' = refl_sp opvs olvl init sp pi_nm pi in
+    let sp' = refl_sp opvs olvl sp pi_nm pi in
     TopV (nm, sp', refl_val opvs olvl tv pi_nm pi)
 
   | LamV (nm,bdy) ->
-
-    if (is_obj pi) then v else 
 
       lam_cmplx nm pi (fun vc ->
           refl_val (Ext (opvs,vc)) (olvl+1)
@@ -201,15 +195,11 @@ and refl_val opvs olvl v pi_nm pi =
 
   | PairV (a,b) ->
 
-    if (is_obj pi) then v else 
-
       let a' = refl_val opvs olvl a pi_nm pi in
       let b' = refl_val opvs olvl b pi_nm pi in
       PairV (a',b') 
 
   | PiV (nm,a,b) ->
-
-    if (is_obj pi) then v else 
 
       let acmplx = refl_faces opvs olvl a pi in
       let bcmplx vc = refl_val (Ext (opvs,vc)) (olvl+1)
@@ -220,8 +210,6 @@ and refl_val opvs olvl v pi_nm pi =
 
   | SigV (nm,a,b) -> 
 
-    if (is_obj pi) then v else 
-
       let afib = refl_val opvs olvl a pi_nm pi in
       let bfib vc = refl_val (Ext (opvs, vc)) (olvl+1)
           (b (expV olvl)) pi_nm pi in
@@ -231,23 +219,21 @@ and refl_val opvs olvl v pi_nm pi =
 
   | TypV ->
 
-    if (is_obj pi) then v else 
       mk_cell (univ_fib pi)
         TypV TypV TypV
 
-and refl_sp opvs olvl init sp pi_nm pi = 
+and refl_sp opvs olvl sp pi_nm pi = 
   match sp with
-  | EmpSp -> init
-  | FstSp sp' -> FstSp (refl_sp opvs olvl init sp' pi_nm pi)
-  | SndSp sp' -> SndSp (refl_sp opvs olvl init sp' pi_nm pi)
+  | EmpSp -> if (is_obj pi) then EmpSp else ReflSp (EmpSp,pi_nm,pi)
+  | FstSp sp' -> FstSp (refl_sp opvs olvl sp' pi_nm pi)
+  | SndSp sp' -> SndSp (refl_sp opvs olvl sp' pi_nm pi)
   | AppSp (sp',arg) -> 
-    let sp'' = refl_sp opvs olvl init sp' pi_nm pi in
+    let sp'' = refl_sp opvs olvl sp' pi_nm pi in
     let argc = refl_faces opvs olvl arg pi in
     List.fold (labels argc) ~init:sp''
       ~f:(fun spa arg -> AppSp (spa,arg))
-  | ReflSp (sp',pi_nm',pi') ->
-    let sp'' = refl_sp opvs olvl init sp' pi_nm pi in
-    ReflSp (sp'',pi_nm',pi')
+  | ReflSp _ as rsp ->
+    if (is_obj pi) then rsp else ReflSp (rsp,pi_nm,pi)
 
 and run_sp v sp =
   match sp with
@@ -258,10 +244,8 @@ and run_sp v sp =
   | ReflSp (sp',pi_nm,pi) -> refl_val Emp 0 (run_sp v sp') pi_nm pi 
 
 and refl_faces opvs olvl v pi =
-  (* let dim = dim_cmplx pi in  *)
   map_cmplx_with_addr pi
     ~f:(fun _ fa ->
-        (* if (dim = fst fa) then v else  *)
         let face_env = map_suite opvs
             ~f:(fun c -> face_at c fa) in
         refl_val face_env olvl v "" (face_at pi fa))

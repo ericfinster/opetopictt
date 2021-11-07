@@ -14,3 +14,4 @@ type cmd =
   | Normalize of expr
   | Assume of expr tele
   | Load of name 
+  | Let of name * expr option * expr 
