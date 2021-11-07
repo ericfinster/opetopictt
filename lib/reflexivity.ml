@@ -179,7 +179,10 @@ and refl_val opvs olvl v pi_nm pi =
 
   | ExpV (k,sp) ->
 
-    begin try 
+    begin try
+        (* We *never* accumulate the refl in this case, since the value
+           should already be of the correct cell type.  Rather here we
+           just want to re-run refl on the spine .... *) 
         let sp' = refl_sp opvs olvl false sp pi_nm pi in 
         run_sp (head_value (nth k opvs)) sp'
       with Lookup_error ->
