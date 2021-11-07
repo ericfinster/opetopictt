@@ -75,7 +75,7 @@ let rec pp_expr ppf expr =
   | VarE qnm -> pp_qname ppf qnm
 
   | LetE (nm,ty,tm,exp) ->
-    pf ppf "let %s : @[%a@] =@ @[%a@] in @[%a]"
+    pf ppf "let %s : %a@ = %a in@ %a"
       nm pp_expr ty pp_expr tm pp_expr exp 
 
   | LamE (nm,bdy) -> pf ppf "\u{03bb} %s.@;<1 2>%a" nm ppe bdy

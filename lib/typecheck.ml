@@ -514,42 +514,31 @@ let rec tcm_check_defns defs =
     let* gma = tcm_ctx in
     (* log_bindings gma; *)
 
-    (* log_val "ty" ty pp_expr; *)
     let* ty' = tcm_check ty TypV in
-    (* log_msg "type check"; *)
     let* tyv = tcm_eval ty' in
-    (* log_msg "type eval"; *)
     let* tm' = tcm_check tm tyv in
-    (* log_msg "term check"; *)
     let* tmv = tcm_eval tm' in
-    (* log_msg "term eval"; *)
 
     Fmt.pr "Checking complete for %s@," nm;
 
-    (* let exp_ty = term_to_expr (names gma) ty' in 
+    (* log_val "ty'" ty' pp_term;
+     * log_val "tm'" tm' pp_term; 
+     * 
+     * let exp_ty = term_to_expr (names gma) ty' in 
      * let exp_tm = term_to_expr (names gma) tm' in
-     * Fmt.pr "Type: @[%a@]@," pp_expr exp_ty ; 
-     * Fmt.pr "Result: @[%a@]@," pp_expr exp_tm ; *)
-
-    let* glbl_ty = tcm_quote tyv true in
-    let* glbl_tm = tcm_quote tmv true in 
+     * Fmt.pr "Type: @[<b>%a@]@," pp_expr exp_ty ; 
+     * Fmt.pr "Result: @[<b>%a@]@," pp_expr exp_tm ; *)
+    
+    let* glbl_ty = tcm_quote tyv false in
+    (* log_msg "type quoted" ;  *)
+    let* glbl_tm = tcm_quote tmv false in 
+    (* log_msg "term quoted" ;  *)
 
     (* log_val "glbl_ty" glbl_ty pp_term;
      * log_val "glbl_tm" glbl_tm pp_term; *)
     
     let (fty,ftm) = TermUtil.abstract_tele_with_type
         (section_params gma.sections) glbl_ty glbl_tm in
-
-    (* Can we apply the arguments and bind here ? *)
-
-    (* log_val "fty" fty pp_term;
-     * log_val "ftm" ftm pp_term; *)
-    
-    (* let fty_exp = term_to_expr Emp fty in
-     * let ftm_exp = term_to_expr Emp ftm in
-     * 
-     * log_val "fty_exp" fty_exp pp_expr ;
-     * log_val "ftm_exp" ftm_exp pp_expr ; *)
 
     let secs = match gma.sections with
       | Emp -> Emp

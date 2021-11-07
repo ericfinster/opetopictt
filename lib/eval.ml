@@ -23,8 +23,7 @@ let rec eval top loc tm =
   match tm with
   
   | VarT i ->
-    begin try
-        db_get i loc
+    begin try db_get i loc
       with Lookup_error ->
         raise (Internal_error (Fmt.str "de Brujin index %d out of range" i))
     end

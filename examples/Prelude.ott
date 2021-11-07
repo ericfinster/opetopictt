@@ -130,20 +130,6 @@ def ap (A : U) (B : U) (f : A → B)
 #  Some lemmas which make use of J 
 #
 
-#
-#  BUG!!! - Normalizing the defintiion contr-has-all-paths
-#  gives expressions like:
-#
-#   (fst a-contr) (fst a-contr)
-#     (fst [ a-contr @ nd { y } (nd (lf { x }) (lf tt))
-#                   | lf { p } ])))
-#
-#  which looks very much like the "fst" has been commuted outside the
-#  reflexibity application in a place where it shouldn't be.
-#
-
-# Actually, this is not a bug.  I think it's correct ...
-
 def contr-has-all-paths (A : U) (a-contr : is-contr A)
   : has-all-paths A
   = λ a₀ → λ a₁ →
@@ -226,7 +212,6 @@ def Σ-contr (A : U) (B : A → U)
                                a₀ a₁ apth b₀ b₁))
     in (ctr , pth) 
             
-
 def Σ-diamond (A : U) (B : A → U) (C : A → U)
     (D : (a : A) → (b : B a) → (c : C a) → U)
   : Equiv ((ab : (a : A) × B a) × (c : C (fst ab)) × D (fst ab) (snd ab) c)

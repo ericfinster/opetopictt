@@ -114,7 +114,8 @@ let rec term_to_expr nms tm =
     
   | TopT nm -> VarE nm
   | LetT (nm,ty,tm,bdy) ->
-    LetE (nm,tte nms ty,tte nms tm,tte nms bdy) 
+    LetE (nm,tte nms ty,tte nms tm,
+          tte (Ext (nms,nm)) bdy) 
 
   | LamT (nm,bdy) ->
     LamE (nm, tte (Ext (nms,nm)) bdy)
@@ -176,7 +177,7 @@ let rec pp_term ppf tm =
   | VarT i -> int ppf i
   | TopT nm -> pp_qname ppf nm
   | LetT (nm,ty,tm,bdy) -> 
-    pf ppf "let %s : @[%a@] =@ @[%a@] in @[%a]"
+    pf ppf "let %s : %a@ = %a in@ %a"
       nm pp_term ty pp_term tm pp_term bdy
 
   | LamT (nm,t) ->
