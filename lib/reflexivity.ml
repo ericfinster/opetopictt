@@ -43,51 +43,73 @@ and has_all_paths tA = val_of (
  * aeq is a cell in the universe of shape pi
  * beq is a fibration over that of the same shape
  *)
+    
+and sig_impl aeq beq nm pi =
 
-and sig_fib aeq beq nm pi = val_of (
+  (* The relation in a sigma type for positive dimensional cells *) 
+  let sig_rel = val_of (
 
-    let* pc = lamc nm (tail_of pi) in
-    let fstc = map_cmplx pc ~f:fst_val in
-    let atyp = appc (fst_val aeq) fstc in
-    let* afst = sigma (nm ^ head_value pi) atyp in
-    let sndc = map_cmplx pc ~f:snd_val in
-    let bres = fst_val (beq (Adjoin (fstc, Lf afst))) in
-    ret (appc bres sndc)
+      let* pc = lamc nm (tail_of pi) in
+      let fstc = map_cmplx pc ~f:fst_val in
+      let atyp = appc (fst_val aeq) fstc in
+      let* afst = sigma (nm ^ head_value pi) atyp in
+      let sndc = map_cmplx pc ~f:snd_val in
+      let bres = fst_val (beq (Adjoin (fstc, Lf afst))) in
+      ret (appc bres sndc)
 
-  )
+  ) in 
+  
+  begin match get_cmplx_opt pi with
+    
+    | Obj nm -> val_of (
+        let* a = sigma nm aeq in
+        ret (beq (Base (Lf a))) 
+      )
         
-and sig_kan aeq beq _ pi = 
-  match get_cmplx_opt pi with
-  | Obj _ -> raise (Internal_error "Sigma kan on object")
-  | Arr (snm,_,_) -> val_of (
+    | Arr (snm,_,_) ->
 
-      (* so, ab is the incoming pair ... *) 
-      let* ab = lam snm in
+      let to_kan = val_of (
+
+          let* ab = lam snm in
+
+          let a0 = fst_val ab in
+          let b0 = snd_val ab in 
+
+          let a_out_cont = fst_val (snd_val aeq) <@ a0 in
+
+          let a = fst_val (fst_val a_out_cont) in
+          let p = snd_val (fst_val a_out_cont) in
+
+          let b_out_contr = fst_val (snd_val (beq (arr_cmplx a0 a p))) <@ b0 in 
+
+          let b = fst_val (fst_val b_out_contr) in
+          let q = snd_val (fst_val b_out_contr) in
+
+          let exists = PairV (PairV (a, b), PairV (p, q)) in
+          let unique = TypV in
+          
+          ret (PairV (exists, unique))
+
+        ) in 
       
-      let a0 = fst_val ab in
-      let b0 = snd_val ab in 
+      let from_kan = TypV in
+      let is_kan = PairV (to_kan, from_kan) in 
+      PairV (sig_rel, is_kan)
+    
+    | Cell _ ->
 
-      let a_out_cont = fst_val (snd_val aeq) <@ a0 in
-      
-      let a = fst_val (fst_val a_out_cont) in
-      let p = snd_val (fst_val a_out_cont) in
-
-      let b_out_contr = fst_val (snd_val (beq (arr_cmplx a0 a p))) <@ b0 in 
-
-      let b = fst_val (fst_val b_out_contr) in
-      let q = snd_val (fst_val b_out_contr) in
-
-      ret (PairV (PairV (a, b), PairV (p, q)))
-      
-    )
-  | _ -> raise (Internal_error "higher sigma kan ops unimplemented")
-
+      let is_kan = TypV in
+      PairV (sig_rel, is_kan)
+        
+  end
+  
 (*****************************************************************************)
 (*                           Implementation of Pi                            *)
 (*****************************************************************************)
 
 and pi_fib acmplx bcmplx nm pi = val_of (
 
+    (* assumes pi is not an object ... *) 
     let* sc = lamc "f" (tail_of pi) in
     let* vc = pic nm pi (ucells_to_fib acmplx) in
     let bargs = match_cmplx sc (face_cmplx (tail_of vc)) ~f:appc in
@@ -225,15 +247,12 @@ and refl_val opvs olvl v pi_nm pi =
         TypV TypV TypV 
 
   | SigV (nm,a,b) -> 
-
-    if (is_obj pi) then v else
       
       let afib = refl_val opvs olvl a pi_nm pi in
       let bfib vc = refl_val (Ext (opvs, vc)) (olvl+1)
           (b (expV olvl)) pi_nm pi in
 
-      mk_cell (sig_fib afib bfib nm pi)
-        TypV TypV TypV
+      sig_impl afib bfib nm pi
 
   | TypV ->
 
