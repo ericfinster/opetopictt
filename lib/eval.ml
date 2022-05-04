@@ -45,34 +45,6 @@ let rec eval top loc tm =
 
   | TypT -> TypV
 
-and down_typ (t: value) : value =
-  match t with
-  | PiV (nm,a,b) ->
-    PiV (nm, down_typ a, fun v -> down_typ (b (up a v)))
-  | PosPiV (nm,a,b) ->
-    PosPiV (nm, down_pos_typ a, fun v -> down_typ (b (up_pos a v)))
-  | _ -> t 
-
-and up_pos (t: value) (v: value) : value =
-  match t with
-  | PosUnitV -> PosTtV
-  | _ -> v 
-
-and down_pos (t: value) (v: value) : value =
-  match t with
-  | PosUnitV -> PosTtV
-  | _ -> v 
-
-and down_pos_typ (t: value) : value =
-  match t with
-  | PosEmptyV -> PosEmptyV
-  | PosUnitV -> PosUnitV
-  | PosSumV (u,v) ->
-    PosSumV (down_pos_typ u, down_pos_typ v)
-  | PosSigV (nm,a,b) ->
-    PosSigV (nm, down_pos_typ a, fun v -> down_pos_typ (b (up_pos a v)))
-  | _ -> t 
-
 (*****************************************************************************)
 (*                                  Quoting                                  *)
 (*****************************************************************************)
@@ -95,32 +67,6 @@ let rec quote ufld k v =
   | PairV (u,v) -> PairT (qc u, qc v)
 
   | TypV -> TypT
-    
-  | PosV -> PosT
-  | ElV v -> ElT (qc v)
-               
-  | PosUnitV -> PosUnitT
-  | PosEmptyV -> PosEmptyT
-  | PosSumV (u,v) -> PosSumT (qc u, qc v) 
-  | PosSigV (nm,a,b) ->
-    PosSigT (nm,qc a, quote ufld (k+1) (b (varV k)))
-
-  | PosTtV -> PosTtT
-  | PosInlV u -> PosInlT (qc u)
-  | PosInrV v -> PosInlT (qc v) 
-  | PosPairV (u, v) -> PosPairT (qc u, qc v) 
-
-  | PosPiV (nm,a,b) ->
-    PosPiT (nm,qc a, quote ufld (k+1) (b (varV k)))
-  | PosLamV (nm,b) -> 
-    LamT (nm, quote ufld (k+1) (b (varV k)))
-
-  | PosBotElimV -> PosBotElimT
-  | PosTopElimV u -> PosTopElimT (qc u) 
-  | PosSumElimV (u, v) ->
-    PosSumElimT (qc u, qc v)
-  | PosSigElimV u ->
-    PosSigElimT (qc u) 
 
 and quote_sp ufld k t sp =
   let qc x = quote ufld k x in
