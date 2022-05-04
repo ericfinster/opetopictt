@@ -2,7 +2,6 @@
 
     open Cmd 
     open Expr
-    open Cmd 
     open Suite
     open Syntax
        
