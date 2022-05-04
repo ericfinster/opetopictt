@@ -7,6 +7,11 @@
 open Fmt
 open Base
 open Syntax
+open Suite
+
+open Opetopes.Idt
+open IdtConv
+open Opetopes.Complex
 
 (*****************************************************************************)
 (*                              Type Definitions                             *)
@@ -37,6 +42,22 @@ type expr =
 
   (* The Universe *) 
   | TypE
+
+(*****************************************************************************)
+(*                          Parsing Tree Expressions                         *)
+(*****************************************************************************)
+
+let rec to_cmplx (s : 'a tr_expr suite) : 'a cmplx =
+  match s with
+  | Emp -> failwith "empty suite in to_cmplx"
+  | Ext (Emp,n) -> Base (to_nst n)
+  | Ext (s',n) ->  Adjoin (to_cmplx s', to_nst n)
+
+let rec of_cmplx (c : 'a cmplx) : 'a tr_expr suite =
+  match c with
+  | Base n -> Ext (Emp, of_nst n)
+  | Adjoin (frm,n) ->
+    Ext (of_cmplx frm, of_nst n)
 
 (*****************************************************************************)
 (*                         Pretty Printing Raw Syntax                        *)
