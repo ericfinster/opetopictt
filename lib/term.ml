@@ -9,6 +9,8 @@ open Base
 open Expr
 open Suite
 open Syntax
+
+open Opetopes.Complex
        
 (*****************************************************************************)
 (*                              Type Definitions                             *)
@@ -147,37 +149,6 @@ let rec term_to_expr nms tm =
   | ExpT idx -> ExpE idx 
 
   | TypT -> TypE
-      
-  | PosT -> PosE
-  | ElT t -> ElE (tte nms t)
-
-  | PosUnitT -> PosUnitE
-  | PosEmptyT -> PosEmptyE 
-  | PosSumT (u,v) ->
-    PosSumE (tte nms u, tte nms v) 
-  | PosSigT (nm,a,b) ->
-    PosSigE (nm, tte nms a, tte (Ext (nms,nm)) b)
-
-  | PosTtT -> PosTtE 
-  | PosInlT u -> PosInlE (tte nms u) 
-  | PosInrT v -> PosInrE (tte nms v)
-  | PosPairT (u,v) ->
-    PosPairE (tte nms u, tte nms v)
-                
-  | PosPiT (nm,a,b) ->
-    PosPiE (nm, tte nms a, tte (Ext (nms,nm)) b)
-  | PosLamT (nm,b) ->
-    PosLamE (nm, tte (Ext (nms,nm)) b) 
-  | PosAppT (u, v) ->
-    PosAppE (tte nms u, tte nms v) 
-
-  | PosBotElimT -> PosBotElimE 
-  | PosTopElimT u ->
-    PosTopElimE (tte nms u)
-  | PosSumElimT (u, v) ->
-    PosSumElimE (tte nms u, tte nms v) 
-  | PosSigElimT u ->
-    PosSigElimE (tte nms u)
 
 (*****************************************************************************)
 (*                                 Telescopes                                *)
@@ -242,37 +213,6 @@ let rec pp_term ppf tm =
   | ExpT idx -> pf ppf "*exp* %d" idx 
 
   | TypT -> pf ppf "U"
-      
-  | PosT -> pf ppf "Pos"
-  | ElT t -> pf ppf "El %a" pp_term t 
-
-  | PosUnitT -> pf ppf "\u{22A4}\u{209A}"
-  | PosEmptyT -> pf ppf "\u{22A5}\u{209A}"
-  | PosSumT (l, r) ->
-    pf ppf "%a \u{2294}\u{209A} %a" pp_term l pp_term r 
-  | PosSigT (nm, a, b) ->
-    pf ppf "(%s : %a)@, \u{D7}\u{209A} %a" nm pp_term a pp_term b 
-  | PosTtT -> pf ppf "tt\u{209A}"
-  | PosInlT u -> pf ppf "inl\u{209A} %a" pp_term u 
-  | PosInrT v -> pf ppf "inr\u{209A} %a" pp_term v
-  | PosPairT (u,v) ->
-    pf ppf "%a , %a" pp_term u pp_term v
-      
-  | PosPiT (nm,a,b) ->
-    pf ppf "(%s : %a)@, \u{2192}\u{209A} %a" nm pp_term a pp_term b 
-  | PosLamT (nm,b) ->
-    pf ppf "\u{03BB}\u{209A} %s, %a" nm pp_term b 
-  | PosAppT (u,v) ->
-    pf ppf "%a@, @@ %a" pp_term u pp_term v
-
-  | PosBotElimT ->
-    pf ppf "\u{22A5}-elim"
-  | PosTopElimT e ->
-    pf ppf "\u{22A4}-elim %a" pp_term e
-  | PosSumElimT (u,v) ->
-    pf ppf "\u{2294}-elim %a %a" pp_term u pp_term v
-  | PosSigElimT e ->
-    pf ppf "\u{D7}-elim %a" pp_term e 
 
 and term_app_parens t =
   match t with
@@ -304,3 +244,4 @@ module TermSyntax = struct
   let pp_s = pp_term
 end
 
+module TermUtil = SyntaxUtil(TermSyntax)
