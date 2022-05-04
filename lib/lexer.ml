@@ -1,4 +1,4 @@
- (*****************************************************************************)
+(*****************************************************************************)
 (*                                                                           *)
 (*                                   Lexer                                   *)
 (*                                                                           *)
@@ -58,21 +58,6 @@ let rec token buf =
   | "end"        -> END
   | 0x2192       -> ARROW
   | "->"         -> ARROW
-  | "@"          -> APPPOS
-
-  | unitpos      -> UNITPOS
-  | emptypos     -> EMPTYPOS
-  | sumpos       -> SUM
-  | ttpos        -> TTPOS
-  | inlpos       -> INLPOS
-  | inrpos       -> INRPOS
-  | lambdapos    -> LAMBDAPOS 
-
-  | topelim      -> TOPELIM
-  | botelim      -> BOTELIM
-  | sumelim      -> SUMELIM 
-  | sigelim      -> SIGELIM
-
   | "("          -> LPAR
   | ")"          -> RPAR
   | "{"          -> LBR
@@ -81,7 +66,6 @@ let rec token buf =
   | "]"          -> RBRKT
   | "@"          -> AT
   | ":"          -> COLON
-  | ","          -> COMMA
   | "="          -> EQUAL
   | "\\"         -> LAMBDA
   | 0x03bb       -> LAMBDA
