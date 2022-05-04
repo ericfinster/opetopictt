@@ -43,11 +43,11 @@ and has_all_paths tA = val_of (
  * aeq is a cell in the universe of shape pi
  * beq is a fibration over that of the same shape
  *)
-    
-and sig_impl aeq beq nm pi =
+
+and refl_sig aeq beq nm pi =
 
   (* The relation in a sigma type for positive dimensional cells *) 
-  let sig_rel = val_of (
+  let sig_rel _ = val_of (
 
       let* pc = lamc nm (tail_of pi) in
       let fstc = map_cmplx pc ~f:fst_val in
@@ -62,44 +62,47 @@ and sig_impl aeq beq nm pi =
   begin match get_cmplx_opt pi with
     
     | Obj nm -> val_of (
+        
         let* a = sigma nm aeq in
-        ret (beq (Base (Lf a))) 
+        ret (beq (Base (Lf a)))
+          
       )
         
-    | Arr (snm,_,_) ->
+    | Arr (_,_,_) ->
 
-      let to_kan = val_of (
+      (* let to_kan = val_of (
+       * 
+       *     let* ab = lam snm in
+       * 
+       *     let a0 = fst_val ab in
+       *     let b0 = snd_val ab in 
+       * 
+       *     let a_out_cont = fst_val (snd_val aeq) <@ a0 in
+       * 
+       *     let a = fst_val (fst_val a_out_cont) in
+       *     let p = snd_val (fst_val a_out_cont) in
+       * 
+       *     let b_out_contr = fst_val (snd_val (beq (arr_cmplx a0 a p))) <@ b0 in 
+       * 
+       *     let b = fst_val (fst_val b_out_contr) in
+       *     let q = snd_val (fst_val b_out_contr) in
+       * 
+       *     let exists = PairV (PairV (a, b), PairV (p, q)) in
+       *     let unique = TypV in
+       *     
+       *     ret (PairV (exists, unique))
+       * 
+       *   ) in  *)
 
-          let* ab = lam snm in
-
-          let a0 = fst_val ab in
-          let b0 = snd_val ab in 
-
-          let a_out_cont = fst_val (snd_val aeq) <@ a0 in
-
-          let a = fst_val (fst_val a_out_cont) in
-          let p = snd_val (fst_val a_out_cont) in
-
-          let b_out_contr = fst_val (snd_val (beq (arr_cmplx a0 a p))) <@ b0 in 
-
-          let b = fst_val (fst_val b_out_contr) in
-          let q = snd_val (fst_val b_out_contr) in
-
-          let exists = PairV (PairV (a, b), PairV (p, q)) in
-          let unique = TypV in
-          
-          ret (PairV (exists, unique))
-
-        ) in 
-      
+      let to_kan = TypV in 
       let from_kan = TypV in
       let is_kan = PairV (to_kan, from_kan) in 
-      PairV (sig_rel, is_kan)
+      PairV (sig_rel (), is_kan)
     
     | Cell _ ->
 
       let is_kan = TypV in
-      PairV (sig_rel, is_kan)
+      PairV (sig_rel (), is_kan)
         
   end
   
@@ -107,24 +110,49 @@ and sig_impl aeq beq nm pi =
 (*                           Implementation of Pi                            *)
 (*****************************************************************************)
 
-and pi_fib acmplx bcmplx nm pi = val_of (
+and refl_pi acmplx bcmplx nm op =
 
-    (* assumes pi is not an object ... *) 
-    let* sc = lamc "f" (tail_of pi) in
-    let* vc = pic nm pi (ucells_to_fib acmplx) in
-    let bargs = match_cmplx sc (face_cmplx (tail_of vc)) ~f:appc in
-    ret (appc (fst_val (bcmplx vc)) bargs)
+  let pi_rel _ = val_of (
 
-  )
+      (* assumes pi is not an object ... *) 
+      let* sc = lamc "f" (tail_of op) in
+      let* vc = pic nm op (ucells_to_fib acmplx) in
+      let bargs = match_cmplx sc (face_cmplx (tail_of vc)) ~f:appc in
+      ret (appc (fst_val (bcmplx vc)) bargs)
+
+  ) in
+
+  begin match get_cmplx_opt op with
+    
+    | Obj _ -> val_of (
+        let* a = pi nm (head_value acmplx) in
+        ret (bcmplx (Base (Lf a)))
+      )
+        
+    | Arr _ ->
+
+      let to_kan = TypV in
+      let from_kan = TypV in 
+      let is_kan = PairV (to_kan, from_kan) in
+      PairV (pi_rel () , is_kan)
+        
+    | Cell _ ->
+
+      let is_kan = TypV in
+      PairV (pi_rel () , is_kan)
+
+  end
 
 (*****************************************************************************)
 (*                       Implementation of the Universe                      *)
 (*****************************************************************************)
 
-and univ_fib o =
+and refl_univ o =
   match get_cmplx_opt o with
   | Obj _ -> TypV
-  | Arr _ -> val_of (
+  | Arr _ ->
+
+    let arr_fib = val_of (
 
       let* atyp = lam "A" in
       let* btyp = lam "B" in
@@ -150,7 +178,12 @@ and univ_fib o =
       
       ret (prod u v)
 
-    ) 
+    ) in
+
+    let to_kan = TypV in
+    let from_kan = TypV in 
+    let is_kan = PairV (to_kan, from_kan) in
+    PairV (arr_fib , is_kan)
 
   | Cell (t,n,_) -> 
 
@@ -161,7 +194,7 @@ and univ_fib o =
     let fnms = Adjoin (tnms,nnms) in 
     let frm = Adjoin (t,n) in
 
-    val_of (
+    let cell_fib = val_of (
 
       let* vc = lam_cmplx "" frm in
       let fvc = ucells_to_fib vc in
@@ -182,25 +215,39 @@ and univ_fib o =
           let hv' = with_base_value hv cmp in 
           ret (appc e (Adjoin (tv,hv')))
 
-        )))
+        ))) 
 
-    ) 
+    ) in
+
+    let is_kan = TypV in
+    
+    PairV (cell_fib , is_kan) 
 
 (*****************************************************************************)
 (*                               Reflexivity                                 *)
 (*****************************************************************************)
 
 and refl_val opvs olvl v pi_nm pi =
+  (* Fmt.pr "@[<v>v: %a@;olvl: %d@;opvs: %a@]@;"
+   *   pp_value v olvl (Fmt.vbox (pp_suite ~sep:(Fmt.cut) (pp_cmplx pp_value))) opvs ; *)
   (* log_val "v" v pp_value ;
-   * log_val "olvl" olvl Fmt.int ;  *)
+   * log_val "olvl" olvl Fmt.int ;
+   * log_val "opvs" opvs (Fmt.vbox (pp_suite ~sep:(Fmt.cut) (pp_cmplx pp_value))) ;  *)
   match v with
 
   | RigidV (k,sp) ->
-    let sp' = refl_sp opvs olvl (not (is_obj pi)) sp pi_nm pi in
+
+    (* log_msg "RIGID"; *)
+    
+    let sp' = refl_sp opvs olvl
+        (not (is_obj pi)) sp pi_nm pi in
+    
     RigidV (k,sp')
 
   | ExpV (k,sp) ->
 
+    (* log_msg "EXPVAR"; *)
+    
     begin try
         (* We *never* accumulate the refl in this case, since the value
            should already be of the correct cell type.  Rather here we
@@ -208,57 +255,68 @@ and refl_val opvs olvl v pi_nm pi =
         let sp' = refl_sp opvs olvl false sp pi_nm pi in 
         run_sp (head_value (nth k opvs)) sp'
       with Lookup_error ->
-        let msg = Fmt.str
-            "@[<v>Impossible exp level: %d@,
-                  pi: %a@,
-                  olvl: %d@]"
+        let msg = Fmt.str "@[<v>Impossible exp level: %d@,pi: %a@,olvl: %d@]"
             k (pp_cmplx Fmt.string) pi olvl in
         
         raise (Internal_error msg)
     end
     
 
-  | TopV (nm,sp,tv) ->
-    let sp' = refl_sp opvs olvl (not (is_obj pi)) sp pi_nm pi in
-    TopV (nm, sp', refl_val opvs olvl tv pi_nm pi)
+  | TopV (_,_,tv) ->
+
+    (* log_msg "TOP" ;  *)
+    (* log_msg "in top, running spine";
+     * let sp' = refl_sp opvs olvl (not (is_obj pi)) sp pi_nm pi in
+     * log_msg "spine finished, running ufold"; *)
+    let tv' = refl_val opvs olvl tv pi_nm pi in
+    (* log_msg "unfold completed"; *)
+    (* TopV (nm, sp', tv') *)
+    tv'
 
   | LamV (nm,bdy) ->
 
-    if (is_obj pi) then v else 
-      lam_cmplx nm pi (fun vc ->
-          refl_val (Ext (opvs,vc)) (olvl+1)
-            (bdy (expV olvl)) pi_nm pi)
+    (* log_msg "LAM" ;  *)
+    
+    let r = lam_cmplx nm pi (fun vc ->
+        (* log_val "vc" vc (pp_cmplx pp_value) ;  *)
+        refl_val (Ext (opvs,vc)) (olvl+1)
+          (bdy (expV olvl)) pi_nm pi) in
+      
+    r
 
   | PairV (a,b) ->
 
-      let a' = refl_val opvs olvl a pi_nm pi in
-      let b' = refl_val opvs olvl b pi_nm pi in
-      PairV (a',b') 
+    (* log_msg "PAIR" ; *)
+    
+    let a' = refl_val opvs olvl a pi_nm pi in
+    let b' = refl_val opvs olvl b pi_nm pi in
+    PairV (a',b') 
 
   | PiV (nm,a,b) ->
 
-    if (is_obj pi) then v else
-      
+    (* log_msg "PI" ;  *)
+    
+    if (is_obj pi) then v else 
       let acmplx = refl_faces opvs olvl a pi in
       let bcmplx vc = refl_val (Ext (opvs,vc)) (olvl+1)
           (b (expV olvl)) pi_nm pi in 
-
-      mk_cell (pi_fib acmplx bcmplx nm pi)
-        TypV TypV TypV 
+      
+      let r = refl_pi acmplx bcmplx nm pi in
+      r
 
   | SigV (nm,a,b) -> 
-      
-      let afib = refl_val opvs olvl a pi_nm pi in
-      let bfib vc = refl_val (Ext (opvs, vc)) (olvl+1)
-          (b (expV olvl)) pi_nm pi in
 
-      sig_impl afib bfib nm pi
+    (* log_msg "SIG" ; *)
+    
+    let aeq = refl_val opvs olvl a pi_nm pi in
+    let beq vc = refl_val (Ext (opvs, vc)) (olvl+1)
+        (b (expV olvl)) pi_nm pi in
+
+    refl_sig aeq beq nm pi
 
   | TypV ->
-
-    if (is_obj pi) then v else 
-      mk_cell (univ_fib pi)
-        TypV TypV TypV
+    (* log_msg "TYP" ; *)
+    refl_univ pi 
 
 and refl_sp opvs olvl ext sp pi_nm pi = 
   match sp with
@@ -286,6 +344,7 @@ and refl_faces opvs olvl v pi =
     ~f:(fun _ fa ->
         let face_env = map_suite opvs
             ~f:(fun c -> face_at c fa) in
+        (* log_val "face_env" face_env (Fmt.vbox (pp_suite ~sep:(Fmt.cut) (pp_cmplx pp_value))) ;  *)
         refl_val face_env olvl v "" (face_at pi fa))
 
 and mk_cell fib comp fill unique =

@@ -47,47 +47,106 @@ let expV k = ExpV (k,EmpSp)
 (*                              Pretty Printing                              *)
 (*****************************************************************************)
 
-let rec pp_value ppf v =
+let rec pp_value_lvl lvl ppf v =
+  let ppv = pp_value_lvl lvl in
   match v with
   
   | RigidV (i,sp) ->
-    pp_spine Fmt.int i ppf sp 
+    pp_spine_lvl Fmt.int i lvl ppf sp 
   | ExpV (i,sp) ->
-    let ppe ppf = pf ppf "exp%d" in 
-    pp_spine ppe i ppf sp 
-  | TopV (nm,sp,_) ->
-    pf ppf "%a" (pp_spine pp_qname nm) sp
-      
-  | LamV (nm,_) ->
-    pf ppf "\\%s.<closure>" nm 
-  | PiV (nm,a,_) ->
-    pf ppf "(%s : %a) -> <closure>" nm
-      pp_value a
+    let ppe ppf = pf ppf "exp<%d>" in 
+    pp_spine_lvl ppe i lvl ppf sp 
+  | TopV (_,_,tv) ->
+    (* no unfolding? *)
+    (* pf ppf "%a" (pp_spine_lvl pp_qname nm lvl) sp *)
+    ppv ppf tv 
+
+  | LamV (nm,bdy) ->
+    pf ppf "\u{03bb} %s.@;<1 2>%a" nm
+      (pp_value_lvl (lvl+1)) (bdy (varV lvl))
+
+  | PiV (nm,a,b) when String.equal nm "" ->
+    pf ppf "%a \u{2192}@ %a"
+      ppv a (pp_value_lvl (lvl+1)) (b (varV lvl))
+  | PiV (nm,a,b) ->
+    pf ppf "(%s : %a) \u{2192}@ %a" nm
+      ppv a (pp_value_lvl (lvl+1)) (b (varV lvl))
       
   | PairV (u,v) ->
-    pf ppf "%a , %a" pp_value u pp_value v
-  | SigV (nm,a,_) ->
-    pf ppf "(%s : %a) \u{d7} <closure>" nm
-      pp_value a
+    pf ppf "%a , %a" ppv u ppv v
+
+  | SigV (nm,a,b) when String.equal nm "" ->
+    pf ppf "%a \u{d7}@ %a"
+      ppv a (pp_value_lvl (lvl+1)) (b (varV lvl))
+  | SigV (nm,a,b) ->
+    pf ppf "(%s : %a) \u{d7}@ %a" nm
+      ppv a (pp_value_lvl (lvl+1)) (b (varV lvl))
 
   | TypV -> pf ppf "U"
-    
-and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
-  fun pp_a a ppf sp -> 
+
+and pp_spine_lvl : 'a. 'a Fmt.t -> 'a -> lvl -> spine Fmt.t =
+  fun pp_a a lvl ppf sp ->
+  let ppv = pp_value_lvl lvl in
+  let pps = pp_spine_lvl pp_a a lvl in 
   match sp with
   | EmpSp ->
     pf ppf "%a" pp_a a
   | AppSp (sp',v) ->
-    pf ppf "%a %a" (pp_spine pp_a a) sp' pp_value v
+    pf ppf "%a %a" pps sp' ppv v
   | FstSp sp' ->
-    pf ppf "fst @[%a@]" (pp_spine pp_a a) sp' 
+    pf ppf "fst %a" pps sp' 
   | SndSp sp' ->
-    pf ppf "snd @[%a@]" (pp_spine pp_a a) sp'
+    pf ppf "snd %a" pps sp'
   | ReflSp (sp',_,pi) ->
     let open Opetopes.Idt.IdtConv in
-    pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
-      (pp_spine pp_a a) sp' (pp_suite ~sep:(any "@;| ")
+    pf ppf "[ %a @[<v>%@ %a@] ]"
+      pps sp' (pp_suite ~sep:(any "@;| ")
        (Fmt.box (pp_tr_expr Fmt.string))) (of_cmplx pi)
+
+let pp_value = pp_value_lvl 100 
+let pp_spine ppa a = pp_spine_lvl ppa a 100
+
+(* let rec pp_value ppf v =
+ *   match v with
+ *   
+ *   | RigidV (i,sp) ->
+ *     pp_spine Fmt.int i ppf sp 
+ *   | ExpV (i,sp) ->
+ *     let ppe ppf = pf ppf "exp%d" in 
+ *     pp_spine ppe i ppf sp 
+ *   | TopV (nm,sp,_) ->
+ *     pf ppf "%a" (pp_spine pp_qname nm) sp
+ *       
+ *   | LamV (nm,_) ->
+ *     pf ppf "\\%s.<closure>" nm 
+ *   | PiV (nm,a,_) ->
+ *     pf ppf "(%s : %a) -> <closure>" nm
+ *       pp_value a
+ *       
+ *   | PairV (u,v) ->
+ *     pf ppf "%a , %a" pp_value u pp_value v
+ *   | SigV (nm,a,_) ->
+ *     pf ppf "(%s : %a) \u{d7} <closure>" nm
+ *       pp_value a
+ * 
+ *   | TypV -> pf ppf "U"
+ *     
+ * and pp_spine : 'a. 'a Fmt.t -> 'a -> spine Fmt.t =
+ *   fun pp_a a ppf sp -> 
+ *   match sp with
+ *   | EmpSp ->
+ *     pf ppf "%a" pp_a a
+ *   | AppSp (sp',v) ->
+ *     pf ppf "%a %a" (pp_spine pp_a a) sp' pp_value v
+ *   | FstSp sp' ->
+ *     pf ppf "fst @[%a@]" (pp_spine pp_a a) sp' 
+ *   | SndSp sp' ->
+ *     pf ppf "snd @[%a@]" (pp_spine pp_a a) sp'
+ *   | ReflSp (sp',_,pi) ->
+ *     let open Opetopes.Idt.IdtConv in
+ *     pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
+ *       (pp_spine pp_a a) sp' (pp_suite ~sep:(any "@;| ")
+ *        (Fmt.box (pp_tr_expr Fmt.string))) (of_cmplx pi) *)
 
 
 (*****************************************************************************)
@@ -267,7 +326,7 @@ let rec do_pis nl cm b =
    fibration b *)
 let rec pi_cmplx (nm : name) (cnms : name cmplx)
     (a : value cmplx) (b : value cmplx -> value) : value =
-  if (is_obj a) then raise (Internal_error "obj in pi cmplx") else 
+  (* if (is_obj a) then raise (Internal_error "obj in pi cmplx") else  *)
   match (a,cnms) with
   | (Base n , Base nms) ->
 

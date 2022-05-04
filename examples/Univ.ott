@@ -1,5 +1,5 @@
 #
-#  Sigma.ott - playing around with sigma
+#  Univ.ott - kan fillers in the universe
 #
 
 import Prelude
@@ -12,8 +12,9 @@ def univ-fib (A : U) (B : U) : U
     ((b : B) → is-contr ((a : A) × E a b))
 
 def over-fib (A : U) : U → U
-  = λ B → (A → B → U) 
-
+  = λ B → (E : A → B → U) × 
+          ((a : A) → is-contr ((b : B) × E a b))
+          
 def comp (A : U) : U
   = A 
 
