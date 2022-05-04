@@ -1,0 +1,53 @@
+#
+#  Shapes.ott - Some basic shapes to work with 
+#
+
+shape arr
+  = nd { y } (nd (lf { x }) (lf tt))
+  | lf { p }
+
+shape drop
+  = lf { x }
+  | nd { f } (lf tt)
+  | lf { a }
+
+shape glob
+  = nd { y } (nd (lf { x }) (lf tt))
+  | nd { g } (nd (lf { f }) (nd (lf tt) (lf tt)))
+  | lf { a }
+  
+shape simplex
+  = nd { z } (nd (nd { y }
+      (nd (lf { x }) (lf tt))) (lf tt))
+  | nd { r } (nd (lf { q }) (nd (nd (lf { p })
+      (nd (lf tt) (lf tt))) (lf tt)))
+  | lf { a }
+
+shape quad
+  = nd { w } (nd (nd { z } (nd (nd { y } (nd (lf { x })
+      (lf tt))) (lf tt))) (lf tt))
+  | nd { s } (nd (lf { r }) (nd (nd (lf { q }) (nd (nd (lf { p })
+      (nd (lf tt) (lf tt))) (lf tt))) (lf tt)))
+  | lf { a  }
+
+shape glob-on-arrow
+  = nd { y } (nd (lf { x }) (lf tt))
+  | lf { f }
+  | nd { l } (lf tt)
+  | lf { n }
+
+shape unit-right
+  = nd { y } (nd (lf { x }) (lf tt))
+  | nd { g } (nd (nd { u } (lf tt)) (nd (nd (lf { f })
+      (nd (lf tt) (lf tt))) (lf tt)))
+  | nd { c } (nd (lf { s }) (nd (nd (lf { n }) (lf tt))
+      (nd (nd (lf tt) (nd (lf tt) (lf tt))) (lf tt))))
+  | lf { p }
+
+shape unit-left
+  = nd { y } (nd (lf { x }) (lf tt))
+  | nd { g } (nd (lf { f }) (nd (nd (nd { u } (lf tt))
+      (nd (lf tt) (lf tt))) (lf tt)))
+  | nd { c } (nd (lf { s }) (nd (lf tt) (nd (nd (nd (lf { n }) (lf tt))
+      (nd (lf tt) (lf tt))) (lf tt))))
+  | lf { p }

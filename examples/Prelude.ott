@@ -1,0 +1,268 @@
+#
+#  Prelude.ott - basic lemmas and definitions
+#
+
+import Shapes
+
+#
+#  Equality
+#
+
+def Eq (A : U) (a₀ : A) (a₁ : A) : U
+  = fst [ A @ arr ] a₀ a₁
+
+def refl (A : U) (a : A) : Eq A a a
+  = [ a @ arr ] 
+
+#
+#  Equivalences 
+#
+
+def is-equiv (A : U) (B : U) (f : A → B) : U
+  = (g : B → A) ×
+    (h : B → A) ×
+    (l : (a : A) → Eq A a (h (f a))) ×
+    ((b : B) → Eq B (f (g b)) b)
+    
+def Equiv (A : U) (B : U) : U
+  = (f : A → B) × is-equiv A B f
+
+def mk-eqv (A : U) (B : U)
+    (f : A → B) (g : B → A)
+    (l : (a : A) → Eq A a (g (f a)))
+    (r : (b : B) → Eq B (f (g b)) b) : Equiv A B
+  = f , g , g , l , r 
+
+#
+#  PathOver and transport
+#
+
+def PathOver (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) : U
+  = fst ([ B @ arr ] a₀ a₁ p) b₀ b₁
+
+def transport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) : B a₁
+  = fst fst (fst snd ([ B @ arr ] a₀ a₁ p) b₀)
+
+def transport-po (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀)
+  : PathOver A B a₀ a₁ p b₀ (transport A B a₀ a₁ p b₀)
+  = snd fst (fst snd 
+      ([ B @ arr ] a₀ a₁ p) b₀)
+
+def untransport (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₁ : B a₁) : B a₀
+  = fst fst (snd snd
+      ([ B @ arr ] a₀ a₁ p) b₁)
+
+def untransport-po (A : U) (B : A → U)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₁ : B a₁)
+  : PathOver A B a₀ a₁ p (untransport A B a₀ a₁ p b₁) b₁
+  = snd fst (snd snd
+      ([ B @ arr ] a₀ a₁ p) b₁)
+
+#
+#  Contractibility and Propositions
+#
+
+def is-contr (A : U) : U 
+  = (a₀ : A) × (a₁ : A) → Eq A a₀ a₁
+
+def is-prop (A : U) : U
+  = (a₀ : A) → (a₁ : A) → is-contr (Eq A a₀ a₁)
+
+def has-all-paths (A : U) : U
+  = (a₀ : A) → (a₁ : A) → Eq A a₀ a₁ 
+
+#
+#  A Proof of J 
+#
+
+def ucomp (A : U) (a : A) : A
+  = fst fst (fst snd [ A @ arr ] a)
+
+def ufill (A : U) (a : A) : Eq A a (ucomp A a)
+  = snd fst (fst snd [ A @ arr ] a)
+          
+def upth (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq ((a : A) × (Eq A a₀ a)) (ucomp A a₀ , ufill A a₀) (a₁ , p)
+  = snd (fst snd [ A @ arr ] a₀) (a₁ , p)
+
+def J (A : U) (a₀ : A) (P : ((a : A) × (Eq A a₀ a)) → U)
+    (d : P (a₀ , refl A a₀))
+    (a₁ : A) (p : Eq A a₀ a₁)
+  : P (a₁ , p)
+  = let u : P (ucomp A a₀ , ufill A a₀)
+          = untransport ((a : A) × (Eq A a₀ a)) P
+              (ucomp A a₀ , ufill A a₀) (a₀ , refl A a₀)
+              (upth A a₀ a₀ (refl A a₀)) d in
+    let t : P (a₁ , p)
+          = transport ((a : A) × (Eq A a₀ a)) P
+              (ucomp A a₀ , ufill A a₀) (a₁ , p)
+              (upth A a₀ a₁ p) u in t 
+  
+#
+#  Some groupoid operations
+#
+
+def pth-comp (A : U) (a₀ : A) (a₁ : A) (a₂ : A)
+    (p : Eq A a₀ a₁) (q : Eq A a₁ a₂)
+  : Eq A a₀ a₂
+  = fst fst (snd
+      [ A @ simplex ] a₀ a₁ a₂ p q)
+
+def inv (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq A a₁ a₀
+  = J A a₀ (λ pr → Eq A (fst pr) a₀) (refl A a₀) a₁ p 
+
+def ap (A : U) (B : U) (f : A → B)
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  : Eq B (f a₀) (f a₁)
+  = [ f @ arr ] a₀ a₁ p 
+
+#
+#  Some lemmas which make use of J 
+#
+
+def contr-has-all-paths (A : U) (a-contr : is-contr A)
+  : has-all-paths A
+  = λ a₀ → λ a₁ →
+      (let ctr : A = fst a-contr in
+       let a₀-ctr : Eq A a₀ ctr
+                  = inv A ctr a₀ (snd a-contr a₀) in
+       let ctr-a₁ : Eq A ctr a₁
+                  = snd a-contr a₁ in 
+       pth-comp A a₀ ctr a₁ a₀-ctr ctr-a₁)
+
+def has-all-paths-over (A : U) (B : A → U)
+    (hap : (a : A) → has-all-paths (B a))
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) 
+  : PathOver A B a₀ a₁ p b₀ b₁
+  = let tb : B a₁ = transport A B a₀ a₁ p b₀ in
+    let fb : PathOver A B a₀ a₁ p b₀ tb
+           = transport-po A B a₀ a₁ p b₀ in 
+    let pth : Eq (B a₁) tb b₁ = hap a₁ tb b₁ in
+    transport (B a₁) (PathOver A B a₀ a₁ p b₀)
+      tb b₁ pth fb 
+
+def contr-has-all-paths-over (A : U) (B : A → U)
+    (b-contr : (a : A) → is-contr (B a))
+    (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+    (b₀ : B a₀) (b₁ : B a₁) 
+  : PathOver A B a₀ a₁ p b₀ b₁
+  = has-all-paths-over A B
+      (λ a → contr-has-all-paths (B a) (b-contr a))
+      a₀ a₁ p b₀ b₁
+      
+#
+#  Preservation of contractibility by equivalences
+#
+
+def eqv-preserves-contr (A : U) (B : U)
+    (E : Equiv A B) (contr-A : is-contr A)
+  : is-contr B
+  = let f : A → B = fst E in 
+    let g : B → A = fst snd E in
+    let a : A = fst contr-A in 
+    let b : B = f a in
+    let apth : (b₀ : B) → Eq A a (g b₀)
+             = λ b₀ → snd contr-A (g b₀) in
+    let bpth : (b₀ : B) → Eq B b (f (g b₀))
+             = λ b₀ → ap A B f a (g b₀) (apth b₀) in
+    let invpth : (b₀ : B) → Eq B (f (g b₀)) b₀
+               = λ b₀ → snd snd snd snd E b₀ in 
+    (b , λ b₀ → pth-comp B b (f (g b₀)) b₀ (bpth b₀) (invpth b₀)) 
+
+#
+#  A couple Σ lemmas
+#
+
+def prod-swap (A : U) (B : U)
+  : Equiv (A × B) (B × A)
+  = let f : (A × B) → B × A
+          = λ ab → (snd ab , fst ab) in
+    let g : (B × A) → A × B
+          = λ ba → (snd ba , fst ba) in
+    let l : (ab : A × B) → Eq (A × B) ab (g (f ab))
+          = λ ab → refl (A × B) ab  in
+    let r : (ba : B × A) → Eq (B × A) (f (g ba)) ba
+          = λ ba → refl (B × A) ba in 
+    mk-eqv (A × B) (B × A) f g l r 
+
+def Σ-contr (A : U) (B : A → U)
+    (a-contr : is-contr A)
+    (b-contr : (a : A) → is-contr (B a))
+  : is-contr ((a : A) × B a)
+  = let a₀ : A = fst a-contr in
+    let b₀ : B a₀ = fst (b-contr a₀) in 
+    let ctr : (a : A) × B a
+            = (a₀ , b₀) in
+    let pth : (p : (a : A) × B a) → Eq ((a : A) × B a) ctr p
+            = λ p → (let a₁ : A = fst p in
+                     let b₁ : B a₁ = snd p in
+                     let apth : Eq A a₀ a₁ = snd a-contr a₁ in
+                     (apth , contr-has-all-paths-over A B b-contr
+                               a₀ a₁ apth b₀ b₁))
+    in (ctr , pth) 
+            
+def Σ-diamond (A : U) (B : A → U) (C : A → U)
+    (D : (a : A) → (b : B a) → (c : C a) → U)
+  : Equiv ((ab : (a : A) × B a) × (c : C (fst ab)) × D (fst ab) (snd ab) c)
+          ((ac : (a : A) × C a) × (b : B (fst ac)) × D (fst ac) b (snd ac))
+  = let S : U = (ab : (a : A) × B a) × (c : C (fst ab)) × D (fst ab) (snd ab) c in
+    let T : U = (ac : (a : A) × C a) × (b : B (fst ac)) × D (fst ac) b (snd ac) in
+    let f : S → T = λ s → ((fst fst s , fst snd s) , (snd fst s , snd snd s)) in
+    let g : T → S = λ t → ((fst fst t , fst snd t) , (snd fst t , snd snd t)) in
+    let l : (s : S) → Eq S s (g (f s)) = λ s → refl S s in
+    let r : (t : T) → Eq T (f (g t)) t = λ t → refl T t in
+    mk-eqv S T f g l r
+    
+#
+#  Diamond Transport - Extremely Useful for defining Kan operations
+#
+
+module DiamondTransport (A : U) (B : A → U) (C : A → U)
+  (D : (a : A) → B a → C a → U) where
+
+  def diamond-fib (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : PathOver A B a₀ a₁ p b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : PathOver A C a₀ a₁ p c₀ c₁)
+      (d₀ : D a₀ b₀ c₀) (d₁ : D a₁ b₁ c₁) : U
+    = fst ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀ d₁ 
+
+  def diamond-transp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₀ : D a₀ b₀ c₀) : D a₁ b₁ c₁
+    = fst fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
+
+  def diamond-transp-po (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₀ : D a₀ b₀ c₀)
+    : diamond-fib a₀ a₁ p b₀ b₁ q c₀ c₁ r d₀
+        (diamond-transp a₀ a₁ p b₀ b₁ q c₀ c₁ r d₀)
+    = snd fst (fst snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₀)
+
+  def diamond-untransp (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₁ : D a₁ b₁ c₁) : D a₀ b₀ c₀
+    = fst fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
+
+  def diamond-untransp-po (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+      (b₀ : B a₀) (b₁ : B a₁) (q : fst ([ B @ arr ] a₀ a₁ p) b₀ b₁)
+      (c₀ : C a₀) (c₁ : C a₁) (r : fst ([ C @ arr ] a₀ a₁ p) c₀ c₁)
+      (d₁ : D a₁ b₁ c₁)
+    : diamond-fib a₀ a₁ p b₀ b₁ q c₀ c₁ r 
+        (diamond-untransp a₀ a₁ p b₀ b₁ q c₀ c₁ r d₁) d₁
+    = snd fst (snd snd ([ D @ arr ] a₀ a₁ p b₀ b₁ q c₀ c₁ r) d₁)
+    
+end

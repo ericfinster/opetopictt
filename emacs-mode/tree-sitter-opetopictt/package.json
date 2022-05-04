@@ -1,0 +1,23 @@
+{
+    "name": "tree-sitter-opetopictt",
+    "version": "1.0.0",
+    "description": "tree sitter parser for opetopictt",
+    "main": "bindings/node",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "tree-sitter",
+        "opetopictt"
+    ],
+    "tree-sitter": [
+        {
+            "scope": "source.ott",
+            "file-types": [
+                "ott"
+            ]
+        }
+    ],
+    "author": "Eric Finster",
+    "license": "ISC"
+}

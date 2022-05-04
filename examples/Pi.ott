@@ -1,0 +1,105 @@
+#
+#  Pi.ott - Kan operations in Pi
+#
+
+import Prelude
+
+module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  (B : A → U) (C : (a : A) → B a → U) where
+
+  def BEq : Eq U (B a₀) (B a₁)
+    = [ B @ arr ] a₀ a₁ p 
+
+  def BF : B a₀ → B a₁ → U
+    = fst BEq
+  
+  def BComp (b₀ : B a₀) : B a₁
+    = fst fst (fst snd BEq b₀)
+
+  def BFill (b₀ : B a₀) : BF b₀ (BComp b₀)
+    = snd fst (fst snd BEq b₀)
+
+  def BLift (b₁ : B a₁) : B a₀
+    = fst fst (snd snd BEq b₁)
+
+  def BWit (b₁ : B a₁) : BF (BLift b₁) b₁
+    = snd fst (snd snd BEq b₁)
+
+  def BULift (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+    : Eq (B a₀) (BLift b₁) b₀ 
+    = fst (snd (snd snd BEq b₁) (b₀ , q))
+
+  def BUWit (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+    : PathOver (B a₀) (λ b → BF b b₁)
+        (BLift b₁) b₀ (BULift b₀ b₁ q)
+        (BWit b₁) q
+    = snd (snd (snd snd BEq b₁) (b₀ , q))
+
+  def CEq (b₀ : B a₀) (b₁ : B a₁) (q : fst BEq b₀ b₁)
+      : Eq U (C a₀ b₀) (C a₁ b₁)
+    = [ C @ arr ] a₀ a₁ p b₀ b₁ q 
+        
+  def CF (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
+    = fst (CEq b₀ b₁ q) c₀ c₁ 
+
+  def CComp (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁) (c₀ : C a₀ b₀)
+    : C a₁ b₁
+    = fst fst (fst snd (CEq b₀ b₁ q) c₀)
+
+  def CFill (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁) (c₀ : C a₀ b₀)
+    : CF b₀ b₁ q c₀ (CComp b₀ b₁ q c₀)
+    = snd fst (fst snd (CEq b₀ b₁ q) c₀)
+
+  module Exists (σ₀ : (b : B a₀) → C a₀ b) where
+
+    def exists-goal : U
+      = (σ₁ : (b : B a₁) → C a₁ b) ×
+          (b₀ : B a₀) →
+          (b₁ : B a₁) →
+          (q : BF b₀ b₁) →
+          CF b₀ b₁ q (σ₀ b₀) (σ₁ b₁)
+
+    def σ (b₁ : B a₁) : C a₁ b₁
+      = let b₀ : B a₀ = BLift b₁ in
+        CComp b₀ b₁ (BWit b₁) (σ₀ b₀)
+
+    def ω (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁) 
+      : CF b₀ b₁ q (σ₀ b₀) (σ b₁)
+      = let lb₁ : B a₀ = BLift b₁ in
+        let wb₁ : BF lb₁ b₁ = BWit b₁ in 
+        let claim : CF lb₁ b₁ wb₁ (σ₀ lb₁) (σ b₁)
+          = CFill lb₁ b₁ wb₁ (σ₀ lb₁) in
+        diamond-transp (B a₀) (λ b₂ → BF b₂ b₁) (C a₀)
+          (λ b₂ → λ q₂ → λ c₂ → CF b₂ b₁ q₂ c₂ (σ b₁))
+          lb₁ b₀ (BULift b₀ b₁ q) wb₁ q (BUWit b₀ b₁ q)
+          (σ₀ lb₁) (σ₀ b₀) ([ σ₀ @ arr ] lb₁ b₀ (BULift b₀ b₁ q)) claim
+
+    def comp-exists : exists-goal
+      = (σ , ω) 
+
+    module IsUnique (σ₁ : (b : B a₁) → C a₁ b)
+      (ω₁ : (b₀ : B a₀) → (b₁ : B a₁) → (q : BF b₀ b₁) →
+            CF b₀ b₁ q (σ₀ b₀) (σ₁ b₁)) where
+
+      def unique-goal : U
+        = Eq exists-goal (σ , ω) (σ₁ , ω₁)
+
+      def uσ (b₁₀ : B a₁) (b₁₁ : B a₁) (q₁ : Eq (B a₁) b₁₀ b₁₁)
+        : PathOver (B a₁) (C a₁) b₁₀ b₁₁ q₁ (σ b₁₀) (σ₁ b₁₁)
+        = let lb₁₀ : B a₀ = BLift b₁₀ in
+          let wb₁₀ : BF lb₁₀ b₁₀ = BWit b₁₀ in
+          let wb₁₁ : BF lb₁₀ b₁₁
+                  = transport (B a₁) (BF lb₁₀) b₁₀ b₁₁ q₁ wb₁₀ in
+          let and-so : CF lb₁₀ b₁₁ wb₁₁ (σ₀ lb₁₀) (σ₁ b₁₁)
+                     = ω₁ lb₁₀ b₁₁ wb₁₁  in 
+          b₁₀
+           
+
+
+    end 
+
+  end
+  
+end
+

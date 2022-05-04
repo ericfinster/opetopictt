@@ -4,7 +4,7 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-open Format
+open Fmt
 
 (*****************************************************************************)
 (*                                  Parsing                                  *)
@@ -45,34 +45,54 @@ let parse_file f =
   let lexbuf = Sedlexing.Utf8.from_channel fi in
   try
     let chkpt = Parser.Incremental.prog (fst (Sedlexing.lexing_positions lexbuf)) in
-    let defs = parse lexbuf chkpt in
+    let (imprts,defs) = parse lexbuf chkpt in
     close_in fi;
-    defs
+    (imprts,defs)
   with
   | Parse_error (Some (line,pos), err) ->
-    printf "Parse error: %sLine: %d, Pos: %d@," err line pos;
+    pr "Parse error: %s@,Line: %d, Pos: %d@," err line pos;
     close_in fi;
     exit (-1)
   | Parse_error (None, err) ->
-    printf "Parse error: %s" err;
+    pr "Parse error: %s" err;
     close_in fi;
     exit (-1)
   | Lexer.Lexing_error (Some (line,pos), err) ->
     close_in fi;
-    printf "Lexing error: %s@,Line: %d, Pos: %d@," err line pos;
+    pr "Lexing error: %s@,Line: %d, Pos: %d@," err line pos;
     exit (-1)
   | Lexer.Lexing_error (None, err) ->
     close_in fi;
-    printf "Lexing error: %s@," err;
+    pr "Lexing error: %s@," err;
     exit (-1)
 
-let rec parse_all files =
-  match files with
-  | [] -> []
+let rec check_files ctx checked to_check =
+  let open Typecheck in
+  let open Syntax in
+  match to_check with
+  | [] -> ctx
   | f::fs ->
-    let dds = parse_all fs in
-    print_string "-----------------";
-    print_cut ();
-    printf "Processing input file: %s\n" f;
-    let ds = parse_file f in
-    List.append ds dds
+    let (imprts,defs) = parse_file f in
+    let imports_to_check =
+      List.filter_map
+        (fun i -> let fnm = i ^ ".ott" in 
+          if (List.mem fnm checked)
+          then None
+          else Some fnm) imprts in
+    let ctx' = check_files ctx checked imports_to_check in 
+    (* pr "-----------------@,"; *)
+    pr "Processing module: %s@," f;
+    (* let mname = Filename.basename (Filename.remove_extension f) in *)
+    try begin match tcm_check_defns defs ctx' with
+      | Ok ctx'' -> 
+        (* pr "----------------@,Success!@,"; *)
+        check_files ctx'' (f::checked) fs
+          
+      | Error err ->
+        pr "@,Typing error: @,@,%a@,@," pp_error err ; 
+        empty_ctx
+      
+    end with
+    | Internal_error msg -> 
+        pr "@,An internal error has occured : @,@,%s@," msg ; 
+        empty_ctx

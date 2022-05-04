@@ -3,3 +3,10 @@
  (modules opetopictt)
  (public_name opetopictt)
  (libraries opetopictt))
+
+(executable
+ (name optti)
+ (modules optti)
+ (public_name optti)
+ (libraries opetopictt))
+

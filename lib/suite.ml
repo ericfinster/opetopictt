@@ -18,7 +18,7 @@ type 'a suite =
   | Emp
   | Ext of 'a suite * 'a
 
-let (|>) a b = Ext (a, b)
+let (|@>) a b = Ext (a, b)
 
 let is_empty s =
   match s with
@@ -34,6 +34,16 @@ let init s =
   match s with
   | Ext(s',_) -> s'
   | _ -> failwith "init on empty"
+
+let rec suite_eq (eq : 'a -> 'a -> bool)
+    (sa : 'a suite) (sb : 'a suite) : bool =
+  match (sa , sb) with
+  | (Emp , Emp) -> true
+  | (Ext (sa',a) , Ext(sb',b)) ->
+    if (eq a b) then
+      suite_eq eq sa' sb'
+    else false
+  | _ -> false 
 
 let rec match_init s =
   match s with
@@ -51,7 +61,7 @@ let rec length s =
 let rec map_suite s ~f =
   match s with
   | Emp -> Emp
-  | Ext (s',x) -> map_suite s' ~f |> f x
+  | Ext (s',x) -> map_suite s' ~f |@> f x
 
 let map_with_lvl s ~f =
   let rec go s =
@@ -101,12 +111,16 @@ let rec fold_accum_cont : 'a suite -> 'c
         let (b,c'') = f a c' in
         cont (Ext (s'',b)) c'')
 
-let rec fold2 s t init f =
+let rec fold_simul s t init f =
   match (s,t) with
   | (Emp,Emp) -> init
   | (Ext (s',x), Ext (t',y)) ->
-    f (fold2 s' t' init f) x y
+    f (fold_simul s' t' init f) x y
   | _ -> failwith "unequal length suites"
+
+let map_simul s t f =
+  fold_simul s t Emp
+    (fun cs a b -> Ext (cs,f a b))
 
 let rec append s t =
   match t with
@@ -186,6 +200,13 @@ let rec assoc k s =
     if (Poly.(=) k k') then v
     else assoc k s'
 
+let rec assoc_opt k s =
+  match s with
+  | Emp -> None
+  | Ext (s',(k',v)) ->
+    if (Poly.(=) k k') then Some v
+    else assoc_opt k s'
+
 let assoc_with_idx k s =
   let rec go i k s =
     match s with
@@ -194,6 +215,24 @@ let assoc_with_idx k s =
       if (Poly.(=) k k') then (i,v)
       else go (i+1) k s'
   in go 0 k s
+
+let assoc_with_idx_opt k s =
+  let rec go i k s =
+    match s with
+    | Emp -> None
+    | Ext (s',(k',v)) ->
+      if (Poly.(=) k k') then Some (i,v)
+      else go (i+1) k s'
+  in go 0 k s
+
+let rec update_at k f s =
+  match s with
+  | Emp -> Emp
+  | Ext (s',(k',v')) ->
+    if (Poly.(=) k k') then
+      Ext (s',(k,f v'))
+    else
+      Ext (update_at k f s',(k',v'))
 
 let singleton a = Ext (Emp, a)
 
@@ -278,78 +317,42 @@ let open_at k s =
     Error "Out of range"
   else open_rightmost s >>= move_left_n (l-k-1)
 
+let open_where p s =
+  let rec go s l = 
+    match s with
+    | Emp -> None
+    | Ext (s',a) ->
+      if (p a) then Some (s',a,l)
+      else go s' (a::l)
+  in go s []
+
 (*****************************************************************************)
 (*                               Instances                                   *)
 (*****************************************************************************)
 
-module SuiteMnd = Monad.Make (struct
-    type 'a t = 'a suite
+module SuiteBasic =
+struct
 
-    let return = singleton
+  type 'a t = 'a suite
 
-    let map = `Custom map_suite
+  let return a = Ext (Emp,a)
 
-    let rec bind s ~f =
-      match s with
-      | Emp -> Emp
-      | Ext (s',x) -> append (bind s' ~f) (f x)
+  let rec bind s ~f =
+    match s with
+    | Emp -> Emp
+    | Ext (s',x) -> append (bind s' ~f) (f x)
 
-  end)
+  let map = `Custom map_suite
 
-(* include struct
- *   (\* We are explicit about what we import from the general Monad functor so that we don't
- *      accidentally rebind more efficient list-specific functions. *\)
- *   module Monad = Monad.Make (struct
- *       type 'a t = 'a list
- *
- *       let bind x ~f = concat_map x ~f
- *       let map = `Custom map
- *       let return x = [ x ]
- *     end)
- *
- *   open Monad
- *   module Monad_infix = Monad_infix
- *   module Let_syntax = Let_syntax
- *
- *   let ignore_m = ignore_m
- *   let join = join
- *   let bind = bind
- *   let ( >>= ) t f = bind t ~f
- *   let return = return
- *   let all = all
- *   let all_unit = all_unit
- * end *)
+  let apply mf ma =
+    bind mf ~f:(fun f ->
+        bind ma ~f:(fun a ->
+            return (f a)))
+  
+end
 
-
-(* module SuiteMnd = struct
- *
- *   type 'a m = 'a suite
- *
- *   let pure = singleton
- *
- *   let rec bind s f =
- *     match s with
- *     | Emp -> Emp
- *     | Ext (s',x) -> append (bind s' f) (f x)
- *
- * end
- *
- * module SuiteTraverse(A: Applicative) = struct
- *
- *   type 'a t = 'a suite
- *   type 'a m = 'a A.t
- *
- *   open ApplicativeSyntax(A)
- *
- *   let rec traverse f s =
- *     match s with
- *     | Emp -> A.pure Emp
- *     | Ext (s',x) ->
- *       let+ y = f x
- *       and+ t = traverse f s' in
- *       Ext (t,y)
- *
- * end *)
+module SuiteApplicative = Applicative.Make(SuiteBasic)
+module SuiteMonad = Monad.Make(SuiteBasic)
 
 (*****************************************************************************)
 (*                              Pretty Printing                              *)

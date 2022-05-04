@@ -1,25 +1,40 @@
 %{
 
+    open Cmd 
     open Expr
     open Cmd 
     open Suite
+    open Syntax
+       
+    let abstract_defn tl ty tm =
+      fold_right tl (ty,tm)
+	(fun (nm,ty) (ty',tm') ->
+	  (PiE (nm,ty,ty'), LamE (nm,tm')))
        
 %} 
 
-%token LET LAMBDA COLON EQUAL DOT
-%token LPAR RPAR 
-%token TYPE ARROW 
-%token POS EL ARROWPOS TIMESPOS
-%token COMMA SUM UNITPOS EMPTYPOS
-%token TTPOS INLPOS INRPOS LAMBDAPOS
-%token APPPOS TOPELIM BOTELIM
-%token SUMELIM SIGELIM
-%token NORMALIZE INFER VBAR
+%token MODULE WHERE END 
+%token DEF IMPORT SHAPE
+%token LET COLON EQUAL IN
+%token LAMBDA VBAR 
+%token LPAR RPAR LBR RBR
+%token ARROW 
+%token TIMES COMMA FST SND
+%token LBRKT RBRKT AT 
+%token TYPE
+%token LF ND UNIT
 %token <string> IDENT
+%token <Syntax.qname> QNAME
 %token EOF
 
 %start prog
-%type <Cmd.cmd list> prog
+%type <string list * (string * Expr.expr Syntax.module_entry) list> prog
+
+%token QUIT ENDCMD LOAD
+%token INFER ASSUME NORMALIZE
+
+%start cmd
+%type <Cmd.cmd> cmd 
 
 %%
 
@@ -28,30 +43,69 @@ suite(X):
   | s = suite(X) x = X
     { Ext (s,x) }
 
-sep_suite(X,S):
-  | { Emp }
-  | s = sep_suite(X,S) S x = X
-    { Ext (s,x) }
-
 non_empty_suite(X,S):
   | x = X
     { Ext (Emp,x) }
   | s = non_empty_suite(X,S) S x = X
     { Ext (s,x) }
 
-prog:
-  | EOF
-    { [] }
-  | defs = nonempty_list(cmd) EOF
-    { defs }
+sep_suite(X,S):
+  | { Emp }
+  | x = X
+    { Ext (Emp,x) }
+  | s = sep_suite(X,S) S x = X
+    { Ext (s,x) } 
+
+tr_expr(V):
+  | UNIT
+    { UnitE }
+  | LBR v = V RBR
+    { ValueE v }
+  | LF t = tr_expr(V)
+    { LeafE t }
+  | ND s = tr_expr(V) t = tr_expr(V)
+    { NodeE (s,t) }
+  | LPAR t = tr_expr(V) RPAR
+    { t } 
+
+cmplx(X):
+  | c = non_empty_suite(tr_expr(X),VBAR) 
+    { c } 
 
 cmd:
-  | LET id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
-    { Let (id,tl,ty,tm) }
-  | NORMALIZE tl = tele COLON ty = expr VBAR tm = expr
-    { Normalize (tl,ty,tm) }
-  | INFER tl = tele VBAR tm = expr
-    { Infer (tl,tm) } 
+  | QUIT
+    { Quit } 
+  | INFER e = expr ENDCMD
+    { Infer e }
+  | ASSUME tl = tele ENDCMD
+    { Assume tl }
+  | NORMALIZE e = expr ENDCMD
+    { Normalize e } 
+  | LOAD fnm = IDENT ENDCMD
+    { Load fnm }
+  | LET id = IDENT EQUAL tm = expr ENDCMD
+    { Let (id,None,tm) }
+  | LET id = IDENT COLON ty = expr EQUAL tm = expr ENDCMD
+    { Let (id,Some ty,tm) } 
+
+prog:
+  | EOF
+    { ([],[]) }
+  | imprts = list(import) entries = nonempty_list(named_entry) EOF
+    { (imprts, entries) }
+
+import:
+  | IMPORT nm = IDENT
+    { nm } 
+
+named_entry: 
+  | MODULE id = IDENT tl = tele WHERE entries = list(named_entry) END
+    { (id, ModuleEntry { params = tl ; entries =  Suite.from_list entries }) } 
+  | DEF id = IDENT tl = tele COLON ty = expr EQUAL tm = expr
+    { let (ty',tm') = abstract_defn tl ty tm
+      in (id, TermEntry (ty',tm')) }
+  | SHAPE id = IDENT EQUAL pi = cmplx(IDENT)
+    { (id, ShapeEntry (First pi)) } 
 
 var_decl:
   | LPAR id = IDENT COLON ty = expr RPAR
@@ -70,61 +124,47 @@ pi_head:
 expr: 
   | e = expr1
     { e }
-  | e = expr1 COMMA f = expr
-    { PosPairE (e,f) }
-  | e = expr2 SUM f = expr
-    { PosSumE (e,f) } 
+  | u = expr1 COMMA v = expr
+    { PairE (u,v) } 
+  | LET id = IDENT COLON ty = expr EQUAL tm = expr IN bdy = expr
+    { LetE (id,ty,tm,bdy) }
 
 expr1:
   | e = expr2
     { e }
-  | LAMBDA id = IDENT DOT e = expr1
+  | LAMBDA id = IDENT ARROW e = expr1
     { LamE (id,e) }
-  | LAMBDAPOS id = IDENT DOT e = expr1
-    { PosLamE (id,e) } 
   | hd = pi_head ARROW cod = expr1
     { let (nm,dom) = hd in PiE (nm,dom,cod) }
-  | hd = pi_head ARROWPOS cod = expr1
-    { let (nm,dom) = hd in PosPiE (nm,dom,cod) }
-  | hd = pi_head TIMESPOS cod = expr1
-    { let (nm,dom) = hd in PosSigE (nm,dom,cod) }
+  | hd = pi_head TIMES cod = expr1
+    { let (nm,dom) = hd in SigE (nm,dom,cod) } 
+
 
 expr2:
   | e = expr3
     { e }
   | u = expr2 v = expr3
     { AppE (u,v) }
-  | u = expr2 APPPOS v = expr3
-    { PosAppE (u,v) } 
 
 expr3:
   | TYPE
     { TypE }
-  | POS
-    { PosE }
-  | UNITPOS
-    { PosUnitE }
-  | EMPTYPOS
-    { PosEmptyE }
-  | TTPOS
-    { PosTtE } 
-  | EL e = expr3
-    { ElE e }
-  | INLPOS e = expr3
-    { PosInlE e }
-  | INRPOS e = expr3
-    { PosInrE e }
-  | BOTELIM
-    { PosBotElimE }
-  | TOPELIM e = expr3
-    { PosTopElimE e } 
-  | SUMELIM e = expr3 f = expr3
-    { PosSumElimE (e, f) }
-  | SIGELIM e = expr3
-    { PosSigElimE e }
-
   | id = IDENT
+    { VarE (Name id) }
+  | id = QNAME
     { VarE id }
+
+  | FST e = expr3
+    { FstE e }
+  | SND e = expr3
+    { SndE e }
+
+  | LBRKT e = expr AT nm = IDENT RBRKT
+    { ReflE (e, First nm) } 
+  | LBRKT e = expr AT pi = cmplx(IDENT) RBRKT
+    { ReflE (e, Second pi) } 
+
   | LPAR t = expr RPAR
     { t }
+
 

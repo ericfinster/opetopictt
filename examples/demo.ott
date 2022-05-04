@@ -2,24 +2,67 @@
 #  demo.ott - some samples of opetopictt
 #
 
-let id (A : U) (a : A) : A = a
+def id (A : U) (a : A) : A = a
 
-let Eq : (A : U) → A → A → U
-  = λ A. λ x. λ y. (P : A → U) → P x → P y
+def const (A : U) (B : U) : A → B → A
+  = λ a → λ b → a
 
-let refl : (A : U) → (x : A) → Eq A x x
-  = λ A. λ x. λ P. λ px. px
+def List : U → U
+  = λ A → (L : U) → (A → L → L) → L → L
 
-let Nat : U
+def nil : (A : U) → List A
+  = λ A → λ L → λ cons → λ nil → nil
+
+def cons : (A : U) → A → List A → List A
+  = λ A → λ x → λ xs → λ L → λ cons → λ nil → cons x (xs L cons nil)
+
+def Bool : U
+  = (B : U) → B → B → B
+
+def true : Bool
+  = λ B → λ t → λ f → t
+
+def false : Bool
+  = λ B → λ t → λ f → f
+
+def not : Bool → Bool
+  = λ b → λ B → λ t → λ f → b B f t
+
+def Eq : (A : U) → A → A → U
+  = λ A → λ x → λ y → (P : A → U) → P x → P y
+
+def refl : (A : U) → (x : A) → Eq A x x
+  = λ A → λ x → λ P → λ px → px
+
+def list1 : List Bool
+  = cons Bool (id Bool true) (nil Bool)
+
+def list2 : List Bool
+  = cons Bool true (cons Bool false (nil Bool))
+
+def Nat : U
   = (A : U) → A → (A → A) → A
 
-let zero : Nat
-  = λ A. λ zero. λ succ. zero
+def zero : Nat
+  = λ A → λ zero → λ succ → zero
 
-let succ : Nat → Nat
-  = λ n. λ A. λ zero. λ succ. succ (n A zero succ)
+def succ : Nat → Nat
+  = λ n → λ A → λ zero → λ succ → succ (n A zero succ)
 
-let one : Nat
+def one : Nat
   = succ (zero)
+
+def sigma (A : U) (B : A → U) : U
+  = (a : A) × B a
+
+def pair (A : U) (B : A → U) (a : A) (b : B a) : (a : A) × B a
+  = a , b
+
+def fst_tst (A : U) (B : A → U) (ab : (a : A) × B a) : A
+  = fst ab
+
+def snd_test (A : U) (B : A → U) (ab : (a : A) × B a) : B (fst ab)
+  = snd ab 
+
 
 

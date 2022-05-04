@@ -14,116 +14,98 @@ open Syntax
 
 type expr =
 
-  (* Type theory primitives *)
-  | VarE of name
+  (* Variables *)
+  | VarE of qname
+
+  (* Let *)
+  | LetE of name * expr * expr * expr 
+
+  (* Pi Types *)
   | LamE of name * expr
-  | AppE of expr * expr 
+  | AppE of expr * expr
   | PiE of name * expr * expr
+
+  (* Sigma Types *)
+  | PairE of expr * expr
+  | FstE of expr
+  | SndE of expr
+  | SigE of name * expr * expr 
+
+  (* Opetopic Reflexivity *) 
+  | ReflE of expr * (name , name tr_expr suite) Either.t 
+  | ExpE of idx 
+
+  (* The Universe *) 
   | TypE
-           
-  | PosE
-  | ElE of expr
-  | PosUnitE
-  | PosEmptyE
-  | PosSumE of expr * expr 
-  | PosSigE of name * expr * expr
-
-  | PosTtE
-  | PosInlE of expr
-  | PosInrE of expr
-  | PosPairE of expr * expr
-                
-  | PosPiE of name * expr * expr
-  | PosLamE of name * expr 
-  | PosAppE of expr * expr
-
-  | PosBotElimE
-  | PosTopElimE of expr
-  | PosSumElimE of expr * expr
-  | PosSigElimE of expr 
-
-
-(* This probably belongs elsewhere .... *)
-type defn =
-  | TermDef of name * expr tele * expr * expr
 
 (*****************************************************************************)
 (*                         Pretty Printing Raw Syntax                        *)
 (*****************************************************************************)
 
-let is_app e =
-  match e with
-  | AppE (_, _) -> true
-  | _ -> false
+let rec pp_qname ppf qnm =
+  match qnm with
+  | Name nm -> string ppf nm
+  | Qual (m,qn) ->
+    pf ppf "%s.%a" m pp_qname qn 
 
-let is_pi e =
-  match e with
-  | PiE (_,_,_) -> true
-  | _ -> false
-
-let tele_to_pd_dummy _ =
-  Error "dummy"
-
-let rec pp_expr_gen ~si:show_imp ppf expr =
-  let ppe = pp_expr_gen ~si:show_imp in
+let rec pp_expr ppf expr =
+  let ppe = pp_expr in
   match expr with
-  | VarE nm -> string ppf nm
-  | LamE (nm,bdy) -> pf ppf "\\%s. %a" nm ppe bdy
+  | VarE qnm -> pp_qname ppf qnm
+
+  | LetE (nm,ty,tm,exp) ->
+    pf ppf "let %s : %a@ = %a in@ %a"
+      nm pp_expr ty pp_expr tm pp_expr exp 
+
+  | LamE (nm,bdy) -> pf ppf "\u{03bb} %s.@;<1 2>%a" nm ppe bdy
   | AppE (u, v) ->
-    let pp_v = if (is_app v) then
-        parens ppe
-      else ppe in
-    pf ppf "%a@, %a" ppe u pp_v v
-  | PiE (nm,a,b) when String.(=) nm "" ->
-    let pp_a = if (is_pi a) then
-        parens ppe
-      else ppe in
-    pf ppf "%a \u{2192} %a"
-      pp_a a ppe b
-  | PiE (nm,dom,cod) ->
-    if (is_pi cod) then
-      pf ppf "(%s : %a)@, %a" nm
-        ppe dom ppe cod
-    else
-      pf ppf "(%s : %a)@, \u{2192} %a" nm
-        ppe dom ppe cod
-  | TypE -> string ppf "U"
-        
-  | PosE -> string ppf "Pos"
-  | ElE p -> pf ppf "El %a" ppe p
-
-  | PosUnitE -> pf ppf "\u{22A4}\u{209A}"
-  | PosEmptyE -> pf ppf "\u{22A5}\u{209A}"
-  | PosSumE (l, r) ->
-    pf ppf "%a \u{2294}\u{209A} %a" ppe l ppe r 
-  | PosSigE (nm, a, b) ->
-    pf ppf "(%s : %a)@, \u{D7}\u{209A} %a" nm ppe a ppe b 
-  | PosTtE -> pf ppf "tt\u{209A}"
-  | PosInlE u -> pf ppf "inl\u{209A} %a" ppe u 
-  | PosInrE v -> pf ppf "inr\u{209A} %a" ppe v
-  | PosPairE (u,v) ->
-    pf ppf "%a , %a" ppe u ppe v
+    pf ppf "%a@;<1 2>%a" ppe u
+      (expr_app_parens v) v
       
-  | PosPiE (nm,a,b) ->
-    pf ppf "(%s : %a)@, \u{2192}\u{209A} %a" nm ppe a ppe b 
-  | PosLamE (nm,b) ->
-    pf ppf "\u{03BB}\u{209A} %s, %a" nm ppe b 
-  | PosAppE (u,v) ->
-    pf ppf "%a@, @@ %a" ppe u ppe v
+  | PiE (nm,a,b) when String.equal nm "" ->
+    pf ppf "%a \u{2192}@ %a"
+      (expr_pi_parens a) a ppe b
+  | PiE (nm,dom,cod) ->
+    pf ppf "(%s : %a) \u{2192}@ %a" nm
+      ppe dom ppe cod
 
-  | PosBotElimE ->
-    pf ppf "\u{22A5}-elim"
-  | PosTopElimE e ->
-    pf ppf "\u{22A4}-elim %a" ppe e
-  | PosSumElimE (u,v) ->
-    pf ppf "\u{2294}-elim %a %a" ppe u ppe v
-  | PosSigElimE e ->
-    pf ppf "\u{D7}-elim %a" ppe e 
+  | PairE (u,v) ->
+    pf ppf "%a ,@ %a" pp_expr u pp_expr v
+  | FstE u ->
+    pf ppf "fst@;<1 2>%a" (expr_app_parens u) u
+  | SndE u ->
+    pf ppf "snd@;<1 2>%a" (expr_app_parens u) u
+      
+  | SigE (nm,a,b) when String.equal nm "" ->
+    pf ppf "%a \u{d7}@ %a"
+      pp_expr a pp_expr b 
+  | SigE (nm,a,b) ->
+    pf ppf "(%s : %a) \u{d7}@ %a"
+      nm pp_expr a pp_expr b 
 
-(*****************************************************************************)
-(*                          Matching pretty printers                         *)
-(*****************************************************************************)
+  | ReflE (a,First nm) ->
+    pf ppf "[ %a %@ %s ]" pp_expr a nm
+  | ReflE (a,Second pi) ->
+    pf ppf "[ %a @[<v>%@ %a@] ]"
+      pp_expr a (pp_suite ~sep:(any "@;| ")
+                   (Fmt.box (pp_tr_expr Fmt.string))) pi
+  | ExpE idx -> pf ppf "*exp* %d" idx 
 
-let pp_expr = pp_expr_gen ~si:false 
-let pp_expr_with_impl = pp_expr_gen ~si:true
+  | TypE -> pf ppf "U"
 
+and expr_app_parens e =
+  match e with
+  | PiE _ -> parens pp_expr
+  | AppE _ -> parens pp_expr
+  | LamE _ -> parens pp_expr
+  | PairE _ -> parens pp_expr
+  | FstE _ -> parens pp_expr
+  | SndE _ -> parens pp_expr
+  | SigE _ -> parens pp_expr
+  | _ -> pp_expr
+
+and expr_pi_parens e =
+  match e with
+  | PiE _ -> parens pp_expr
+  | _ -> pp_expr
+    

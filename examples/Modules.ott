@@ -1,0 +1,32 @@
+#
+# modules.ott - testing modules
+#
+
+module Bleep (A : U) where 
+
+  def id (a : A) : A = a
+  def id2 (a : A) : A = id a 
+
+end 
+
+def id3 (A : U) (a : A) : A = id A a
+
+module First (A : U) where
+
+  def fred (a : A) : A = a
+
+end
+
+module Second (B : U) where
+
+  module Third where
+  
+    def betty (b : B) : B = b
+    
+  end
+
+  def wilma (b : B) : B = betty b 
+  
+end 
+
+

@@ -1,0 +1,105 @@
+#
+#  Sigma.ott - playing around with sigma
+#
+
+import Prelude
+
+module KanArrow (A : U) (a₀ : A) (a₁ : A) (p : Eq A a₀ a₁)
+  (B : A → U) (C : (a : A) → B a → U) where
+
+  def BEqv : Eq U (B a₀) (B a₁)
+    = [ B @ arr ] a₀ a₁ p 
+
+  def BF : B a₀ → B a₁ → U = fst BEqv
+
+  def CEqv (b₀ : B a₀) (b₁ : B a₁) (q : fst BEqv b₀ b₁)
+      : Eq U (C a₀ b₀) (C a₁ b₁)
+    = [ C @ arr ] a₀ a₁ p b₀ b₁ q 
+        
+  def CF (b₀ : B a₀) (b₁ : B a₁) (q : BF b₀ b₁)
+      (c₀ : C a₀ b₀) (c₁ : C a₁ b₁) : U
+    = fst (CEqv b₀ b₁ q) c₀ c₁ 
+
+  module Exists (b₀ : B a₀) (c₀ : C a₀ b₀) where
+
+    def exists-goal : U
+      = (bc : (b₁ : B a₁) × (C a₁ b₁)) ×
+          ((p : BF b₀ (fst bc)) × CF b₀ (fst bc) p c₀ (snd bc))
+
+    def b : B a₁ = fst fst (fst snd BEqv b₀)
+    def q : BF b₀ b = snd fst (fst snd BEqv b₀)
+    
+    def c : C a₁ b = fst fst (fst snd (CEqv b₀ b q) c₀)
+    def r : CF b₀ b q c₀ c = snd fst (fst snd (CEqv b₀ b q) c₀)
+
+    def comp-exists : exists-goal
+      = ((b , c) , (q , r))
+
+    module IsUnique (b₁ : B a₁) (c₁ : C a₁ b₁) (q₁ : BF b₀ b₁) (r₁ : CF b₀ b₁ q₁ c₀ c₁) where
+
+      def unique-goal : U
+        = Eq exists-goal comp-exists ((b₁ , c₁) , (q₁ , r₁))
+
+      def ub : Eq (B a₁) b b₁
+        = fst (snd (fst snd BEqv b₀) (b₁ , q₁))
+
+      def uq : PathOver (B a₁) (BF b₀) b b₁ ub q q₁
+        = snd (snd (fst snd BEqv b₀) (b₁ , q₁))
+
+      # A couple intermediate terms
+
+      def tc₁ : C a₁ b = untransport (B a₁) (C a₁) b b₁ ub c₁
+      
+      def fc₁ : PathOver (B a₁) (C a₁) b b₁ ub tc₁ c₁
+        = untransport-po (B a₁) (C a₁) b b₁ ub c₁
+        
+      def tr₁ : CF b₀ b q c₀ tc₁
+        = diamond-untransp (B a₁) (BF b₀) (C a₁) 
+            (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+            b b₁ ub q q₁ uq tc₁ c₁ fc₁ r₁ 
+
+      def fr₁ : diamond-fib (B a₁) (BF b₀) (C a₁)
+                 (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+                 b b₁ ub q q₁ uq tc₁ c₁ fc₁ tr₁ r₁
+        = diamond-untransp-po (B a₁) (BF b₀) (C a₁) 
+            (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+            b b₁ ub q q₁ uq tc₁ c₁ fc₁ r₁ 
+
+      # The above transport data gives us a frame competitor for (c, r)
+      # which is therefore unique
+      def cr-unique : Eq ((c : C a₁ b) × CF b₀ b q c₀ c) (c , r) (tc₁ , tr₁)
+        = snd (fst snd (CEqv b₀ b q) c₀) (tc₁ , tr₁) 
+
+      # Now we have the uniqueness witness for c 
+      def uc : PathOver (B a₁) (C a₁) b b₁ ub c c₁
+        = untransport (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+            c tc₁ (fst cr-unique) fc₁ 
+
+      def uc-po : PathOver (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+                    c tc₁ (fst cr-unique) uc fc₁
+        = untransport-po (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+            c tc₁ (fst cr-unique) fc₁ 
+        
+      def ur-typ : U
+        = diamond-fib (B a₁) (BF b₀) (C a₁)
+            (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+            b b₁ ub q q₁ uq c c₁ uc r r₁
+
+      # And one last transport gives us the uniqueness of r
+      def ur : ur-typ
+        = diamond-untransp (C a₁ b) (λ c₂ → PathOver (B a₁) (C a₁) b b₁ ub c₂ c₁)
+            (CF b₀ b q c₀) (λ x → λ y → λ z →
+              diamond-fib (B a₁) (BF b₀) (C a₁)
+                  (λ b₂ → λ q₂ → λ c₂ → CF b₀ b₂ q₂ c₀ c₂)
+                  b b₁ ub q q₁ uq x c₁ y z r₁)
+             c tc₁ (fst cr-unique) uc fc₁ uc-po r tr₁ (snd cr-unique) fr₁
+
+      # Finally, we put it all together
+      def comp-is-unique : unique-goal
+        = ((ub,uc),(uq,ur))
+        
+    end 
+
+  end
+
+end 

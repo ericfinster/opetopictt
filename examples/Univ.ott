@@ -1,0 +1,54 @@
+#
+#  Univ.ott - kan fillers in the universe
+#
+
+import Prelude
+
+# a simple test is that we cannot the equality on this.
+# well, we can normalize the applied version ...
+def univ-fib (A : U) (B : U) : U
+  = (E : A → B → U) ×
+    ((a : A) → is-contr ((b : B) × E a b)) ×
+    ((b : B) → is-contr ((a : A) × E a b))
+
+def over-fib (A : U) : U → U
+  = λ B → (E : A → B → U) × 
+          ((a : A) → is-contr ((b : B) × E a b))
+          
+def comp (A : U) : U
+  = A 
+
+def fill (A : U) : univ-fib A (comp A)
+  = [ A @ arr ]
+
+# Yikes.  We choke on this ....
+def goal (A : U) (B : U) (b-rel : univ-fib A B) : U
+  = PathOver U (univ-fib A) A B b-rel [ A @ arr ] b-rel
+  
+  # (fst [ A @ arr ] , fst snd [ A @ arr ] , snd snd [ A @ arr ])
+  # = let E : A → A → U
+  #         = fst [ A @ arr ] in
+  #   let to : (a₀ : A) → is-contr ((a₁ : A) × E a₀ a₁)
+  #          = λ a₀ → fst snd [ A @ arr ] a₀ in 
+  #   let from : (a₁ : A) → is-contr ((a₀ : A) × E a₀ a₁)
+  #          = λ a₁ → snd snd [ A @ arr ] a₁ in 
+  #   (E , to , from)
+
+#
+#  so far so good.  Now we need to show that this is the *universal*
+#  relation out of A....
+#
+
+# module IsUnique (A : U) (B : U) (b-rel : univ-fib A B) where
+
+#   def comp-unique : Eq U A B
+#     = b-rel
+
+#   #  Yeah, this crashes.  But now we could be in the territory where
+#   #  this is because the definition of Σ is not complete.
+#   def fill-unique
+#     : PathOver U (univ-fib A) A B comp-unique (fill A) b-rel
+#     = A
+
+# end
+     

@@ -16,91 +16,136 @@ open Syntax
 
 type term =
 
-  (* Primitives *)
+  (* Variables and Definitions *)
   | VarT of idx
-  | TopT of name
+  | TopT of qname
+  | LetT of name * term * term *term
+
+  (* Pi Types *) 
   | LamT of name * term
   | AppT of term * term 
   | PiT of name * term * term
+
+  (* Sigma Types *) 
+  | PairT of term * term
+  | FstT of term
+  | SndT of term
+  | SigT of name * term * term
+
+  (* Opetopic Reflexivity *)
+  | ReflT of term * name * name cmplx 
+  | ExpT of idx 
+
+  (* The Universe *) 
   | TypT
 
-  | PosT
-  | ElT of term
-  | PosUnitT
-  | PosEmptyT
-  | PosSumT of term * term 
-  | PosSigT of name * term * term
-
-  | PosTtT
-  | PosInrT of term
-  | PosInlT of term
-  | PosPairT of term * term
-                
-  | PosPiT of name * term * term
-  | PosLamT of name * term 
-  | PosAppT of term * term
-
-  | PosBotElimT
-  | PosTopElimT of term
-  | PosSumElimT of term * term
-  | PosSigElimT of term 
-      
-
 (*****************************************************************************)
-(*                               Term equality                               *)
+(*                               Term Equality                               *)
 (*****************************************************************************)
 
-let rec term_eq u v =
-  match (u, v) with
-  | (VarT i , VarT i') -> Int.equal i i'
-  | (TopT nm , TopT nm') -> String.equal nm nm'
-                            
-  | (LamT (_,u') , LamT (_, v')) -> term_eq u' v'
-  | (AppT (a,b) , AppT (a',b')) -> term_eq a a' && term_eq b b'
-  | (PiT (_,a,b) , PiT (_,a',b')) -> term_eq a a' && term_eq b b'
-  | (TypT , TypT) -> true 
-  
-  | (PosT , PosT) -> true
-  | (ElT p , ElT p') -> term_eq p p'
-                          
-  | (PosUnitT , PosUnitT) -> true
-  | (PosEmptyT , PosEmptyT) -> true
-  | (PosSumT (p,q) , PosSumT (p',q')) -> term_eq p p' && term_eq q q'
-  | (PosSigT (_,p,q) , PosSigT (_,p',q')) -> term_eq p p' && term_eq q q'
-  
-  | (PosTtT , PosTtT) -> true
-  | (PosInlT p , PosInlT p') -> term_eq p p'
-  | (PosInrT p , PosInrT p') -> term_eq p p'
-  | (PosPairT (p,q), PosPairT (p',q')) -> term_eq p p' && term_eq q q'
-                
-  | (PosPiT (_,p,q) , PosPiT (_,p',q')) -> term_eq p p' && term_eq q q'
-  | (PosLamT (_,p) , PosLamT (_,p')) -> term_eq p p'
-  | (PosAppT (p,q), PosAppT (p',q')) -> term_eq p p' && term_eq q q'
-  
-  | (PosBotElimT , PosBotElimT) -> true
-  | (PosTopElimT p , PosTopElimT p') -> term_eq p p'
-  | (PosSumElimT (p,q) , PosSumElimT (p',q')) -> term_eq p p' && term_eq q q'
-  | (PosSigElimT p , PosSigElimT p') -> term_eq p p'
+let rec term_eq s t =
+  match (s,t) with
+  | (VarT i , VarT j) -> i = j
+  | (TopT m , TopT n) -> qname_eq m n
+  | (LetT (_,tya,tma,bdya), LetT (_,tyb,tmb,bdyb)) ->
+    if (term_eq tya tyb) then
+      if (term_eq tma tmb) then
+        term_eq bdya bdyb
+      else false
+    else false
 
+  | (LamT (_,u) , LamT (_,v)) -> term_eq u v
+  | (AppT (u,v) , AppT (a,b)) ->
+    if (term_eq u a) then
+      term_eq v b
+    else false
+  | (PiT (_,u,v) , PiT (_,a,b)) ->
+    if (term_eq u a) then
+      term_eq v b
+    else false
+
+  | (PairT (ua,va), PairT (ub,vb)) ->
+    if (term_eq ua ub) then
+      term_eq va vb
+    else false
+  | (FstT ua, FstT ub) ->
+    term_eq ua ub
+  | (SndT ua, SndT ub) ->
+    term_eq ua ub
+  | (SigT (_,ua,va),SigT (_,ub,vb)) ->
+    if (term_eq ua ub) then
+      term_eq va vb
+    else false
+
+  | (ReflT (a,_,pi), ReflT (b,_,rho)) ->
+    if (term_eq a b) then
+      (* ignore namings .. *) 
+      cmplx_eq (fun _ _ -> true) pi rho
+    else false
+
+  | (TypT , TypT) -> true
   | _ -> false 
 
-  
+    
 (*****************************************************************************)
 (*                            Terms to Expressions                           *)
 (*****************************************************************************)
 
+(* So: what you can do for naming is have a flag which tags those
+   names which may have been generated.  Then, while converting back
+   to expressions, you will know which ones you need to generate. *)
+      
 let rec term_to_expr nms tm =
   let tte = term_to_expr in
+  (* log_val "nms" nms (pp_suite Fmt.string) ; *)
   match tm with
   | VarT i ->
-    let nm = db_get i nms in VarE nm
+    begin try
+        let nm = db_get i nms in
+        VarE (Name nm)
+      with
+      | Lookup_error ->
+        raise (Internal_error
+                 (Fmt.str "@[<v>Index out of range in term_to_expr: %d@,nms: @[%a@]@]"
+                    i (pp_suite Fmt.string) nms))
+    end
+    
   | TopT nm -> VarE nm
+  | LetT (nm,ty,tm,bdy) ->
+    LetE (nm,tte nms ty,tte nms tm,
+          tte (Ext (nms,nm)) bdy) 
+
   | LamT (nm,bdy) ->
     LamE (nm, tte (Ext (nms,nm)) bdy)
   | AppT (u,v) ->
     AppE (tte nms u, tte nms v)
   | PiT (nm,a,b) ->
-    PiE (nm, tte nms a, tte (Ext (nms,nm)) b)
+    (* this is a heuristic but not completely safe ... *)
+    (* let nm' = 
+     *   if (String.equal nm "") then
+     *     "x" ^ (Int.to_string (length nms)) 
+     *   else nm in  *)
+    PiE (nm,tte nms a, tte (Ext (nms,nm)) b)
+
+  | PairT (u,v) ->
+    PairE (tte nms u, tte nms v)
+  | FstT u ->
+    FstE (tte nms u)
+  | SndT u ->
+    SndE (tte nms u)
+  | SigT (nm,u,v) ->
+    (* let nm' = 
+     *   if (String.equal nm "") then
+     *     "x" ^ (Int.to_string (length nms)) 
+     *   else nm in  *)
+    SigE (nm,tte nms u, tte (Ext (nms,nm)) v)
+
+  | ReflT (a,nm,pi) ->
+    if (String.equal nm "") then 
+      ReflE (tte nms a, Second (of_cmplx pi))
+    else ReflE (tte nms a, First nm)
+  | ExpT idx -> ExpE idx 
+
   | TypT -> TypE
       
   | PosT -> PosE
@@ -156,37 +201,46 @@ let pi_to_tele ty =
 (*                              Pretty Printing                              *)
 (*****************************************************************************)
 
-let is_app_tm tm =
-  match tm with
-  | AppT (_,_) -> true
-  | _ -> false
-
-let is_pi_tm tm =
-  match tm with
-  | PiT (_,_,_) -> true
-  | _ -> false
-
 let rec pp_term ppf tm =
   match tm with
   | VarT i -> int ppf i
-  | TopT nm -> string ppf nm
+  | TopT nm -> pp_qname ppf nm
+  | LetT (nm,ty,tm,bdy) -> 
+    pf ppf "let %s : %a@ = %a in@ %a"
+      nm pp_term ty pp_term tm pp_term bdy
+
   | LamT (nm,t) ->
-    pf ppf "\\%s. %a" nm pp_term t
+    pf ppf "\u{03bb} %s . %a" nm pp_term t
   | AppT (u,v) ->
-    (* Need's a generic lookahead for parens routine ... *)
-    let pp_v = if (is_app_tm v) then
-        parens pp_term
-      else pp_term in
-    pf ppf "%a %a" pp_term u pp_v v
+    pf ppf "%a %a" pp_term u (term_app_parens v) v
   | PiT (nm,a,p) when Poly.(=) nm "" ->
-    let pp_a = if (is_pi_tm a) then
-        parens pp_term
-      else pp_term in
-    pf ppf "%a -> %a"
-      pp_a a pp_term p
+    pf ppf "%a \u{2192} %a"
+      (term_pi_parens a) a pp_term p
   | PiT (nm,a,p) ->
-    pf ppf "(%s : %a) -> %a" nm
+    pf ppf "(%s : %a) \u{2192} %a" nm
       pp_term a pp_term p
+
+  | PairT (u,v) ->
+    pf ppf "%a , %a" pp_term u pp_term v
+  | FstT u ->
+    pf ppf "fst %a" pp_term u
+  | SndT u ->
+    pf ppf "snd %a" pp_term u
+  | SigT (nm,a,b) ->
+    pf ppf "(%s : %a)@, \u{d7} %a"
+      nm pp_term a pp_term b 
+
+  | ReflT (a,nm,pi) ->
+    let open Opetopes.Idt.IdtConv in
+    if (String.equal nm "") then 
+      pf ppf "[ @[%a@] @[<v>%@ %a@] ]"
+        pp_term a (pp_suite ~sep:(any "@;| ")
+                     (Fmt.box (pp_tr_expr Fmt.string))) (of_cmplx pi)
+    else
+      pf ppf "[ @[%a@] %@ %s ]"
+        pp_term a nm
+  | ExpT idx -> pf ppf "*exp* %d" idx 
+
   | TypT -> pf ppf "U"
       
   | PosT -> pf ppf "Pos"
@@ -220,4 +274,33 @@ let rec pp_term ppf tm =
   | PosSigElimT e ->
     pf ppf "\u{D7}-elim %a" pp_term e 
 
+and term_app_parens t =
+  match t with
+  | PiT _ -> parens pp_term
+  | AppT _ -> parens pp_term
+  | LamT _ -> parens pp_term
+  | PairT _ -> parens pp_term
+  | FstT _ -> parens pp_term
+  | SndT _ -> parens pp_term
+  | SigT _ -> parens pp_term
+  | _ -> pp_term
+
+and term_pi_parens t =
+  match t with
+  | PiT _ -> parens pp_term
+  | _ -> pp_term
+  
+
+(*****************************************************************************)
+(*                         Term Syntax Implmentations                        *)
+(*****************************************************************************)
+
+module TermSyntax = struct
+  type s = term
+  let var k l _ = VarT (lvl_to_idx k l)
+  let lam nm bdy = LamT (nm,bdy)
+  let app u v = AppT (u,v)
+  let pi nm dom cod = PiT (nm,dom,cod)
+  let pp_s = pp_term
+end
 
